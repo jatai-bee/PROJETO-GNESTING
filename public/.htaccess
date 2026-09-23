@@ -1,0 +1,38 @@
+# ------------------------------------------------------------
+# G-Nesting — .htaccess do diretório público
+# Front controller: tudo que não for arquivo existente vai para index.php
+# ------------------------------------------------------------
+
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Uploads nunca executam PHP
+<IfModule mod_rewrite.c>
+    RewriteRule ^uploads/.*\.(php\d?|phtml|phar)$ - [F,L]
+</IfModule>
+
+# Arquivos estáticos. As páginas dinâmicas recebem os cabeçalhos de segurança
+# da própria aplicação (app/Core/SecurityHeaders.php).
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|png|jpe?g|webp|gif|ico|woff2?)$">
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/webp "access plus 6 months"
+    ExpiresByType image/jpeg "access plus 6 months"
+    ExpiresByType image/png "access plus 6 months"
+    ExpiresByType image/svg+xml "access plus 6 months"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>

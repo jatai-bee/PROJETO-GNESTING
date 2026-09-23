@@ -1,0 +1,27 @@
+# ------------------------------------------------------------
+# G-Nesting — .htaccess da RAIZ do projeto
+#
+# Usado apenas quando a hospedagem compartilhada NÃO permite
+# apontar o domínio diretamente para /public.
+# Se for possível configurar o document root para /public,
+# faça isso: é a opção mais segura.
+# ------------------------------------------------------------
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloqueia qualquer acesso direto a diretórios e arquivos sensíveis
+    RewriteRule ^(app|bin|config|database|docs|routes|storage|tests|vendor)(/|$) - [F,L]
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+    RewriteRule ^(composer\.(json|lock)|phpunit\.xml.*|README\.md)$ - [F,L]
+
+    # Encaminha tudo para /public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,126 @@
+/* ==========================================================================
+   G-Nesting — Design tokens
+   Objetos que transformam espaços.
+   Fonte única de cores, tipografia, espaçamento e breakpoints.
+   Ver docs/06-identidade-visual.md
+   ========================================================================== */
+
+:root {
+  /* ---- Cores de marca ---------------------------------------------------- */
+  --gn-grafite:        #1F1E1C;  /* texto principal, logotipo */
+  --gn-papel:          #F5F2EC;  /* fundo principal */
+  --gn-carvalho:       #B98A5E;  /* madeira/MDF: superfícies, ilustração (nunca texto) */
+  --gn-carvalho-claro: #E8DCCB;  /* fundos de destaque, cards de categoria */
+  --gn-kerf:           #C4532D;  /* acento e CTA (texto branco sobre ele: 4.5:1) */
+  --gn-kerf-escuro:    #A8431F;  /* links e acento em texto sobre papel (5.4:1) */
+
+  /* ---- Neutros ----------------------------------------------------------- */
+  --gn-branco:         #FFFFFF;
+  --gn-cinza-900:      #1F1E1C;
+  --gn-cinza-700:      #3D3A36;
+  --gn-cinza-600:      #6B665E;  /* texto secundário (5.1:1 sobre papel) */
+  --gn-cinza-300:      #D6D0C6;  /* bordas */
+  --gn-cinza-200:      #E7E2D9;  /* divisórias, linhas de nesting */
+  --gn-cinza-100:      #EFEBE4;
+
+  /* ---- Feedback ---------------------------------------------------------- */
+  --gn-sucesso:        #2F6B4F;
+  --gn-alerta:         #8A5A00;
+  --gn-erro:           #B3261E;
+  --gn-info:           #2C5A7A;
+
+  /* ---- Papéis semânticos (use estes nos componentes) --------------------- */
+  --color-bg:            var(--gn-papel);
+  --color-surface:       var(--gn-branco);
+  --color-surface-warm:  var(--gn-carvalho-claro);
+  --color-text:          var(--gn-grafite);
+  --color-text-muted:    var(--gn-cinza-600);
+  --color-border:        var(--gn-cinza-300);
+  --color-line:          var(--gn-cinza-200);
+  --color-accent:        var(--gn-kerf);
+  --color-accent-text:   var(--gn-kerf-escuro);
+  --color-on-accent:     var(--gn-branco);
+  --color-focus:         var(--gn-kerf-escuro);
+
+  /* ---- Tipografia -------------------------------------------------------- */
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-sans:    "Manrope", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --font-mono:    ui-monospace, "SFMono-Regular", Consolas, monospace; /* SKU, códigos */
+
+  /* Escala fluida (mobile → desktop) */
+  --text-xs:   0.75rem;                                   /* 12 */
+  --text-sm:   0.875rem;                                  /* 14 */
+  --text-base: 1rem;                                      /* 16 */
+  --text-lg:   1.125rem;                                  /* 18 */
+  --text-xl:   clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);    /* 20–24 */
+  --text-2xl:  clamp(1.5rem, 1.25rem + 1vw, 2rem);        /* 24–32 */
+  --text-3xl:  clamp(2rem, 1.5rem + 2vw, 3rem);           /* 32–48 */
+  --text-hero: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);       /* 40–72 */
+
+  --leading-tight: 1.15;
+  --leading-snug:  1.35;
+  --leading-body:  1.6;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --tracking-label: 0.08em;   /* rótulos em caixa alta */
+
+  /* ---- Espaçamento (base 8, com meio passo) ----------------------------- */
+  --space-1:  0.25rem;  /*  4 */
+  --space-2:  0.5rem;   /*  8 */
+  --space-3:  0.75rem;  /* 12 */
+  --space-4:  1rem;     /* 16 */
+  --space-5:  1.5rem;   /* 24 */
+  --space-6:  2rem;     /* 32 */
+  --space-7:  3rem;     /* 48 */
+  --space-8:  4rem;     /* 64 */
+  --space-9:  6rem;     /* 96 */
+
+  --gutter:        var(--space-4);   /* margem lateral mobile */
+  --container-max: 1280px;
+
+  /* ---- Forma ------------------------------------------------------------- */
+  --radius-sm:   2px;    /* precisão: cantos quase retos */
+  --radius-md:   4px;
+  --radius-lg:   8px;
+  --radius-pill: 999px;
+
+  --border-hairline: 1px solid var(--color-line);
+  --border-default:  1px solid var(--color-border);
+
+  --shadow-sm: 0 1px 2px rgb(31 30 28 / 0.06);
+  --shadow-md: 0 4px 16px rgb(31 30 28 / 0.08);
+  --shadow-lg: 0 12px 40px rgb(31 30 28 / 0.12);
+
+  /* ---- Movimento --------------------------------------------------------- */
+  --ease-out:      cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* ---- Camadas ----------------------------------------------------------- */
+  --z-header:  100;
+  --z-drawer:  200;
+  --z-modal:   300;
+  --z-toast:   400;
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: var(--space-5); }
+}
+@media (min-width: 1280px) {
+  :root { --gutter: var(--space-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
+
+/* Breakpoints de referência (mobile-first, usar em min-width):
+   sm 480px · md 768px · lg 1024px · xl 1280px
+   (CSS custom properties não funcionam dentro de @media; mantenha estes valores.) */

@@ -1,0 +1,27 @@
+# Dependências
+/vendor/
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Storage (mantém a estrutura, ignora o conteúdo)
+/storage/logs/*
+/storage/cache/*
+/storage/sessions/*
+/storage/private/production_files/*
+!/storage/**/.gitkeep
+
+# Uploads públicos gerados pelo admin
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Ferramentas
+/.phpunit.cache/
+.phpunit.result.cache
+.idea/
+.vscode/
+*.log
+Thumbs.db
+.DS_Store

@@ -53,4 +53,30 @@ final class HelpersTest extends TestCase
         self::assertSame('23/09/2026 09:00', format_datetime('2026-09-23 12:00:00'));
         self::assertSame('', format_datetime(null));
     }
+
+    public function testParseAndFormatDecimalWithoutFloats(): void
+    {
+        self::assertSame('6.00', parse_decimal('6'));
+        self::assertSame('6.50', parse_decimal('6,5'));
+        self::assertSame('2.75', parse_decimal('2.75'));
+        self::assertSame('1234.50', parse_decimal('1.234,5'));
+        self::assertSame('0.30', parse_decimal('0,3'));
+        self::assertSame('0.00', parse_decimal('000'));
+        foreach (['', '-1', 'abc', '1,234', '6.555', '1e3', '123456789'] as $invalid) {
+            self::assertNull(parse_decimal($invalid), $invalid);
+        }
+
+        self::assertSame('6', format_decimal('6.00'));
+        self::assertSame('6,5', format_decimal('6.50'));
+        self::assertSame('82,25', format_decimal('82.25'));
+        self::assertSame('', format_decimal(null));
+    }
+
+    public function testFormatMinutes(): void
+    {
+        self::assertSame('0 min', format_minutes(0));
+        self::assertSame('45 min', format_minutes(45));
+        self::assertSame('1 h', format_minutes(60));
+        self::assertSame('2 h 06 min', format_minutes(126));
+    }
 }

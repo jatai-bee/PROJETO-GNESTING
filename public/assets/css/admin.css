@@ -174,3 +174,26 @@ body.admin { flex-direction: column; background: var(--gn-cinza-100); }
 }
 .option-new { margin-top: var(--space-4); padding-top: var(--space-4); border-top: var(--border-hairline); }
 .option-new summary { cursor: pointer; font-weight: var(--weight-semibold); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+
+/* ---- Fichas de produção (etapa 6) ----------------------------------------- */
+.variant-switch { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+.variant-switch a {
+  padding: var(--space-1) var(--space-3); border: var(--border-default); border-radius: var(--radius-pill);
+  background: var(--gn-branco); font-size: var(--text-sm); color: var(--color-text); text-decoration: none;
+}
+.variant-switch a[aria-current="page"] { background: var(--color-text); border-color: var(--color-text); color: var(--gn-branco); }
+.stats + .form-layout { margin-top: var(--space-4); }
+.steps-table input, .steps-table select {
+  width: 100%; min-height: 36px; padding: 0 var(--space-2);
+  background: var(--gn-branco); border: var(--border-default); border-radius: var(--radius-sm); font-size: var(--text-sm);
+}
+.steps-table input[type="checkbox"] { width: 18px; min-height: 0; height: 18px; accent-color: var(--gn-kerf); }
+.steps-table [aria-invalid="true"] { border-color: var(--gn-erro); }
+.steps-table .input--xs { width: 64px; }
+.steps-table td { vertical-align: top; }
+.steps-table__check { text-align: center; }
+.steps-table__blank { background: var(--gn-cinza-100); }
+.steps-table .field__error { font-size: var(--text-xs); }
+.steps-table select { min-width: 170px; }
+.steps-table td:nth-child(3) input { min-width: 240px; }
+.steps-table td:nth-child(4) input { min-width: 160px; }

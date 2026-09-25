@@ -115,6 +115,57 @@ if (!function_exists('parse_money')) {
     }
 }
 
+if (!function_exists('parse_decimal')) {
+    /**
+     * Número decimal digitado ("6", "6,5", "2.75", "1.234,5") para o formato do banco
+     * com 2 casas ("6.50"), sem ponto flutuante. Null se inválido ou negativo.
+     */
+    function parse_decimal(string $value): ?string
+    {
+        $value = str_replace([' ', "\u{00A0}"], '', trim($value));
+        if ($value === '') {
+            return null;
+        }
+        if (str_contains($value, ',')) {
+            $value = str_replace(['.', ','], ['', '.'], $value); // formato brasileiro
+        }
+        if (!preg_match('/^(\d{1,8})(?:\.(\d{1,2}))?$/', $value, $m)) {
+            return null;
+        }
+
+        $integer = ltrim($m[1], '0') ?: '0';
+
+        return $integer . '.' . str_pad($m[2] ?? '', 2, '0');
+    }
+}
+
+if (!function_exists('format_decimal')) {
+    /** "6.50" → "6,5"; "6.00" → "6". Para exibir e repreencher formulários. */
+    function format_decimal(string|int|float|null $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        [$int, $dec] = array_pad(explode('.', (string) $value, 2), 2, '');
+        $dec = rtrim($dec, '0');
+
+        return $int . ($dec === '' ? '' : ',' . $dec);
+    }
+}
+
+if (!function_exists('format_minutes')) {
+    /** 95 → "1 h 35 min"; 40 → "40 min". */
+    function format_minutes(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return $minutes . ' min';
+        }
+        $rest = $minutes % 60;
+
+        return intdiv($minutes, 60) . ' h' . ($rest > 0 ? ' ' . str_pad((string) $rest, 2, '0', STR_PAD_LEFT) . ' min' : '');
+    }
+}
+
 if (!function_exists('money_input')) {
     /** Centavos para o campo de formulário: 12990 → "129,90". */
     function money_input(?int $cents): string

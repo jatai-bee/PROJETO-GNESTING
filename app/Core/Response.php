@@ -9,6 +9,9 @@ final class Response
     /** @var array<string, array{value: string, options: array<string, mixed>}> */
     private array $cookies = [];
 
+    /** Arquivo enviado em send() com readfile (download), no lugar do corpo em texto. */
+    private ?string $filePath = null;
+
     /** @param array<string, string> $headers */
     public function __construct(
         private string $body = '',
@@ -27,6 +30,28 @@ final class Response
         $body = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_THROW_ON_ERROR);
 
         return new self($body, $status, ['Content-Type' => 'application/json; charset=UTF-8']);
+    }
+
+    /**
+     * Download de arquivo privado: sempre como anexo e octet-stream (nunca exibido
+     * pelo navegador — um SVG ou PDF não roda no contexto do painel).
+     */
+    public static function download(string $path, string $downloadName): self
+    {
+        $safeName = (string) preg_replace('/[^A-Za-z0-9._-]+/', '_', $downloadName);
+        $response = new self('', 200, [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s", $safeName, rawurlencode($downloadName)),
+            'Content-Length' => (string) filesize($path),
+        ]);
+        $response->filePath = $path;
+
+        return $response;
+    }
+
+    public function filePath(): ?string
+    {
+        return $this->filePath;
     }
 
     /** 303 após POST garante que o navegador faça GET no destino. */
@@ -100,6 +125,11 @@ final class Response
             foreach ($this->cookies as $name => $cookie) {
                 setcookie($name, $cookie['value'], $cookie['options']);
             }
+        }
+        if ($this->filePath !== null) {
+            readfile($this->filePath);
+
+            return;
         }
         echo $this->body;
     }

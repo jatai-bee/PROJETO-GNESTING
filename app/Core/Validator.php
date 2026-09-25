@@ -97,6 +97,8 @@ final class Validator
                 ? "{$label} deve ser no máximo {$param}." : null,
             'money' => (parse_money($string) === null)
                 ? "{$label} deve ser um valor em reais, por exemplo 129,90." : null,
+            'decimal' => (parse_decimal($string) === null)
+                ? "{$label} deve ser um número com até 2 casas decimais, por exemplo 6 ou 2,75." : null,
             'slug' => (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $string))
                 ? "{$label} deve conter apenas letras minúsculas sem acento, números e hífens." : null,
             'sku' => (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $string))

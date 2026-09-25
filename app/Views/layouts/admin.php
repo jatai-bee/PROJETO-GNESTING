@@ -17,6 +17,8 @@ $menu = [
     ['label' => 'Painel', 'href' => '/admin', 'roles' => null],
     ['label' => 'Produtos', 'href' => '/admin/produtos', 'roles' => ['manager']],
     ['label' => 'Categorias', 'href' => '/admin/categorias', 'roles' => ['manager']],
+    ['label' => 'Fichas de produção', 'href' => '/admin/fichas', 'roles' => ['manager', 'production']],
+    ['label' => 'Materiais', 'href' => '/admin/materiais', 'roles' => ['manager', 'production']],
     ['label' => 'Pedidos', 'href' => null, 'stage' => 8, 'roles' => ['manager', 'production', 'support']],
     ['label' => 'Produção', 'href' => null, 'stage' => 9, 'roles' => ['manager', 'production']],
     ['label' => 'Clientes', 'href' => null, 'stage' => 8, 'roles' => ['manager', 'support']],

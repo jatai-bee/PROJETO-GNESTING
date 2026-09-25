@@ -15,9 +15,11 @@ use GNesting\Controllers\Admin\AuditLogController;
 use GNesting\Controllers\Admin\AuthController;
 use GNesting\Controllers\Admin\CategoryController;
 use GNesting\Controllers\Admin\DashboardController;
+use GNesting\Controllers\Admin\MaterialController;
 use GNesting\Controllers\Admin\PersonalizationController;
 use GNesting\Controllers\Admin\ProductController;
 use GNesting\Controllers\Admin\ProductImageController;
+use GNesting\Controllers\Admin\ProductionSpecController;
 use GNesting\Controllers\Admin\VariantController;
 use GNesting\Core\Router;
 
@@ -75,6 +77,25 @@ return static function (Router $r): void {
                 $r->get('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/editar', [PersonalizationController::class, 'edit']);
                 $r->post('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/editar', [PersonalizationController::class, 'update']);
                 $r->post('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/excluir', [PersonalizationController::class, 'destroy']);
+            });
+
+            // Produção (interno): gestor e equipe de produção
+            $r->group(['middleware' => ['role:manager,production']], static function (Router $r): void {
+                $r->get('/fichas', [ProductionSpecController::class, 'overview']);
+                $r->get('/produtos/{id:\d+}/ficha-producao', [ProductionSpecController::class, 'show']);
+                $r->get('/produtos/{id:\d+}/ficha-producao/{variantId:\d+}', [ProductionSpecController::class, 'edit']);
+                $r->post('/produtos/{id:\d+}/ficha-producao/{variantId:\d+}', [ProductionSpecController::class, 'update']);
+                $r->post('/produtos/{id:\d+}/ficha-producao/{variantId:\d+}/copiar', [ProductionSpecController::class, 'copy']);
+                $r->post('/produtos/{id:\d+}/ficha-producao/{variantId:\d+}/arquivos', [ProductionSpecController::class, 'upload']);
+                $r->post('/produtos/{id:\d+}/ficha-producao/{variantId:\d+}/arquivos/{fileId:\d+}/excluir', [ProductionSpecController::class, 'deleteFile']);
+                $r->get('/arquivos-producao/{fileId:\d+}', [ProductionSpecController::class, 'download']);
+
+                $r->get('/materiais', [MaterialController::class, 'index']);
+                $r->get('/materiais/novo', [MaterialController::class, 'create']);
+                $r->post('/materiais/novo', [MaterialController::class, 'store']);
+                $r->get('/materiais/{id:\d+}/editar', [MaterialController::class, 'edit']);
+                $r->post('/materiais/{id:\d+}/editar', [MaterialController::class, 'update']);
+                $r->post('/materiais/{id:\d+}/excluir', [MaterialController::class, 'destroy']);
             });
 
             // Equipe e auditoria: somente proprietário

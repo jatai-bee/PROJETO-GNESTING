@@ -56,6 +56,14 @@ final class UploadedFile
         return $this->size;
     }
 
+    /** Grava o arquivo no destino (upload real: move_uploaded_file; testes: cópia). */
+    public function moveTo(string $target): bool
+    {
+        return $this->mustBeHttpUpload
+            ? move_uploaded_file($this->tmpPath, $target)
+            : copy($this->tmpPath, $target);
+    }
+
     public function wasSent(): bool
     {
         return $this->error !== UPLOAD_ERR_NO_FILE;

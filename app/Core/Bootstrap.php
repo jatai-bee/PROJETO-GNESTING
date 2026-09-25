@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace GNesting\Core;
 
 use Dotenv\Dotenv;
+use GNesting\Repositories\ProductionSpecRepository;
+use GNesting\Services\AuditService;
 use GNesting\Services\ImageProcessor;
+use GNesting\Services\ProductionFileService;
 use RuntimeException;
 
 /**
@@ -67,6 +70,14 @@ final class Bootstrap
         $container->set(ImageProcessor::class, fn () => new ImageProcessor(
             $config->get('paths.uploads'),
             (int) $config->get('uploads.max_image_bytes'),
+        ));
+        $container->set(ProductionFileService::class, fn (Container $c) => new ProductionFileService(
+            $c->get(Database::class),
+            $c->get(ProductionSpecRepository::class),
+            $c->get(AuditService::class),
+            $c->get(AuditContext::class),
+            $basePath . '/storage/private/production_files',
+            (int) $config->get('uploads.max_production_file_bytes'),
         ));
         $container->set(Router::class, function () use ($basePath): Router {
             $router = new Router();

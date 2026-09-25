@@ -15,6 +15,10 @@ return [
     // Executados em toda requisição que encontrou rota, nesta ordem
     'global' => ['session', 'csrf', 'cart'],
 
+    // Rotas sem sessão, CSRF nem carrinho (robôs e serviços externos não criam sessões à toa).
+    // Caminho exato, ou prefixo quando termina em "/".
+    'stateless' => ['/saude', '/sitemap.xml', '/robots.txt', '/webhooks/'],
+
     // Apelidos usados nos arquivos de rotas. Parâmetros: 'role:manager,production'
     'aliases' => [
         'session' => StartSession::class,

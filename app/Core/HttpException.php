@@ -48,6 +48,13 @@ final class HttpException extends RuntimeException
         ]);
     }
 
+    public static function maintenance(string $message = ''): self
+    {
+        return new self(503, $message !== '' ? $message : 'Estamos fazendo uma atualização rápida na loja. Volte em alguns minutos.', [
+            'Retry-After' => '600',
+        ]);
+    }
+
     public function status(): int
     {
         return $this->status;

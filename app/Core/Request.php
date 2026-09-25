@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace GNesting\Core;
 
+use GNesting\Helpers\IpRange;
+
 /**
  * Requisição HTTP. Os controllers leem entrada somente por aqui (nunca $_POST/$_GET).
  */
@@ -14,6 +16,9 @@ final class Request
 
     /** @var array<string, mixed> */
     private array $attributes = [];
+
+    /** @var list<string> IPs/faixas CIDR de proxies confiáveis (Cloudflare, balanceador da hospedagem) */
+    private array $trustedProxies = [];
 
     /**
      * @param array<string, mixed>  $query
@@ -209,10 +214,53 @@ final class Request
         return is_string($value) ? $value : null;
     }
 
+    /**
+     * Proxies confiáveis (TRUSTED_PROXIES). Só quando a conexão vem de um deles os cabeçalhos
+     * X-Forwarded-For/-Proto/-Host são considerados: de qualquer outro IP, podem ser forjados.
+     *
+     * @param list<string> $proxies
+     */
+    public function trustProxies(array $proxies): self
+    {
+        $this->trustedProxies = array_values(array_filter(array_map('trim', $proxies), fn (string $p) => $p !== ''));
+
+        return $this;
+    }
+
     public function ip(): string
     {
-        // Somente REMOTE_ADDR: cabeçalhos X-Forwarded-For podem ser forjados.
-        return (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        $remote = (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        if (!$this->fromTrustedProxy()) {
+            return $remote;
+        }
+        // Da direita para a esquerda: o primeiro endereço que não é um proxy nosso é o cliente.
+        $chain = array_reverse(array_map('trim', explode(',', (string) ($this->server['HTTP_X_FORWARDED_FOR'] ?? ''))));
+        foreach ($chain as $candidate) {
+            if (filter_var($candidate, FILTER_VALIDATE_IP) === false) {
+                break;
+            }
+            if (!IpRange::matchesAny($candidate, $this->trustedProxies)) {
+                return $candidate;
+            }
+        }
+
+        return $remote;
+    }
+
+    /** Host pedido (sem porta), para o redirecionamento ao domínio canônico. */
+    public function host(): string
+    {
+        $host = $this->fromTrustedProxy() && isset($this->server['HTTP_X_FORWARDED_HOST'])
+            ? (string) $this->server['HTTP_X_FORWARDED_HOST']
+            : (string) ($this->server['HTTP_HOST'] ?? $this->server['SERVER_NAME'] ?? '');
+
+        return strtolower((string) preg_replace('/:\d+$/', '', trim(explode(',', $host)[0])));
+    }
+
+    /** Caminho + query string como chegaram (para redirecionar sem perder nada). */
+    public function requestUri(): string
+    {
+        return (string) ($this->server['REQUEST_URI'] ?? $this->path);
     }
 
     public function userAgent(): string
@@ -225,7 +273,14 @@ final class Request
         $https = $this->server['HTTPS'] ?? '';
 
         return ($https !== '' && strtolower((string) $https) !== 'off')
-            || (int) ($this->server['SERVER_PORT'] ?? 0) === 443;
+            || (int) ($this->server['SERVER_PORT'] ?? 0) === 443
+            || ($this->fromTrustedProxy() && strtolower((string) ($this->server['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+    }
+
+    private function fromTrustedProxy(): bool
+    {
+        return $this->trustedProxies !== []
+            && IpRange::matchesAny((string) ($this->server['REMOTE_ADDR'] ?? ''), $this->trustedProxies);
     }
 
     public function expectsJson(): bool

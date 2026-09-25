@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Middleware globais (session, csrf, cart) são aplicados pelo Kernel.
  */
 
+use GNesting\Controllers\HealthController;
 use GNesting\Controllers\Store\AccountController;
 use GNesting\Controllers\Store\AuthController;
 use GNesting\Controllers\Store\CartController;
@@ -40,6 +41,9 @@ return static function (Router $r): void {
     // SEO
     $r->get('/sitemap.xml', [SeoController::class, 'sitemap']);
     $r->get('/robots.txt', [SeoController::class, 'robots']);
+
+    // Monitoramento (sem sessão: ver middleware.stateless)
+    $r->get('/saude', [HealthController::class, 'show']);
 
     // Checkout e pedido (com ou sem conta)
     $r->get('/checkout', [CheckoutController::class, 'show']);

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace GNesting\Tests\Integration;
 
 use GNesting\Core\Bootstrap;
+use GNesting\Core\Config;
 use GNesting\Core\Csrf;
 use GNesting\Core\Database;
 use GNesting\Core\Kernel;
 use GNesting\Core\Logger;
+use GNesting\Core\Maintenance;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Enums\AdminRole;
@@ -26,12 +28,18 @@ abstract class HttpTestCase extends IntegrationTestCase
 {
     protected LogMailer $mail;
     protected string $ip = '192.0.2.150';
-    private ?string $cartCookie = null;
+    /** @var array<string, mixed> configuração aplicada a todo navegador novo (chave com pontos => valor) */
+    protected array $configOverrides = [];
+    /** Arquivo do modo manutenção deste teste (nunca o storage/ real) */
+    protected string $maintenanceFile;
+    /** @var array<string, string> cookies recebidos (como um navegador) */
+    private array $cookieJar = [];
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->mail = new LogMailer(TestFiles::tempDir('gn-mail'));
+        $this->maintenanceFile = TestFiles::tempDir('gn-maint') . '/maintenance.json';
         $this->newBrowser();
     }
 
@@ -43,12 +51,28 @@ abstract class HttpTestCase extends IntegrationTestCase
 
     protected function newBrowser(): void
     {
-        $this->cartCookie = null;
+        $this->cookieJar = [];
         $container = Bootstrap::createContainer(dirname(__DIR__, 2));
+        foreach ($this->configOverrides as $key => $value) {
+            $container->get(Config::class)->set($key, $value);
+        }
+        $container->instance(Maintenance::class, new Maintenance($this->maintenanceFile));
         $container->instance(Database::class, $this->db);
         $container->set(Logger::class, fn () => new Logger(sys_get_temp_dir() . '/gnesting-test-logs'));
         $container->instance(Mailer::class, $this->mail);
         $this->container = $container;
+    }
+
+    /** Guarda o navegador atual (sessão + cookies) para voltar a ele com useBrowser(). @return array{0: \GNesting\Core\Container, 1: array<string, string>} */
+    protected function currentBrowser(): array
+    {
+        return [$this->container, $this->cookieJar];
+    }
+
+    /** @param array{0: \GNesting\Core\Container, 1: array<string, string>} $browser */
+    protected function useBrowser(array $browser): void
+    {
+        [$this->container, $this->cookieJar] = $browser;
     }
 
     /** @param array<string, string> $query */
@@ -72,8 +96,8 @@ abstract class HttpTestCase extends IntegrationTestCase
     protected function send(Request $request): Response
     {
         $response = $this->container->get(Kernel::class)->handle($request);
-        if (isset($response->cookies()['gn_cart'])) {
-            $this->cartCookie = $response->cookies()['gn_cart']['value'];
+        foreach ($response->cookies() as $name => $cookie) {
+            $this->cookieJar[$name] = $cookie['value'];
         }
 
         return $response;
@@ -123,8 +147,8 @@ abstract class HttpTestCase extends IntegrationTestCase
     }
 
     /** @return array<string, string> */
-    private function cookies(): array
+    protected function cookies(): array
     {
-        return $this->cartCookie === null ? [] : ['gn_cart' => $this->cartCookie];
+        return $this->cookieJar;
     }
 }

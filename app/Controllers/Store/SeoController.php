@@ -66,6 +66,7 @@ final class SeoController extends Controller
             $body = "User-agent: *\n"
                 . "Disallow: /admin\nDisallow: /carrinho\nDisallow: /checkout\nDisallow: /conta\n"
                 . "Disallow: /pedido/\nDisallow: /busca\nDisallow: /entrar\nDisallow: /cadastro\nDisallow: /pagamento-simulado/\n"
+                . "Disallow: /saude\nDisallow: /recuperar-senha\nDisallow: /redefinir-senha/\n"
                 . "\nSitemap: " . absolute_url('/sitemap.xml') . "\n";
         }
 

@@ -1,0 +1,8 @@
+# Arquivos que NÃO vão para o pacote de produção (bin/build-release.php usa git archive)
+/.github            export-ignore
+/docs               export-ignore
+/tests              export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/phpstan.neon.dist  export-ignore
+/phpunit.xml        export-ignore

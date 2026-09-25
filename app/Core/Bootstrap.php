@@ -44,6 +44,7 @@ final class Bootstrap
         $config->set('paths.base', $basePath);
         $config->set('paths.storage', $basePath . '/storage');
         $config->set('paths.uploads', $basePath . '/public/uploads');
+        $config->set('paths.backups', $basePath . '/storage/backups');
         // Testes nunca escrevem nos logs reais da aplicação
         $config->set('paths.logs', $config->get('app.env') === 'testing'
             ? sys_get_temp_dir() . '/gnesting-test-logs'
@@ -75,6 +76,7 @@ final class Bootstrap
         $container->set(Logger::class, fn () => new Logger($config->get('paths.logs')));
         $container->set(Database::class, fn () => new Database($config->get('database')));
         $container->set(View::class, fn () => new View($basePath . '/app/Views'));
+        $container->set(Maintenance::class, fn () => new Maintenance($basePath . '/storage/maintenance.json'));
         $container->set(Session::class, fn () => new Session(
             $config->get('security.session'),
             $basePath . '/storage/sessions',

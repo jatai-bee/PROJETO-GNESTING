@@ -15,7 +15,7 @@ final class SecurityTest extends HttpTestCase
 {
     /** Valores de exemplo para os parâmetros das rotas, pelo nome. */
     private const PARAM_SAMPLES = [
-        'numero' => 'GN-2026-000001', 'referencia' => 'SIM-0123456789abcdef', 'slug' => 'x',
+        'numero' => 'GN-2026-000001', 'referencia' => 'SIM-0123456789abcdef', 'slug' => 'x', 'nome' => '2026-01-01_000000', 'arquivo' => 'banco',
     ];
 
     /** @return list<array{methods: list<string>, path: string, middleware: list<string>}> */

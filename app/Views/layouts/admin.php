@@ -27,6 +27,7 @@ $menu = [
     ['label' => 'Configurações', 'href' => '/admin/configuracoes', 'roles' => ['owner']],
     ['label' => 'Usuários', 'href' => '/admin/usuarios', 'roles' => ['owner']],
     ['label' => 'Auditoria', 'href' => '/admin/logs', 'roles' => ['owner']],
+    ['label' => 'Sistema', 'href' => '/admin/sistema', 'roles' => ['owner']],
 ];
 $menu = array_filter($menu, static fn (array $item) => $item['roles'] === null || ($role?->isAllowed($item['roles']) ?? false));
 $isCurrent = static fn (string $href): bool => $href === '/admin' ? $currentPath === '/admin' : str_starts_with($currentPath . '/', $href . '/');

@@ -27,6 +27,7 @@ use GNesting\Controllers\Admin\ProductImageController;
 use GNesting\Controllers\Admin\ProductionController;
 use GNesting\Controllers\Admin\ProductionSpecController;
 use GNesting\Controllers\Admin\ShippingDeskController;
+use GNesting\Controllers\Admin\SystemController;
 use GNesting\Controllers\Admin\VariantController;
 use GNesting\Core\Router;
 
@@ -159,6 +160,12 @@ return static function (Router $r): void {
                 $r->post('/usuarios/{id:\d+}/senha', [AdminUserController::class, 'password']);
 
                 $r->get('/logs', [AuditLogController::class, 'index']);
+
+                // Sistema: saúde, backups, manutenção (docs/17)
+                $r->get('/sistema', [SystemController::class, 'index']);
+                $r->post('/sistema/backup', [SystemController::class, 'backup']);
+                $r->get('/sistema/backups/{nome:\d{4}-\d{2}-\d{2}_\d{6}}/{arquivo:banco|arquivos}', [SystemController::class, 'download']);
+                $r->post('/sistema/manutencao', [SystemController::class, 'maintenance']);
             });
         });
     });

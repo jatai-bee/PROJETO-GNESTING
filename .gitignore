@@ -11,6 +11,8 @@
 /storage/cache/*
 /storage/sessions/*
 /storage/private/production_files/*
+/storage/backups/*
+/storage/maintenance.json
 !/storage/**/.gitkeep
 
 # Uploads públicos gerados pelo admin
@@ -19,6 +21,7 @@
 
 # Ferramentas
 /.phpunit.cache/
+/build/
 .phpunit.result.cache
 .idea/
 .vscode/

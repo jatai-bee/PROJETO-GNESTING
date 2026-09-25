@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GNesting\Core;
 
 use ErrorException;
+use GNesting\Services\Operations\AlertNotifier;
 use Throwable;
 
 /**
@@ -16,7 +17,7 @@ use Throwable;
  */
 final class ErrorHandler
 {
-    private const TEMPLATES = [403, 404, 405, 419, 429, 500];
+    private const TEMPLATES = [403, 404, 405, 419, 429, 500, 503];
 
     public function __construct(
         private readonly Logger $logger,
@@ -38,6 +39,7 @@ final class ErrorHandler
         set_exception_handler(function (Throwable $e): void {
             $id = $this->newErrorId();
             $this->logger->exception($e, $id);
+            $this->alert($id, $e::class . ': ' . $e->getMessage(), 'fora do Kernel', $e::class . '@' . $e->getFile() . ':' . $e->getLine());
             $this->emitFallback($id);
         });
 
@@ -46,6 +48,7 @@ final class ErrorHandler
             if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
                 $id = $this->newErrorId();
                 $this->logger->error("[{$id}] Erro fatal: {$error['message']}", ['file' => $error['file'] . ':' . $error['line']]);
+                $this->alert($id, 'Erro fatal: ' . $error['message'], $error['file'] . ':' . $error['line'], 'fatal@' . $error['file'] . ':' . $error['line']);
                 $this->emitFallback($id);
             }
         });
@@ -68,6 +71,7 @@ final class ErrorHandler
 
         $id = $this->newErrorId();
         $this->logger->exception($e, $id, ['method' => $request->method(), 'path' => $request->path(), 'ip' => $request->ip()]);
+        $this->alert($id, $e::class . ': ' . $e->getMessage(), $request->method() . ' ' . $request->path(), $e::class . '@' . $e->getFile() . ':' . $e->getLine());
 
         return $this->render(500, 'Algo deu errado do nosso lado. Já registramos o problema.', $request, $id, $this->showDetails() ? $e : null);
     }
@@ -141,6 +145,27 @@ final class ErrorHandler
 
         return '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>G-Nesting</title>'
             . '<h1>' . $status . '</h1><p>' . e($message) . '</p>' . $code . '</html>';
+    }
+
+    /** Alerta por e-mail (AlertNotifier: com limite de frequência). Nunca atrapalha a resposta de erro. */
+    private function alert(string $errorId, string $message, string $where, string $fingerprint): void
+    {
+        try {
+            $this->container->get(AlertNotifier::class)->notify(
+                "Erro 500 ({$errorId})",
+                "Um erro inesperado aconteceu na loja.
+
+Código: {$errorId}
+Onde: {$where}
+Erro: " . mb_substr($message, 0, 500)
+                . "
+
+Procure o código {$errorId} em storage/logs/app-" . gmdate('Y-m-d') . '.log.',
+                $fingerprint,
+            );
+        } catch (Throwable) {
+            // sem alerta, mas o erro já está no log
+        }
     }
 
     private function newErrorId(): string

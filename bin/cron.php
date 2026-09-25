@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 use GNesting\Core\Bootstrap;
 use GNesting\Core\Logger;
+use GNesting\Repositories\CartRepository;
 use GNesting\Repositories\RateLimitRepository;
 
 if (PHP_SAPI !== 'cli') {
@@ -23,7 +24,11 @@ require $basePath . '/vendor/autoload.php';
 try {
     $container = Bootstrap::createContainer($basePath);
     $removed = $container->get(RateLimitRepository::class)->purgeExpired();
-    $container->get(Logger::class)->info('cron: concluído', ['rate_limits_removidos' => $removed]);
+    $carts = $container->get(CartRepository::class)->purgeExpired();
+    $container->get(Logger::class)->info('cron: concluído', [
+        'rate_limits_removidos' => $removed,
+        'carrinhos_expirados_removidos' => $carts,
+    ]);
 } catch (Throwable $e) {
     fwrite(STDERR, 'ERRO: ' . $e->getMessage() . PHP_EOL);
     exit(1);

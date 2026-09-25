@@ -6,6 +6,9 @@ namespace GNesting\Core;
 
 final class Response
 {
+    /** @var array<string, array{value: string, options: array<string, mixed>}> */
+    private array $cookies = [];
+
     /** @param array<string, string> $headers */
     public function __construct(
         private string $body = '',
@@ -37,6 +40,26 @@ final class Response
         $this->headers[$name] = $value;
 
         return $this;
+    }
+
+    /**
+     * Cookie enviado com setcookie() (não sobrescreve o cookie da sessão).
+     *
+     * @param array{expires?: int, path?: string, secure?: bool, httponly?: bool, samesite?: string} $options
+     */
+    public function withCookie(string $name, string $value, array $options = []): self
+    {
+        $this->cookies[$name] = ['value' => $value, 'options' => $options + [
+            'expires' => 0, 'path' => '/', 'secure' => false, 'httponly' => true, 'samesite' => 'Lax',
+        ]];
+
+        return $this;
+    }
+
+    /** @return array<string, array{value: string, options: array<string, mixed>}> */
+    public function cookies(): array
+    {
+        return $this->cookies;
     }
 
     public function status(): int
@@ -73,6 +96,9 @@ final class Response
             http_response_code($this->status);
             foreach ($this->headers as $name => $value) {
                 header($name . ': ' . str_replace(["\r", "\n"], '', $value), true);
+            }
+            foreach ($this->cookies as $name => $cookie) {
+                setcookie($name, $cookie['value'], $cookie['options']);
             }
         }
         echo $this->body;

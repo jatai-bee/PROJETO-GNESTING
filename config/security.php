@@ -20,6 +20,7 @@ return [
         'login' => [5, 900],          // por e-mail + IP
         'login_ip' => [20, 900],      // por IP (evita tentativa em massa de e-mails)
         'register' => [5, 3600],      // por IP
+        'search' => [60, 60],         // buscas por IP por minuto
     ],
 
     'password' => [

@@ -7,6 +7,8 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 
 ## 1. Loja pública (`routes/web.php`)
 
+> **Implementadas (etapa 4):** home, `/produtos`, `/categoria/{slug}`, `/busca`, `/produto/{slug}`, carrinho (ver, adicionar, alterar, remover) e páginas institucionais. Regras em [09 — Catálogo e carrinho](09-catalogo-e-carrinho.md). Middleware global novo: `cart` (lê/grava o cookie do carrinho).
+
 | Método | URL | Controller@ação | Middleware | Etapa |
 |---|---|---|---|---|
 | GET | `/` | `Store\HomeController@index` | S | 4 |

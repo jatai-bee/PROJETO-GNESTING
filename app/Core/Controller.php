@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace GNesting\Core;
 
+use GNesting\Services\CartService;
+use GNesting\Services\CatalogService;
+
 /**
  * Base dos controllers: renderização, redirecionamento e validação.
  * Controllers não contêm SQL nem regra de negócio — delegam para Services.
@@ -22,8 +25,12 @@ abstract class Controller
             'flashError' => $session->getFlash('error'),
         ];
 
-        if ($layout === 'store' && !array_key_exists('currentCustomer', $data)) {
-            $data['currentCustomer'] = app(Auth::class)->customer();
+        if ($layout === 'store') {
+            $data += [
+                'currentCustomer' => app(Auth::class)->customer(),
+                'cartCount' => app(CartService::class)->itemCount(),
+                'navCategories' => app(CatalogService::class)->categoryTree(),
+            ];
         }
 
         return Response::html(app(View::class)->render($template, $data, $layout), $status);

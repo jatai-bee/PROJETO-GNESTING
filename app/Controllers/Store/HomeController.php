@@ -7,15 +7,39 @@ namespace GNesting\Controllers\Store;
 use GNesting\Core\Controller;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
+use GNesting\Repositories\CatalogRepository;
+use GNesting\Services\CatalogService;
 
 final class HomeController extends Controller
 {
+    private const SHOWCASE = 8;
+
+    public function __construct(
+        private readonly CatalogRepository $products,
+        private readonly CatalogService $catalog,
+    ) {
+    }
+
     public function index(Request $request): Response
     {
-        // Home provisória: vitrine completa na etapa 4.
+        $featured = $this->products->featured(self::SHOWCASE);
+        // Novidades sem repetir o que já está em destaque
+        $featuredIds = array_column($featured, 'id');
+        $newest = array_values(array_filter(
+            $this->products->newest(self::SHOWCASE + count($featuredIds)),
+            static fn (array $p): bool => !in_array($p['id'], $featuredIds, true)
+        ));
+
         return $this->render('store/home', [
             'title' => 'G-Nesting — Objetos que transformam espaços.',
             'metaDescription' => 'Objetos de design produzidos com fabricação digital: relógios, painéis, organizadores e presentes com personalização.',
+            'canonical' => absolute_url('/'),
+            'featured' => $featured,
+            'newest' => array_slice($newest, 0, self::SHOWCASE),
+            'categories' => array_values(array_filter(
+                $this->catalog->categoryTree(),
+                static fn (array $c): bool => $c['total'] > 0
+            )),
         ]);
     }
 }

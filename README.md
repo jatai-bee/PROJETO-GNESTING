@@ -22,6 +22,7 @@ PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv
 | [06 — Identidade visual](docs/06-identidade-visual.md) | marca, cores, tipografia, tom ([prévia](docs/identidade-visual-preview.html)) |
 | [07 — Fundação](docs/07-fundacao.md) | como usar o núcleo: rotas, controllers, validação, auth, testes |
 | [08 — Painel administrativo](docs/08-painel-administrativo.md) | guia de uso do painel e regras do catálogo |
+| [09 — Catálogo e carrinho](docs/09-catalogo-e-carrinho.md) | vitrine, busca, filtros, página de produto, carrinho |
 
 ## Início rápido
 
@@ -46,8 +47,8 @@ Cada etapa segue: analisar → planejar → implementar → testar → corrigir 
 | 1 | Arquitetura: estrutura, banco, padrões, rotas, segurança, identidade | ✅ concluída (SQL validado no MySQL 8.4) |
 | 2 | Fundação: Composer, dotenv, PDO, núcleo MVC, autenticação, migrations | ✅ concluída |
 | 3 | Administração: login, dashboard, usuários, categorias, produtos, imagens | ✅ concluída (106 testes no total) |
-| 4 | Catálogo: home, categorias, busca, filtros, produto, carrinho | ⏭ próxima |
-| 5 | Produtos e personalização: SKUs, opções, regras, acréscimos | — |
+| 4 | Catálogo: home, categorias, busca, filtros, produto, carrinho | ✅ concluída (123 testes no total) |
+| 5 | Produtos e personalização: SKUs, opções, regras, acréscimos | ⏭ próxima |
 | 6 | Ficha de produção: especificações, materiais, arquivos, tempos | — |
 | 7 | Checkout: cadastro, endereço, frete, pagamento, confirmação | — |
 | 8 | Pedidos: gestão, status, histórico, comunicação | — |

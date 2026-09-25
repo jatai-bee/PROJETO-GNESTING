@@ -148,6 +148,98 @@ final class CatalogRepository extends Repository
         );
     }
 
+    /**
+     * "Comprados juntos": produtos que aparecem nos mesmos pedidos pagos (não cancelados)
+     * que os informados, do mais frequente para o menos.
+     *
+     * @param list<int> $productIds
+     * @return list<int>
+     */
+    public function boughtTogether(array $productIds, int $limit): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+        [$in, $params] = $this->inList($productIds, 'p');
+        [$notIn, $notParams] = $this->inList($productIds, 'x');
+
+        return array_map('intval', array_column($this->fetchAll(
+            "SELECT other.product_id, COUNT(DISTINCT other.order_id) AS together
+               FROM order_items base
+               JOIN orders o ON o.id = base.order_id AND o.paid_at IS NOT NULL AND o.status <> 'cancelled'
+               JOIN order_items other ON other.order_id = base.order_id
+              WHERE base.product_id IN ({$in}) AND other.product_id NOT IN ({$notIn})
+              GROUP BY other.product_id
+              ORDER BY together DESC, other.product_id DESC
+              LIMIT :limit",
+            $params + $notParams + ['limit' => $limit]
+        ), 'product_id'));
+    }
+
+    /**
+     * Mais vendidos visíveis, fora os informados.
+     *
+     * @param list<int> $excludeIds
+     * @return list<array<string, mixed>>
+     */
+    public function bestsellers(array $excludeIds, int $limit): array
+    {
+        [$notIn, $params] = $this->inList($excludeIds === [] ? [0] : $excludeIds, 'x');
+
+        return $this->fetchAll(
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE
+            . " AND p.id NOT IN ({$notIn}) AND pv.sellable_count > 0
+              ORDER BY p.sales_count DESC, p.is_featured DESC, p.id DESC LIMIT :limit",
+            $params + ['limit' => $limit]
+        );
+    }
+
+    /**
+     * Cartões dos produtos visíveis, na ordem dos ids informados.
+     *
+     * @param list<int> $ids
+     * @return list<array<string, mixed>>
+     */
+    public function cardsByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        [$in, $params] = $this->inList($ids, 'i');
+        $rows = $this->fetchAll(
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE . " AND p.id IN ({$in})",
+            $params
+        );
+        $byId = array_column($rows, null, 'id');
+
+        return array_values(array_filter(array_map(static fn (int $id) => $byId[$id] ?? null, $ids)));
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array{0: string, 1: array<string, int>}
+     */
+    private function inList(array $ids, string $prefix): array
+    {
+        $placeholders = [];
+        $params = [];
+        foreach (array_values($ids) as $n => $id) {
+            $placeholders[] = ":{$prefix}{$n}";
+            $params["{$prefix}{$n}"] = (int) $id;
+        }
+
+        return [implode(', ', $placeholders), $params];
+    }
+
+    /** @return list<array{slug: string, updated_at: string, cover_path: ?string}> produtos visíveis para o sitemap */
+    public function sitemapProducts(): array
+    {
+        return $this->fetchAll(
+            'SELECT p.slug, GREATEST(p.updated_at, v.updated_at) AS updated_at, cover.path AS cover_path'
+            . self::VISIBLE_FROM . self::COVER_JOIN . self::VISIBLE_WHERE . ' ORDER BY p.id'
+        );
+    }
+
     /** @return list<array<string, mixed>> */
     public function related(int $productId, int $categoryId, int $limit): array
     {

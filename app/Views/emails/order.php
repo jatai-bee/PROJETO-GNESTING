@@ -22,6 +22,10 @@ Olá, <?= explode(' ', (string) $order['customer_name'])[0] ?>!
 <?php endforeach ?>
 <?php endforeach ?>
 
+<?php if ((int) $order['discount_cents'] > 0): ?>
+Desconto<?= $order['coupon_code'] ? " (cupom {$order['coupon_code']})" : '' ?>: − <?= money((int) $order['discount_cents']) ?>
+
+<?php endif ?>
 Frete (<?= $order['shipping_service'] ?>): <?= money((int) $order['shipping_cents']) ?>
 
 Total: <?= money((int) $order['total_cents']) ?>

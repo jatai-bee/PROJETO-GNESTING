@@ -14,7 +14,9 @@ use GNesting\Controllers\Admin\AdminUserController;
 use GNesting\Controllers\Admin\AuditLogController;
 use GNesting\Controllers\Admin\AuthController;
 use GNesting\Controllers\Admin\CategoryController;
+use GNesting\Controllers\Admin\CouponController;
 use GNesting\Controllers\Admin\CustomerController;
+use GNesting\Controllers\Admin\SettingsController;
 use GNesting\Controllers\Admin\DashboardController;
 use GNesting\Controllers\Admin\OrderController;
 use GNesting\Controllers\Admin\MaterialController;
@@ -46,6 +48,13 @@ return static function (Router $r): void {
                 $r->get('/categorias/{id:\d+}/editar', [CategoryController::class, 'edit']);
                 $r->post('/categorias/{id:\d+}/editar', [CategoryController::class, 'update']);
                 $r->post('/categorias/{id:\d+}/excluir', [CategoryController::class, 'destroy']);
+
+                $r->get('/cupons', [CouponController::class, 'index']);
+                $r->get('/cupons/novo', [CouponController::class, 'create']);
+                $r->post('/cupons/novo', [CouponController::class, 'store']);
+                $r->get('/cupons/{id:\d+}/editar', [CouponController::class, 'edit']);
+                $r->post('/cupons/{id:\d+}/editar', [CouponController::class, 'update']);
+                $r->post('/cupons/{id:\d+}/excluir', [CouponController::class, 'destroy']);
 
                 $r->get('/produtos', [ProductController::class, 'index']);
                 $r->get('/produtos/novo', [ProductController::class, 'create']);
@@ -133,6 +142,8 @@ return static function (Router $r): void {
 
             // Equipe e auditoria: somente proprietário
             $r->group(['middleware' => ['role:owner']], static function (Router $r): void {
+                $r->get('/configuracoes', [SettingsController::class, 'edit']);
+                $r->post('/configuracoes', [SettingsController::class, 'update']);
                 $r->get('/usuarios', [AdminUserController::class, 'index']);
                 $r->get('/usuarios/novo', [AdminUserController::class, 'create']);
                 $r->post('/usuarios/novo', [AdminUserController::class, 'store']);

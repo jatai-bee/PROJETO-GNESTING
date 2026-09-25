@@ -22,6 +22,7 @@ return [
         'register' => [5, 3600],      // por IP
         'search' => [60, 60],         // buscas por IP por minuto
         'shipping' => [60, 60],       // cotações de frete por IP por minuto
+        'coupon' => [10, 600],        // tentativas de cupom por IP a cada 10 min
     ],
 
     'password' => [

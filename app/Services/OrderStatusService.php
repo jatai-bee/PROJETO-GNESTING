@@ -8,6 +8,7 @@ use GNesting\Core\Database;
 use GNesting\Core\Logger;
 use GNesting\Enums\AdminRole;
 use GNesting\Enums\OrderStatus;
+use GNesting\Repositories\CouponRepository;
 use GNesting\Repositories\InventoryRepository;
 use GNesting\Repositories\OrderRepository;
 use GNesting\Repositories\ProductionJobRepository;
@@ -44,6 +45,7 @@ final class OrderStatusService
         private readonly InventoryRepository $inventory,
         private readonly ProductRepository $products,
         private readonly ProductionJobRepository $jobs,
+        private readonly CouponRepository $coupons,
         private readonly AuditService $audit,
         private readonly OrderNotifier $notifier,
         private readonly Logger $logger,
@@ -207,6 +209,7 @@ final class OrderStatusService
             $this->orders->updateStatus($orderId, OrderStatus::Cancelled->value, $paymentStatus);
             $this->orders->setCancelReason($orderId, $reason);
             $this->jobs->cancelForOrder($orderId); // sai da fila de produção
+            $this->coupons->release($orderId);     // o uso do cupom volta a valer
             $this->record($orderId, $from, OrderStatus::Cancelled, $source, $userId, $reason);
         });
 

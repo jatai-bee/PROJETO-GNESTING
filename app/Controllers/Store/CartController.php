@@ -8,10 +8,13 @@ use GNesting\Core\Auth;
 use GNesting\Core\Controller;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
-use GNesting\Services\BusinessRuleException;
 use GNesting\Core\ValidationException;
+use GNesting\Services\Auth\TooManyAttemptsException;
+use GNesting\Services\BusinessRuleException;
 use GNesting\Services\CartService;
 use GNesting\Services\PersonalizationService;
+use GNesting\Services\RateLimiter;
+use GNesting\Services\RelatedProducts;
 
 /**
  * Carrinho. Todas as alterações são POST com CSRF e terminam em redirect (PRG).
@@ -22,14 +25,22 @@ final class CartController extends Controller
     public function __construct(
         private readonly CartService $cart,
         private readonly Auth $auth,
+        private readonly RateLimiter $rateLimiter,
+        private readonly RelatedProducts $related,
     ) {
     }
 
     public function show(Request $request): Response
     {
+        $summary = $this->cart->summary();
+
         return $this->render('store/cart/show', [
             'title' => 'Carrinho | G-Nesting',
-            'cart' => $this->cart->summary(),
+            'cart' => $summary,
+            'suggestions' => $this->related->forCart(array_values(array_unique(array_filter(array_map(
+                static fn (array $item): int => (int) ($item['product_id'] ?? 0),
+                $summary['items']
+            ))))),
             'noindex' => true,
         ]);
     }
@@ -71,6 +82,38 @@ final class CartController extends Controller
         } catch (BusinessRuleException $e) {
             $this->flash('error', $e->getMessage());
         }
+
+        return $this->redirect('/carrinho');
+    }
+
+    public function applyCoupon(Request $request): Response
+    {
+        // docs/05: tentativas de cupom limitadas (evita adivinhar códigos)
+        $key = 'coupon:ip:' . $request->ip();
+        [$max, $window] = config('security.rate_limits.coupon', [10, 600]);
+        try {
+            $this->rateLimiter->ensureNotBlocked($key);
+        } catch (TooManyAttemptsException $e) {
+            $this->flash('error', 'Muitas tentativas de cupom. Tente de novo em alguns minutos.');
+
+            return $this->redirect('/carrinho');
+        }
+        $this->rateLimiter->hit($key, (int) $max, (int) $window);
+
+        try {
+            $benefit = $this->cart->applyCoupon(mb_substr($request->string('code'), 0, 40));
+            $this->flash('success', "Cupom aplicado: {$benefit}.");
+        } catch (BusinessRuleException $e) {
+            $this->flash('error', $e->getMessage());
+        }
+
+        return $this->redirect('/carrinho');
+    }
+
+    public function removeCoupon(Request $request): Response
+    {
+        $this->cart->removeCoupon();
+        $this->flash('success', 'Cupom removido.');
 
         return $this->redirect('/carrinho');
     }

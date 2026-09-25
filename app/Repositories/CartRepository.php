@@ -146,6 +146,18 @@ final class CartRepository extends Repository
     }
 
     /** Limpeza periódica (cron): carrinhos expirados saem do banco junto com os itens. */
+    public function couponId(int $cartId): ?int
+    {
+        $id = $this->fetchValue('SELECT coupon_id FROM carts WHERE id = :id', ['id' => $cartId]);
+
+        return $id === null ? null : (int) $id;
+    }
+
+    public function setCoupon(int $cartId, ?int $couponId): void
+    {
+        $this->execute('UPDATE carts SET coupon_id = :coupon WHERE id = :id', ['coupon' => $couponId, 'id' => $cartId]);
+    }
+
     public function markConverted(int $cartId): void
     {
         $this->execute("UPDATE carts SET status = 'converted' WHERE id = :id", ['id' => $cartId]);

@@ -23,7 +23,8 @@ $menu = [
     ['label' => 'Categorias', 'href' => '/admin/categorias', 'roles' => ['manager']],
     ['label' => 'Fichas de produção', 'href' => '/admin/fichas', 'roles' => ['manager', 'production']],
     ['label' => 'Materiais', 'href' => '/admin/materiais', 'roles' => ['manager', 'production']],
-    ['label' => 'Cupons', 'href' => null, 'stage' => 10, 'roles' => ['manager']],
+    ['label' => 'Cupons', 'href' => '/admin/cupons', 'roles' => ['manager']],
+    ['label' => 'Configurações', 'href' => '/admin/configuracoes', 'roles' => ['owner']],
     ['label' => 'Usuários', 'href' => '/admin/usuarios', 'roles' => ['owner']],
     ['label' => 'Auditoria', 'href' => '/admin/logs', 'roles' => ['owner']],
 ];

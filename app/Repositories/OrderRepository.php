@@ -12,7 +12,7 @@ use GNesting\Core\Repository;
  */
 final class OrderRepository extends Repository
 {
-    private const ORDER_FIELDS = 'id, number, access_token_hash, customer_id, status, payment_status, subtotal_cents, discount_cents,
+    private const ORDER_FIELDS = 'id, number, access_token_hash, customer_id, status, payment_status, subtotal_cents, discount_cents, coupon_code,
         shipping_cents, total_cents, customer_name, customer_email, customer_phone, customer_cpf,
         ship_recipient, ship_zip_code, ship_street, ship_number, ship_complement, ship_district, ship_city, ship_state,
         shipping_carrier, shipping_service, shipping_days, production_days, placed_at, paid_at, cancelled_at, cancel_reason';
@@ -21,11 +21,11 @@ final class OrderRepository extends Repository
     public function create(array $data): int
     {
         $id = $this->insert(
-            'INSERT INTO orders (number, access_token_hash, customer_id, subtotal_cents, discount_cents, shipping_cents, total_cents,
+            'INSERT INTO orders (number, access_token_hash, customer_id, subtotal_cents, discount_cents, coupon_id, coupon_code, shipping_cents, total_cents,
                                  customer_name, customer_email, customer_phone, customer_cpf,
                                  ship_recipient, ship_zip_code, ship_street, ship_number, ship_complement, ship_district, ship_city, ship_state,
                                  shipping_carrier, shipping_service, shipping_days, production_days, placed_at)
-             VALUES (:number, :access_token_hash, :customer_id, :subtotal_cents, 0, :shipping_cents, :total_cents,
+             VALUES (:number, :access_token_hash, :customer_id, :subtotal_cents, :discount_cents, :coupon_id, :coupon_code, :shipping_cents, :total_cents,
                      :customer_name, :customer_email, :customer_phone, :customer_cpf,
                      :ship_recipient, :ship_zip_code, :ship_street, :ship_number, :ship_complement, :ship_district, :ship_city, :ship_state,
                      :shipping_carrier, :shipping_service, :shipping_days, :production_days, UTC_TIMESTAMP())',

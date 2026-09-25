@@ -21,6 +21,7 @@ use GNesting\Services\Auth\TooManyAttemptsException;
 use GNesting\Services\BusinessRuleException;
 use GNesting\Services\CheckoutService;
 use GNesting\Services\OrderLink;
+use GNesting\Services\WhatsApp;
 use GNesting\Services\PaymentService;
 use GNesting\Services\RateLimiter;
 use Throwable;
@@ -54,6 +55,7 @@ final class CheckoutController extends Controller
         private readonly Session $session,
         private readonly Logger $logger,
         private readonly OrderLink $links,
+        private readonly WhatsApp $whatsapp,
     ) {
     }
 
@@ -172,6 +174,7 @@ final class CheckoutController extends Controller
             'history' => $this->orders->history((int) $order['id']),
             'shipment' => $this->orders->latestShipment((int) $order['id']),
             'messages' => $this->orders->notes((int) $order['id'], 'customer'),
+            'whatsappUrl' => $this->whatsapp->forOrder((string) $order['number']),
             'accessKey' => $request->queryString('chave', 64),
             'returnStatus' => $request->queryString('status', 20),
         ]);

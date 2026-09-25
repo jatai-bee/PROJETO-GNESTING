@@ -9,6 +9,8 @@ use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Repositories\CatalogRepository;
 use GNesting\Services\CatalogService;
+use GNesting\Services\SeoData;
+use GNesting\Services\SettingsService;
 
 final class HomeController extends Controller
 {
@@ -17,6 +19,7 @@ final class HomeController extends Controller
     public function __construct(
         private readonly CatalogRepository $products,
         private readonly CatalogService $catalog,
+        private readonly SettingsService $settings,
     ) {
     }
 
@@ -34,6 +37,7 @@ final class HomeController extends Controller
             'title' => 'G-Nesting — Objetos que transformam espaços.',
             'metaDescription' => 'Objetos de design produzidos com fabricação digital: relógios, painéis, organizadores e presentes com personalização.',
             'canonical' => absolute_url('/'),
+            'jsonLd' => [SeoData::store($this->settings->get('store.contact_email'))],
             'featured' => $featured,
             'newest' => array_slice($newest, 0, self::SHOWCASE),
             'categories' => array_values(array_filter(

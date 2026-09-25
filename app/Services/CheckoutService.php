@@ -11,6 +11,7 @@ use GNesting\Core\ValidationException;
 use GNesting\Helpers\BrazilianDocument;
 use GNesting\Helpers\ZipCode;
 use GNesting\Repositories\AddressRepository;
+use GNesting\Repositories\CouponRepository;
 use GNesting\Repositories\CustomerRepository;
 use GNesting\Repositories\InventoryRepository;
 use GNesting\Repositories\OrderRepository;
@@ -41,6 +42,8 @@ final class CheckoutService
         private readonly AuditService $audit,
         private readonly OrderNotifier $notifier,
         private readonly OrderLink $links,
+        private readonly CouponRepository $coupons,
+        private readonly CouponService $couponService,
         private readonly Config $config,
         private readonly Logger $logger,
     ) {
@@ -100,7 +103,8 @@ final class CheckoutService
         }
 
         $option = null;
-        foreach ($this->quote($address['zip_code'], $summary) as $candidate) {
+        $options = $this->quote($address['zip_code'], $summary);
+        foreach ($options as $candidate) {
             if ($candidate->code === $input['shipping_code']) {
                 $option = $candidate;
             }
@@ -108,17 +112,39 @@ final class CheckoutService
         if ($option === null) {
             throw new ValidationException(['shipping_code' => 'Escolha uma opção de entrega para este CEP.']);
         }
+        $cheapest = min(array_map(static fn (ShippingOption $o): int => $o->priceCents, $options));
+        if (($summary['coupon']['error'] ?? null) !== null) {
+            throw new BusinessRuleException($summary['coupon']['error'] . ' Remova o cupom ou ajuste o carrinho.');
+        }
 
-        $result = $this->db->transaction(function () use ($summary, $contact, $address, $option, $customerId, $input): array {
+        $result = $this->db->transaction(function () use ($summary, $contact, $address, $option, $cheapest, $customerId, $input): array {
             $customerId = $this->resolveCustomer($customerId, $contact);
-
             $subtotal = (int) $summary['subtotal_cents'];
+
+            // Cupom revalidado com trava da linha: o limite de usos não estoura com compras simultâneas
+            $coupon = null;
+            $discount = 0;
+            if ($summary['coupon'] !== null) {
+                $coupon = $this->coupons->find((int) $summary['coupon']['id'], true)
+                    ?? throw new BusinessRuleException('O cupom não existe mais. Remova-o do carrinho.');
+                $this->couponService->assertUsable($coupon, $subtotal, $customerId);
+                $parts = $this->couponService->discount($coupon, $subtotal, $option->priceCents, $cheapest);
+                $discount = $parts['items'] + $parts['shipping'];
+            }
+            $total = $subtotal - $discount + $option->priceCents;
+            if ($total < 1) {
+                throw new BusinessRuleException('Com este cupom o pedido ficaria sem valor a pagar. Fale com a gente.');
+            }
+
             $orderId = $this->orders->create([
                 'access_token_hash' => null, // chave do link é derivada do número (OrderLink)
                 'customer_id' => $customerId,
                 'subtotal_cents' => $subtotal,
+                'discount_cents' => $discount,
+                'coupon_id' => $coupon === null ? null : (int) $coupon['id'],
+                'coupon_code' => $coupon['code'] ?? null,
                 'shipping_cents' => $option->priceCents,
-                'total_cents' => $subtotal + $option->priceCents,
+                'total_cents' => $total,
                 'customer_name' => $contact['name'],
                 'customer_email' => $contact['email'],
                 'customer_phone' => $contact['phone'],
@@ -174,6 +200,9 @@ final class CheckoutService
             }
 
             $this->orders->addHistory($orderId, null, 'awaiting_payment', 'customer');
+            if ($coupon !== null) {
+                $this->coupons->redeem((int) $coupon['id'], $orderId, $customerId, $discount);
+            }
             if ($customerId !== null && ($input['save_address'] ?? false) && $input['logged_in']
                 && !$this->addresses->exists($customerId, $address['zip_code'], $address['number'], $address['complement'])) {
                 $this->addresses->create($customerId, $address);

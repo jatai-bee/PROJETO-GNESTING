@@ -89,8 +89,33 @@ $issueText = [
             <h2 id="resumo" class="cart__summary-title">Resumo</h2>
             <dl class="summary-lines">
                 <div><dt>Subtotal (<?= e($cart['quantity']) ?> <?= $cart['quantity'] === 1 ? 'item' : 'itens' ?>)</dt><dd><?= e(money($cart['subtotal_cents'])) ?></dd></div>
-                <div><dt>Frete</dt><dd class="muted">calculado no checkout</dd></div>
+                <?php if ($cart['coupon'] !== null && $cart['coupon']['error'] === null && $cart['discount_cents'] > 0): ?>
+                    <div class="summary-lines__discount"><dt>Cupom <?= e($cart['coupon']['code']) ?></dt><dd>− <?= e(money($cart['discount_cents'])) ?></dd></div>
+                <?php endif ?>
+                <div><dt>Frete</dt><dd class="muted"><?= ($cart['coupon']['free_shipping'] ?? false) && $cart['coupon']['error'] === null ? 'grátis na opção econômica' : 'calculado no checkout' ?></dd></div>
+                <?php if ($cart['discount_cents'] > 0): ?>
+                    <div class="summary-lines__total"><dt>Total sem frete</dt><dd><?= e(money($cart['total_cents'])) ?></dd></div>
+                <?php endif ?>
             </dl>
+
+            <?php if ($cart['coupon'] !== null): ?>
+                <div class="coupon<?= $cart['coupon']['error'] !== null ? ' coupon--error' : '' ?>">
+                    <p><strong><?= e($cart['coupon']['code']) ?></strong>
+                        <?= $cart['coupon']['error'] === null ? '· ' . e($cart['coupon']['label']) : '' ?></p>
+                    <?php if ($cart['coupon']['error'] !== null): ?><p class="field__error"><?= e($cart['coupon']['error']) ?></p><?php endif ?>
+                    <form method="post" action="<?= e(url('/carrinho/cupom/remover')) ?>" class="inline-form">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="link-button">Remover cupom</button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <form method="post" action="<?= e(url('/carrinho/cupom')) ?>" class="coupon-form">
+                    <?= csrf_field() ?>
+                    <label for="coupon-code" class="visually-hidden">Cupom de desconto</label>
+                    <input id="coupon-code" name="code" maxlength="40" placeholder="Cupom de desconto" autocomplete="off" autocapitalize="characters">
+                    <button type="submit" class="btn btn--secondary btn--sm">Aplicar</button>
+                </form>
+            <?php endif ?>
             <?php if ($cart['lead_days'] > 0): ?>
                 <p class="field__hint">Produção em até <?= e($cart['lead_days']) ?> dia<?= $cart['lead_days'] > 1 ? 's' : '' ?> úte<?= $cart['lead_days'] > 1 ? 'is' : 'il' ?> + prazo de entrega.</p>
             <?php endif ?>
@@ -106,5 +131,16 @@ $issueText = [
             <a class="cart__continue" href="<?= e(url('/produtos')) ?>">Continuar comprando</a>
         </aside>
     </div>
+    <?php endif ?>
+
+    <?php if (!empty($suggestions)): ?>
+        <section class="section section--tight" aria-labelledby="sugestoes">
+            <h2 id="sugestoes" class="section__title">Combina com o seu pedido</h2>
+            <div class="product-grid">
+                <?php foreach ($suggestions as $item): ?>
+                    <?= $this->partial('partials/product-card', ['product' => $item]) ?>
+                <?php endforeach ?>
+            </div>
+        </section>
     <?php endif ?>
 </div>

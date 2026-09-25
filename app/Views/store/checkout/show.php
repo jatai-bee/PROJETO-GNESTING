@@ -23,6 +23,11 @@ foreach ($shippingOptions as $option) {
         $chosenOption = $option;
     }
 }
+// Cupom de frete grátis: abate o valor da opção mais barata (a mesma regra do servidor)
+$coupon = ($cart['coupon']['error'] ?? null) === null ? $cart['coupon'] : null;
+$cheapest = $shippingOptions === [] ? 0 : min(array_map(static fn ($o) => $o->priceCents, $shippingOptions));
+$shippingPrice = static fn ($o): int => ($coupon['free_shipping'] ?? false) ? $o->priceCents - min($o->priceCents, $cheapest) : $o->priceCents;
+$itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
 ?>
 <div class="container">
     <header class="page-head">
@@ -105,11 +110,14 @@ foreach ($shippingOptions as $option) {
                             <?php foreach ($shippingOptions as $option): ?>
                                 <label class="choice">
                                     <input type="radio" name="shipping_code" value="<?= e($option->code) ?>" <?= $chosenShipping === $option->code ? 'checked' : '' ?>
-                                           data-price-cents="<?= e($option->priceCents) ?>" data-price="<?= e($option->priceCents === 0 ? 'Grátis' : money($option->priceCents)) ?>">
+                                           data-price-cents="<?= e($shippingPrice($option)) ?>" data-price="<?= e($shippingPrice($option) === 0 ? 'Grátis' : money($shippingPrice($option))) ?>">
                                     <span class="choice__row">
                                         <span><strong><?= e($option->service) ?></strong><br>
                                             <small class="muted"><?= $option->days > 0 ? e("até {$option->days} dias úteis após a produção") : 'combine a retirada após a produção' ?></small></span>
-                                        <strong><?= $option->priceCents === 0 ? 'Grátis' : e(money($option->priceCents)) ?></strong>
+                                        <strong>
+                                            <?php if ($shippingPrice($option) !== $option->priceCents): ?><s class="muted"><?= e(money($option->priceCents)) ?></s><?php endif ?>
+                                            <?= $shippingPrice($option) === 0 ? 'Grátis' : e(money($shippingPrice($option))) ?>
+                                        </strong>
                                     </span>
                                 </label>
                             <?php endforeach ?>
@@ -135,8 +143,12 @@ foreach ($shippingOptions as $option) {
             </ul>
             <dl class="summary-lines">
                 <div><dt>Subtotal</dt><dd><?= e(money($cart['subtotal_cents'])) ?></dd></div>
-                <div><dt>Frete</dt><dd data-summary-shipping><?= $chosenOption === null ? '<span class="muted">calcule acima</span>' : e($chosenOption->priceCents === 0 ? 'Grátis' : money($chosenOption->priceCents)) ?></dd></div>
-                <div class="summary-lines__total"><dt>Total</dt><dd data-summary-total data-subtotal="<?= e($cart['subtotal_cents']) ?>"><?= e(money($cart['subtotal_cents'] + ($chosenOption->priceCents ?? 0))) ?></dd></div>
+                <?php if ($coupon !== null): ?>
+                    <div class="summary-lines__discount"><dt>Cupom <?= e($coupon['code']) ?></dt>
+                        <dd><?= (int) $cart['discount_cents'] > 0 ? '− ' . e(money((int) $cart['discount_cents'])) : e($coupon['label']) ?></dd></div>
+                <?php endif ?>
+                <div><dt>Frete</dt><dd data-summary-shipping><?= $chosenOption === null ? '<span class="muted">calcule acima</span>' : e($shippingPrice($chosenOption) === 0 ? 'Grátis' : money($shippingPrice($chosenOption))) ?></dd></div>
+                <div class="summary-lines__total"><dt>Total</dt><dd data-summary-total data-subtotal="<?= e($itemsTotal) ?>"><?= e(money($itemsTotal + ($chosenOption === null ? 0 : $shippingPrice($chosenOption)))) ?></dd></div>
             </dl>
             <p class="field__hint">Produção em até <?= e($cart['lead_days']) ?> dia<?= $cart['lead_days'] === 1 ? '' : 's' ?> úte<?= $cart['lead_days'] === 1 ? 'il' : 'is' ?>, depois o prazo de entrega.</p>
             <button type="submit" class="btn btn--primary btn--block">Ir para o pagamento</button>

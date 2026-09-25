@@ -32,6 +32,18 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
     <?php if ($robots !== null): ?>
     <meta name="robots" content="<?= e($robots) ?>">
     <?php endif ?>
+    <?php /* Compartilhamento (WhatsApp, redes sociais) */ ?>
+    <meta property="og:site_name" content="G-Nesting">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:type" content="<?= e($ogType ?? 'website') ?>">
+    <meta property="og:title" content="<?= e($title) ?>">
+    <?php if (!empty($metaDescription)): ?><meta property="og:description" content="<?= e($metaDescription) ?>"><?php endif ?>
+    <?php if (!empty($canonical)): ?><meta property="og:url" content="<?= e($canonical) ?>"><?php endif ?>
+    <meta property="og:image" content="<?= e($ogImage ?? absolute_url('/assets/img/og-default.png')) ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <?php foreach ($jsonLd ?? [] as $structured): ?>
+    <script type="application/ld+json"><?= \GNesting\Services\SeoData::encode($structured) ?></script>
+    <?php endforeach ?>
     <meta name="theme-color" content="#F5F2EC">
     <link rel="icon" href="<?= e(asset('img/logo-mark.svg')) ?>" type="image/svg+xml">
     <link rel="stylesheet" href="<?= e(asset('css/tokens.css')) ?>">
@@ -41,6 +53,9 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
 </head>
 <body>
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+<?php if (!empty($announcement)): ?>
+<p class="announcement"><?= e($announcement) ?></p>
+<?php endif ?>
 
 <header class="site-header">
     <div class="container site-header__inner">
@@ -97,7 +112,7 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
     <?= $content ?>
 </main>
 
-<footer class="site-footer">
+<footer class="site-footer<?= !empty($floatingWhatsapp) ? ' site-footer--float-space' : '' ?>">
     <div class="container site-footer__inner">
         <div>
             <img src="<?= e(asset('img/logo-mark.svg')) ?>" alt="" width="32" height="32">
@@ -110,8 +125,17 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
             <a href="<?= e(url('/privacidade')) ?>">Privacidade</a>
             <a href="<?= e(url('/termos')) ?>">Termos de uso</a>
         </nav>
-        <p class="site-footer__legal">© <?= e(date('Y')) ?> G-Nesting. Objetos produzidos com fabricação digital.</p>
+        <p class="site-footer__legal">
+            <?php if (!empty($contactEmail)): ?><a href="mailto:<?= e($contactEmail) ?>"><?= e($contactEmail) ?></a><br><?php endif ?>
+            © <?= e(date('Y')) ?> G-Nesting. Objetos produzidos com fabricação digital.
+        </p>
     </div>
 </footer>
+<?php if (!empty($floatingWhatsapp)): ?>
+<a class="whatsapp-float" href="<?= e($floatingWhatsapp) ?>" target="_blank" rel="noopener noreferrer" aria-label="Fale conosco pelo WhatsApp">
+    <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>
+    <span class="visually-hidden">WhatsApp</span>
+</a>
+<?php endif ?>
 </body>
 </html>

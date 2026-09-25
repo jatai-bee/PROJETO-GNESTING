@@ -228,6 +228,16 @@ if (!function_exists('upload_url')) {
     }
 }
 
+if (!function_exists('absolute_upload_url')) {
+    /** URL absoluta de uma imagem enviada (Open Graph, dados estruturados, sitemap). */
+    function absolute_upload_url(string $path, int $width = 1600): string
+    {
+        $path = (string) preg_replace('/-1600\.(webp|jpg)$/', '-' . $width . '.$1', $path);
+
+        return absolute_url('/uploads/' . ltrim($path, '/'));
+    }
+}
+
 if (!function_exists('query_url')) {
     /**
      * URL com query string, sem parâmetros vazios. Útil para filtros e paginação.

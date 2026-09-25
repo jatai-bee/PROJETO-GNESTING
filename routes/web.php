@@ -12,6 +12,7 @@ use GNesting\Controllers\Store\AuthController;
 use GNesting\Controllers\Store\CartController;
 use GNesting\Controllers\Store\CatalogController;
 use GNesting\Controllers\Store\CheckoutController;
+use GNesting\Controllers\Store\SeoController;
 use GNesting\Controllers\Store\SimulatedPaymentController;
 use GNesting\Controllers\Store\HomeController;
 use GNesting\Controllers\Store\PageController;
@@ -32,6 +33,12 @@ return static function (Router $r): void {
     $r->post('/carrinho/itens', [CartController::class, 'add']);
     $r->post('/carrinho/itens/{id:\d+}', [CartController::class, 'update']);
     $r->post('/carrinho/itens/{id:\d+}/remover', [CartController::class, 'remove']);
+    $r->post('/carrinho/cupom', [CartController::class, 'applyCoupon']);
+    $r->post('/carrinho/cupom/remover', [CartController::class, 'removeCoupon']);
+
+    // SEO
+    $r->get('/sitemap.xml', [SeoController::class, 'sitemap']);
+    $r->get('/robots.txt', [SeoController::class, 'robots']);
 
     // Checkout e pedido (com ou sem conta)
     $r->get('/checkout', [CheckoutController::class, 'show']);

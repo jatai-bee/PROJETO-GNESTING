@@ -46,7 +46,7 @@ dentro de transações não confirmadas (os testes rodam assim). Se o catálogo 
 ## 4. Página de produto
 
 Galeria (miniaturas trocam a foto sem recarregar; sem JS, abrem a imagem), preço com preço "de" e % de desconto,
-características (uma por linha no admin), material, acabamento, medidas em cm, peso, SKU, descrição e até 4 relacionados da mesma categoria.
+características (uma por linha no admin), material, acabamento, medidas em cm, peso, SKU, descrição e até 4 relacionados (desde a etapa 10: comprados juntos → mesma categoria → mais vendidos; ver [15 — Marketing](15-marketing.md) §4).
 
 Disponibilidade:
 

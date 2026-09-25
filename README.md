@@ -28,6 +28,7 @@ PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv
 | [12 — Checkout](docs/12-checkout.md) | compra com/sem conta, frete, Mercado Pago, webhook, expiração |
 | [13 — Pedidos](docs/13-pedidos.md) | gestão no painel, papéis, cancelamento e estorno, e-mails, SMTP, clientes |
 | [14 — Produção](docs/14-producao.md) | fila por etapa, retrabalho, previsão de carga, consumo de chapas, expedição e romaneio |
+| [15 — Marketing](docs/15-marketing.md) | cupons, WhatsApp e configurações da loja, sitemap, robots, Open Graph, JSON-LD, relacionados |
 
 ## Início rápido
 
@@ -58,6 +59,6 @@ Cada etapa segue: analisar → planejar → implementar → testar → corrigir 
 | 7 | Checkout: cadastro, endereço, frete, pagamento, confirmação | ✅ concluída (167 testes no total) |
 | 8 | Pedidos: gestão, status, histórico, comunicação | ✅ concluída (177 testes no total) |
 | 9 | Produção: fila, CNC, acabamento, CQ, embalagem, expedição | ✅ concluída (185 testes no total) |
-| 10 | Marketing: cupons, SEO, WhatsApp, relacionados | ⏭ próxima |
-| 11 | Segurança e testes | — |
+| 10 | Marketing: cupons, SEO, WhatsApp, relacionados | ✅ concluída (195 testes no total) |
+| 11 | Segurança e testes | ⏭ próxima |
 | 12 | Produção: servidor, HTTPS, backups, monitoramento | — |

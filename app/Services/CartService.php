@@ -8,6 +8,7 @@ use GNesting\Core\CartContext;
 use GNesting\Core\Config;
 use GNesting\Core\ValidationException;
 use GNesting\Repositories\CartRepository;
+use GNesting\Repositories\CouponRepository;
 use GNesting\Repositories\CatalogRepository;
 
 /**
@@ -33,17 +34,21 @@ final class CartService
         private readonly PersonalizationService $personalization,
         private readonly CartContext $context,
         private readonly Config $config,
+        private readonly CouponService $coupons,
+        private readonly CouponRepository $couponRepository,
     ) {
     }
 
     /**
      * Itens com preço atual e total.
      *
-     * @return array{items: list<array<string, mixed>>, subtotal_cents: int, quantity: int, lead_days: int, has_issues: bool}
+     * @return array{items: list<array<string, mixed>>, subtotal_cents: int, quantity: int, lead_days: int, has_issues: bool,
+     *               coupon: ?array<string, mixed>, discount_cents: int, total_cents: int}
      */
     public function summary(): array
     {
-        $empty = ['items' => [], 'subtotal_cents' => 0, 'quantity' => 0, 'lead_days' => 0, 'has_issues' => false];
+        $empty = ['items' => [], 'subtotal_cents' => 0, 'quantity' => 0, 'lead_days' => 0, 'has_issues' => false,
+            'coupon' => null, 'discount_cents' => 0, 'total_cents' => 0];
         $cartId = $this->currentCartId();
         if ($cartId === null) {
             return $empty;
@@ -109,7 +114,54 @@ final class CartService
             }
         }
 
+        return $this->withCoupon($summary, $cartId);
+    }
+
+    /**
+     * Cupom do carrinho, revalidado a cada leitura (subtotal ou validade podem ter mudado).
+     * Cupom que deixou de valer continua visível com o motivo, sem desconto.
+     *
+     * @param array<string, mixed> $summary
+     * @return array<string, mixed>
+     */
+    private function withCoupon(array $summary, int $cartId): array
+    {
+        $summary += ['coupon' => null, 'discount_cents' => 0];
+        $couponId = $this->carts->couponId($cartId);
+        $coupon = $couponId === null ? null : $this->couponRepository->find($couponId);
+        if ($coupon !== null) {
+            try {
+                $this->coupons->assertUsable($coupon, (int) $summary['subtotal_cents']);
+                $discount = $this->coupons->discount($coupon, (int) $summary['subtotal_cents']);
+                $summary['coupon'] = ['id' => (int) $coupon['id'], 'code' => $coupon['code'], 'label' => CouponService::describe($coupon),
+                    'free_shipping' => $coupon['type'] === 'free_shipping', 'error' => null];
+                $summary['discount_cents'] = $discount['items'];
+            } catch (BusinessRuleException $e) {
+                $summary['coupon'] = ['id' => (int) $coupon['id'], 'code' => $coupon['code'], 'label' => '', 'free_shipping' => false, 'error' => $e->getMessage()];
+            }
+        }
+        $summary['total_cents'] = (int) $summary['subtotal_cents'] - (int) $summary['discount_cents'];
+
         return $summary;
+    }
+
+    /** @throws BusinessRuleException */
+    public function applyCoupon(string $code): string
+    {
+        $cartId = $this->currentCartId() ?? throw new BusinessRuleException('Adicione produtos ao carrinho antes de usar um cupom.');
+        $summary = $this->summary();
+        $coupon = $this->coupons->findUsable($code, (int) $summary['subtotal_cents']);
+        $this->carts->setCoupon($cartId, (int) $coupon['id']);
+
+        return CouponService::describe($coupon);
+    }
+
+    public function removeCoupon(): void
+    {
+        $cartId = $this->currentCartId();
+        if ($cartId !== null) {
+            $this->carts->setCoupon($cartId, null);
+        }
     }
 
     /** Total de unidades (ícone do carrinho no cabeçalho). */

@@ -53,6 +53,17 @@ final class MercadoPagoGateway implements PaymentGateway
             ];
         }
 
+        // Com desconto não há item negativo no MP: uma linha só com o total (itens + frete − desconto)
+        if ((int) ($order['discount_cents'] ?? 0) > 0) {
+            $lines = [[
+                'id' => (string) $order['number'],
+                'title' => 'Pedido ' . $order['number'] . ' — G-Nesting' . (!empty($order['coupon_code']) ? ' (cupom ' . $order['coupon_code'] . ')' : ''),
+                'quantity' => 1,
+                'unit_price' => $this->reais((int) $order['total_cents']),
+                'currency_id' => 'BRL',
+            ]];
+        }
+
         $payload = [
             'items' => $lines,
             'payer' => ['name' => (string) $order['customer_name'], 'email' => (string) $order['customer_email']],

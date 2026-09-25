@@ -97,6 +97,9 @@ $lastPayment = $payments === [] ? null : $payments[array_key_last($payments)];
             </ul>
             <dl class="summary-lines">
                 <div><dt>Subtotal</dt><dd><?= e(money((int) $order['subtotal_cents'])) ?></dd></div>
+                <?php if ((int) $order['discount_cents'] > 0): ?>
+                    <div class="summary-lines__discount"><dt>Desconto<?= $order['coupon_code'] ? ' (' . e($order['coupon_code']) . ')' : '' ?></dt><dd>− <?= e(money((int) $order['discount_cents'])) ?></dd></div>
+                <?php endif ?>
                 <div><dt>Frete (<?= e($order['shipping_service']) ?>)</dt><dd><?= (int) $order['shipping_cents'] === 0 ? 'Grátis' : e(money((int) $order['shipping_cents'])) ?></dd></div>
                 <div class="summary-lines__total"><dt>Total</dt><dd><?= e(money((int) $order['total_cents'])) ?></dd></div>
             </dl>
@@ -130,5 +133,10 @@ $lastPayment = $payments === [] ? null : $payments[array_key_last($payments)];
         </section>
     </div>
 
-    <p><a href="<?= e(url('/produtos')) ?>">Continuar comprando</a></p>
+    <p class="actions">
+        <?php if (!empty($whatsappUrl)): ?>
+            <a class="btn btn--secondary" href="<?= e($whatsappUrl) ?>" target="_blank" rel="noopener noreferrer">Falar sobre este pedido no WhatsApp</a>
+        <?php endif ?>
+        <a class="btn btn--secondary" href="<?= e(url('/produtos')) ?>">Continuar comprando</a>
+    </p>
 </div>

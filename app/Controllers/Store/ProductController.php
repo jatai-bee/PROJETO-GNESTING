@@ -12,6 +12,9 @@ use GNesting\Core\Session;
 use GNesting\Repositories\CatalogRepository;
 use GNesting\Repositories\ProductOptionRepository;
 use GNesting\Services\PersonalizationService;
+use GNesting\Services\RelatedProducts;
+use GNesting\Services\SeoData;
+use GNesting\Services\WhatsApp;
 
 /** Página de produto: variações pré-cadastradas e personalização controlada. */
 final class ProductController extends Controller
@@ -23,6 +26,8 @@ final class ProductController extends Controller
         private readonly PersonalizationService $personalization,
         private readonly ProductOptionRepository $options,
         private readonly Session $session,
+        private readonly RelatedProducts $related,
+        private readonly WhatsApp $whatsapp,
     ) {
     }
 
@@ -59,20 +64,29 @@ final class ProductController extends Controller
         $breadcrumbs[] = ['label' => $product['name'], 'url' => null];
 
         $highlights = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $product['highlights']) ?: [])));
+        $images = $this->catalog->images((int) $product['id']);
+        $canonical = absolute_url('/produto/' . $product['slug']);
 
         return $this->render('store/product/show', [
+            'ogType' => 'product',
+            'ogImage' => $images === [] ? null : absolute_upload_url($images[0]['path'], 800),
+            'jsonLd' => [
+                SeoData::product($product, $variants, $images, $canonical),
+                SeoData::breadcrumbs($breadcrumbs),
+            ],
+            'whatsappUrl' => $this->whatsapp->forProduct((string) $product['name'], $canonical),
             'title' => ($product['meta_title'] ?: $product['name'] . ' | G-Nesting'),
             'metaDescription' => $product['meta_description'] ?: $product['short_description'],
-            'canonical' => absolute_url('/produto/' . $product['slug']),
+            'canonical' => $canonical,
             'product' => $product,
             'variants' => $variants,
             'variantLabel' => implode(' / ', array_column($this->options->optionsWithValues((int) $product['id']), 'name')) ?: 'Versão',
             'selected' => $selected,
             'anyInStock' => in_array(true, array_column($variants, 'in_stock'), true),
             'rules' => $this->personalization->rulesForProduct((int) $product['id']),
-            'images' => $this->catalog->images((int) $product['id']),
+            'images' => $images,
             'highlights' => $highlights,
-            'related' => $this->catalog->related((int) $product['id'], (int) $product['category_id'], self::RELATED),
+            'related' => $this->related->forProduct((int) $product['id'], (int) $product['category_id'], self::RELATED),
             'breadcrumbs' => $breadcrumbs,
         ]);
     }

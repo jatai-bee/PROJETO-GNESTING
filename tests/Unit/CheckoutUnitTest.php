@@ -127,6 +127,23 @@ final class CheckoutUnitTest extends TestCase
         self::assertSame(28470, $sum, 'Itens + frete = total do pedido');
     }
 
+    public function testMercadoPagoPreferenceWithDiscountUsesSingleLineEqualToTotal(): void
+    {
+        $calls = [];
+        $gateway = new MercadoPagoGateway($this->fakeHttp([['status' => 201, 'body' => '{"id":"pref-2","init_point":"https://mp.test/x"}']], $calls), 'TOKEN', 'secret');
+        $gateway->createCheckout(
+            ['number' => 'GN-2026-000008', 'customer_name' => 'Ana', 'customer_email' => 'ana@x.test', 'shipping_cents' => 2490,
+                'shipping_service' => 'PAC', 'discount_cents' => 2598, 'coupon_code' => 'BEMVINDO10', 'total_cents' => 25872],
+            [['sku' => 'REL-1', 'product_name' => 'Relógio', 'variant_name' => null, 'unit_price_cents' => 12990, 'personalization_cents' => 0, 'quantity' => 2]],
+            ['success' => 'https://l/ok', 'pending' => 'https://l/p', 'failure' => 'https://l/f', 'notification' => 'https://l/w'],
+        );
+
+        $payload = json_decode($calls[0]['body'], true);
+        self::assertCount(1, $payload['items'], 'Sem item negativo: uma linha com o total');
+        self::assertSame(258.72, $payload['items'][0]['unit_price']);
+        self::assertStringContainsString('BEMVINDO10', $payload['items'][0]['title']);
+    }
+
     public function testMercadoPagoPaymentMapping(): void
     {
         $calls = [];

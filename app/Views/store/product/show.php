@@ -177,6 +177,9 @@ $oldValue = static fn (string $name, string $default = ''): string => (string) (
                 </form>
                 <p class="stock-note" data-field="stock"><?= e($shown['stock']) ?></p>
             <?php endif ?>
+            <?php if (!empty($whatsappUrl)): ?>
+                <p class="product__whatsapp"><a href="<?= e($whatsappUrl) ?>" target="_blank" rel="noopener noreferrer">Dúvidas sobre este produto? Fale no WhatsApp</a></p>
+            <?php endif ?>
 
             <?php if ($highlights !== []): ?>
                 <ul class="product__highlights">

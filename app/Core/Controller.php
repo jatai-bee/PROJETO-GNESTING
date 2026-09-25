@@ -6,6 +6,8 @@ namespace GNesting\Core;
 
 use GNesting\Services\CartService;
 use GNesting\Services\CatalogService;
+use GNesting\Services\SettingsService;
+use GNesting\Services\WhatsApp;
 
 /**
  * Base dos controllers: renderização, redirecionamento e validação.
@@ -30,6 +32,9 @@ abstract class Controller
                 'currentCustomer' => app(Auth::class)->customer(),
                 'cartCount' => app(CartService::class)->itemCount(),
                 'navCategories' => app(CatalogService::class)->categoryTree(),
+                'announcement' => app(SettingsService::class)->get('store.announcement'),
+                'contactEmail' => app(SettingsService::class)->get('store.contact_email'),
+                'floatingWhatsapp' => app(WhatsApp::class)->floatingButton(),
             ];
         }
 

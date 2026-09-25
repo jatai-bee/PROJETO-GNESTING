@@ -363,3 +363,22 @@
 .simulated-pay { max-width: 640px; padding: var(--space-6) 0; display: grid; gap: var(--space-4); }
 .tracking { margin-bottom: var(--space-5); }
 .message + .message { margin-top: var(--space-3); padding-top: var(--space-3); border-top: var(--border-hairline); }
+
+/* ---- Marketing (etapa 10) ------------------------------------------------- */
+.announcement { margin: 0; padding: var(--space-2) var(--gutter); background: var(--color-text); color: var(--gn-branco); text-align: center; font-size: var(--text-sm); }
+.whatsapp-float {
+  position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: var(--z-toast);
+  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%;
+  background: #1F7A4D; color: var(--gn-branco); box-shadow: var(--shadow-md);
+}
+.whatsapp-float:hover { background: #17603C; color: var(--gn-branco); }
+.site-footer--float-space { padding-bottom: calc(56px + var(--space-6)); }
+.product__whatsapp { margin-top: var(--space-3); font-size: var(--text-sm); }
+.summary-lines__discount dd { color: var(--gn-sucesso); font-weight: var(--weight-semibold); }
+.coupon-form { display: flex; gap: var(--space-2); }
+.coupon-form input {
+  flex: 1; min-width: 0; min-height: 36px; padding: 0 var(--space-3); text-transform: uppercase;
+  background: var(--gn-branco); border: var(--border-default); border-radius: var(--radius-sm);
+}
+.coupon { padding: var(--space-3); border: 1px dashed var(--gn-sucesso); background: #EAF3EE; font-size: var(--text-sm); }
+.coupon--error { border-color: var(--gn-erro); background: #FBECEA; }

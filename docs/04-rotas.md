@@ -9,6 +9,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 
 > **Implementadas (etapa 4):** home, `/produtos`, `/categoria/{slug}`, `/busca`, `/produto/{slug}`, carrinho (ver, adicionar, alterar, remover) e páginas institucionais. Regras em [09 — Catálogo e carrinho](09-catalogo-e-carrinho.md). Middleware global novo: `cart` (lê/grava o cookie do carrinho).
 > **Implementadas (etapa 7):** `GET/POST /checkout`, `GET /pedido/{numero}/confirmacao` (dono, link `?chave=` ou mesmo navegador; senão 404), `POST /pedido/{numero}/pagar`, `GET /conta/pedidos`, `POST /api/frete/cotar`, `POST /webhooks/pagamento/mercadopago` e, só em desenvolvimento, `/pagamento-simulado/{referencia}`. Guia: [12 — Checkout](12-checkout.md).
+> **Implementadas (etapa 10):** `POST /carrinho/cupom` (limite de 10 tentativas a cada 10 min por IP), `POST /carrinho/cupom/remover`, `GET /sitemap.xml` e `GET /robots.txt`. Guia: [15 — Marketing](15-marketing.md).
 
 | Método | URL | Controller@ação | Middleware | Etapa |
 |---|---|---|---|---|
@@ -22,6 +23,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 | POST | `/carrinho/itens/{id}` | `Store\CartController@update` | S, C | 4 |
 | POST | `/carrinho/itens/{id}/remover` | `Store\CartController@remove` | S, C | 4 |
 | POST | `/carrinho/cupom` | `Store\CartController@applyCoupon` | S, C, L | 10 |
+| POST | `/carrinho/cupom/remover` | `Store\CartController@removeCoupon` | S, C | 10 |
 | GET | `/checkout` | `Store\CheckoutController@show` | S | 7 |
 | POST | `/checkout` | `Store\CheckoutController@place` | S, C, L | 7 |
 | GET | `/pedido/{numero}/confirmacao` | `Store\CheckoutController@confirmation` | S | 7 |
@@ -51,6 +53,7 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 > **Implementadas (etapa 3):** login, painel, categorias, produtos, imagens, usuários e logs. Arquivo: `routes/admin.php`.
 > **Implementadas (etapa 5):** `/admin/produtos/{id}/variantes` (opções, valores, `POST /gerar`, `/{variantId}/editar|padrao|excluir`) e `/admin/produtos/{id}/personalizacao` (`/novo`, `/{ruleId}/editar|excluir`). Guia: [10 — Variações e personalização](10-variacoes-e-personalizacao.md).
 > **Implementadas (etapa 9, manager e production):** `/admin/producao` · `/{id}` · `POST /{id}/avancar|retrabalho|assumir`, `/admin/expedicao` · `/{id}/romaneio` · `POST /{id}/enviar|entregue`, `POST /admin/materiais/{id}/movimento`. Guia: [14 — Produção](14-producao.md).
+> **Implementadas (etapa 10):** `/admin/cupons` · `/novo` · `/{id}/editar` · `POST /{id}/excluir` (manager) e `/admin/configuracoes` (owner: WhatsApp, e-mail de contato, faixa de avisos). Guia: [15 — Marketing](15-marketing.md).
 > **Implementadas (etapa 8):** `/admin/pedidos` · `/{id}` · `POST /{id}/status|cancelar|nota|mensagem|reenviar-link` (manager, production, support — ações conforme o papel) e `/admin/clientes` · `/{id}` (manager, support). Guia: [13 — Pedidos](13-pedidos.md).
 > **Implementadas (etapa 6, papéis manager e production):** `/admin/fichas` (visão geral), `/admin/produtos/{id}/ficha-producao[/{variantId}]` (+ `/copiar`, `/arquivos`, `/arquivos/{fileId}/excluir`), `GET /admin/arquivos-producao/{fileId}` e `/admin/materiais` (`/novo`, `/{id}/editar|excluir`). Guia: [11 — Ficha de produção](11-ficha-de-producao.md).
 > Convenção: formulários usam a mesma URL no GET e no POST (`/novo`, `/{id}/editar`). Ações usam POST em subcaminhos (`/{id}/status`, `/{id}/excluir`, `/imagens/{imageId}/capa|mover|texto|excluir`).
@@ -77,7 +80,7 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 | `/admin/cupons` | CRUD | manager |
 | `/admin/avaliacoes` | moderação | manager, support |
 | `/admin/usuarios` | administradores e papéis | **owner** |
-| `/admin/configuracoes` | WhatsApp, textos, prazos | owner |
+| `/admin/configuracoes` | WhatsApp, e-mail de contato, faixa de avisos | owner |
 | `/admin/logs` | auditoria | owner |
 
 ## 4. API e webhooks (`routes/api.php`)

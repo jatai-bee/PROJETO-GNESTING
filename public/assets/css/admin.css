@@ -45,6 +45,7 @@ body.admin { flex-direction: column; background: var(--gn-cinza-100); }
 /* ---- Painéis e tabelas ---------------------------------------------------- */
 .panel { background: var(--color-surface); border: var(--border-hairline); border-radius: var(--radius-md); padding: var(--space-5); }
 .panel__title { margin-bottom: var(--space-4); font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+.panel__intro { margin-bottom: var(--space-4); }
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .table th { text-align: left; font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--color-text-muted); font-weight: var(--weight-semibold); }

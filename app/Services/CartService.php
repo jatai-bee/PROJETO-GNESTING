@@ -285,7 +285,11 @@ final class CartService
         }
     }
 
-    /** Limite da variante: disponível em estoque ou o máximo por linha (sob encomenda). */
+    /**
+     * Limite da variante: disponível em estoque ou o máximo por linha (sob encomenda).
+     *
+     * @param array<string, mixed> $variant
+     */
     private function limitFor(array $variant): int
     {
         $max = (int) $this->config->get('cart.max_quantity', 99);

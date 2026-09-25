@@ -18,6 +18,20 @@ Options -Indexes -MultiViews
     RewriteRule ^uploads/.*\.(php\d?|phtml|phar)$ - [F,L]
 </IfModule>
 
+# O único PHP executável pela web é o front controller. Qualquer outro script que vá
+# parar em public/ (upload, arquivo esquecido de manutenção) responde 403.
+<FilesMatch "\.(php\d?|phtml|phar)$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>
+
+# Arquivos ocultos (.git, .env copiado por engano...), exceto /.well-known (certificados)
+<IfModule mod_rewrite.c>
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+</IfModule>
+
 # Arquivos estáticos. As páginas dinâmicas recebem os cabeçalhos de segurança
 # da própria aplicação (app/Core/SecurityHeaders.php).
 <IfModule mod_headers.c>

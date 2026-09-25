@@ -11,5 +11,7 @@
             <?= $this->partial('partials/field', ['name' => 'password', 'label' => 'Senha', 'type' => 'password', 'autocomplete' => 'current-password', 'errors' => $errors, 'old' => $old]) ?>
             <button type="submit" class="btn btn--primary btn--block">Entrar</button>
         </form>
+
+        <p class="auth__alt"><a href="<?= e(url('/admin/recuperar-senha')) ?>">Esqueci minha senha</a></p>
     </div>
 </section>

@@ -8,11 +8,11 @@ use GNesting\Core\Repository;
 
 final class CustomerRepository extends Repository
 {
-    /** @return array{customer_id:int,user_id:int,name:string,email:string}|null */
+    /** @return array{customer_id:int,user_id:int,name:string,email:string,password_stamp:string}|null */
     public function findActiveByUserId(int $userId): ?array
     {
         return $this->fetchOne(
-            "SELECT c.id AS customer_id, c.user_id, c.name, c.email
+            "SELECT c.id AS customer_id, c.user_id, c.name, c.email, LEFT(SHA2(u.password_hash, 256), 16) AS password_stamp
                FROM customers c
                JOIN users u ON u.id = c.user_id
               WHERE c.user_id = :user_id
@@ -23,7 +23,11 @@ final class CustomerRepository extends Repository
         );
     }
 
-    /** Cliente que comprou como visitante (sem conta) com este e-mail. */
+    /**
+     * Cliente que comprou como visitante (sem conta) com este e-mail.
+     *
+     * @return array<string, mixed>|null
+     */
     public function findGuestByEmail(string $email): ?array
     {
         return $this->fetchOne(
@@ -84,7 +88,7 @@ final class CustomerRepository extends Repository
     public function adminFind(int $customerId): ?array
     {
         return $this->fetchOne(
-            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.whatsapp_opt_in, c.marketing_opt_in, c.created_at,
+            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.whatsapp_opt_in, c.marketing_opt_in, c.anonymized_at, c.created_at,
                     COALESCE(o.orders_count, 0) AS orders_count, COALESCE(o.spent_cents, 0) AS spent_cents, o.last_order_at'
             . self::ADMIN_FROM . ' WHERE c.id = :id',
             ['id' => $customerId]

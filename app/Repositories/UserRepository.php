@@ -36,6 +36,11 @@ final class UserRepository extends Repository
         $this->execute('UPDATE users SET password_hash = :hash WHERE id = :id', ['hash' => $passwordHash, 'id' => $id]);
     }
 
+    public function markEmailVerified(int $id): void
+    {
+        $this->execute('UPDATE users SET email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = :id', ['id' => $id]);
+    }
+
     public function touchLastLogin(int $id): void
     {
         $this->execute('UPDATE users SET last_login_at = UTC_TIMESTAMP() WHERE id = :id', ['id' => $id]);

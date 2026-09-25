@@ -22,6 +22,9 @@ final class AuditService
     public const PRICE_CHANGE = 'price_change';
     public const STOCK_CHANGE = 'stock_change';
     public const STATUS_CHANGE = 'status_change';
+    public const PASSWORD_RESET = 'password_reset';
+    public const EXPORT = 'export';
+    public const ANONYMIZE = 'anonymize';
 
     public function __construct(
         private readonly AuditLogRepository $repository,

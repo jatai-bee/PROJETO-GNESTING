@@ -83,7 +83,11 @@ final class CouponService
         return ['items' => $items, 'shipping' => $shipping];
     }
 
-    /** Texto curto do benefício: "10% de desconto", "R$ 20,00 de desconto", "Frete grátis". */
+    /**
+     * Texto curto do benefício: "10% de desconto", "R$ 20,00 de desconto", "Frete grátis".
+     *
+     * @param array<string, mixed> $coupon
+     */
     public static function describe(array $coupon): string
     {
         return match ($coupon['type']) {

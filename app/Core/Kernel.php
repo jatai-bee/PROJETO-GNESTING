@@ -55,6 +55,7 @@ final class Kernel
 
         foreach (array_reverse($stack) as $entry) {
             [$alias, $paramString] = array_pad(explode(':', $entry, 2), 2, '');
+            /** @var class-string $class */
             $class = $aliases[$alias] ?? throw new RuntimeException("Middleware desconhecido: {$alias}");
             $params = $paramString === '' ? [] : explode(',', $paramString);
 

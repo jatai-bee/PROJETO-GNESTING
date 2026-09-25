@@ -56,6 +56,7 @@ final class Logger
         @file_put_contents($this->directory . '/app-' . gmdate('Y-m-d') . '.log', $line, FILE_APPEND | LOCK_EX);
     }
 
+    /** @param array<string, mixed> $context */
     public function exception(Throwable $e, string $errorId, array $context = []): void
     {
         $this->error("[{$errorId}] " . $e::class . ': ' . $e->getMessage(), $context + [

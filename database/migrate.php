@@ -25,7 +25,9 @@ $basePath = dirname(__DIR__);
 require $basePath . '/vendor/autoload.php';
 
 $options = getopt('', ['seed', 'status', 'fresh', 'create-db', 'force']);
-$out = static fn (string $line) => fwrite(STDOUT, $line . PHP_EOL);
+$out = static function (string $line): void {
+    fwrite(STDOUT, $line . PHP_EOL);
+};
 
 try {
     $container = Bootstrap::createContainer($basePath);

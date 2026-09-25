@@ -14,6 +14,7 @@ use GNesting\Core\Config;
 use GNesting\Services\OrderService;
 use GNesting\Core\Logger;
 use GNesting\Repositories\CartRepository;
+use GNesting\Repositories\PasswordResetRepository;
 use GNesting\Repositories\RateLimitRepository;
 
 if (PHP_SAPI !== 'cli') {
@@ -27,11 +28,13 @@ try {
     $container = Bootstrap::createContainer($basePath);
     $removed = $container->get(RateLimitRepository::class)->purgeExpired();
     $carts = $container->get(CartRepository::class)->purgeExpired();
+    $resets = $container->get(PasswordResetRepository::class)->purgeExpired();
     // Pedidos sem pagamento após o prazo: cancelados, estoque reservado volta à venda
     $expired = $container->get(OrderService::class)->expireUnpaid((int) $container->get(Config::class)->get('payment.expiry_hours', 48));
     $container->get(Logger::class)->info('cron: concluído', [
         'rate_limits_removidos' => $removed,
         'carrinhos_expirados_removidos' => $carts,
+        'tokens_de_senha_removidos' => $resets,
         'pedidos_nao_pagos_cancelados' => $expired,
     ]);
 } catch (Throwable $e) {

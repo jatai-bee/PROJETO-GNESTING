@@ -60,7 +60,7 @@ final class Database
 
             return $result;
         } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
+            if ($pdo->inTransaction()) { // @phpstan-ignore if.alwaysFalse (o callback pode ter falhado antes do commit)
                 $pdo->rollBack();
             }
             throw $e;

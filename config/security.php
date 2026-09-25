@@ -23,6 +23,13 @@ return [
         'search' => [60, 60],         // buscas por IP por minuto
         'shipping' => [60, 60],       // cotações de frete por IP por minuto
         'coupon' => [10, 600],        // tentativas de cupom por IP a cada 10 min
+        'password_reset' => [3, 3600],     // pedidos de redefinição por e-mail
+        'password_reset_ip' => [10, 3600], // pedidos de redefinição por IP
+    ],
+
+    // LGPD: pedidos mais antigos que isto têm os dados pessoais apagados ao anonimizar um cliente
+    'privacy' => [
+        'order_retention_years' => (int) env('ORDER_RETENTION_YEARS', 5),
     ],
 
     'password' => [

@@ -164,7 +164,7 @@ final class Request
         return $this->body[$key] ?? $default;
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<array-key, mixed> chaves numéricas ("123") viram int no PHP */
     public function all(): array
     {
         return $this->body;

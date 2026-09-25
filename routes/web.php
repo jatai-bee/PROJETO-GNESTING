@@ -16,6 +16,7 @@ use GNesting\Controllers\Store\SeoController;
 use GNesting\Controllers\Store\SimulatedPaymentController;
 use GNesting\Controllers\Store\HomeController;
 use GNesting\Controllers\Store\PageController;
+use GNesting\Controllers\Store\PasswordResetController;
 use GNesting\Controllers\Store\ProductController;
 use GNesting\Core\Router;
 
@@ -60,6 +61,10 @@ return static function (Router $r): void {
         $r->post('/entrar', [AuthController::class, 'login']);
         $r->get('/cadastro', [AuthController::class, 'showRegister']);
         $r->post('/cadastro', [AuthController::class, 'register']);
+        $r->get('/recuperar-senha', [PasswordResetController::class, 'showRequest']);
+        $r->post('/recuperar-senha', [PasswordResetController::class, 'request']);
+        $r->get('/redefinir-senha/{token:[a-f0-9]{64}}', [PasswordResetController::class, 'showReset']);
+        $r->post('/redefinir-senha/{token:[a-f0-9]{64}}', [PasswordResetController::class, 'reset']);
     });
 
     $r->group(['middleware' => ['auth']], static function (Router $r): void {

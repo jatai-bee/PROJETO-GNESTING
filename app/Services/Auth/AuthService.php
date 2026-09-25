@@ -143,7 +143,7 @@ final class AuthService
     /**
      * Fluxo comum de login com limite de tentativas por (e-mail + IP) e por IP.
      *
-     * @param callable(int): ?array $profileLoader carrega o perfil ativo (admin/cliente)
+     * @param callable(int): (array<string, mixed>|null) $profileLoader carrega o perfil ativo (admin/cliente)
      * @return array<string, mixed>
      */
     private function attempt(UserType $type, string $email, #[\SensitiveParameter] string $password, string $ip, callable $profileLoader): array

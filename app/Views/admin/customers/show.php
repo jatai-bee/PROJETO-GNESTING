@@ -4,6 +4,7 @@
  * @var list<array<string, mixed>> $orders
  * @var list<array<string, mixed>> $addresses
  * @var bool $fullCpf
+ * @var bool $isOwner
  */
 use GNesting\Helpers\BrazilianDocument;
 use GNesting\Helpers\ZipCode;
@@ -14,6 +15,7 @@ $whatsapp = whatsapp_url($customer['phone'], "Olá, {$customer['name']}! Aqui é
     <div>
         <a class="back-link" href="<?= e(url('/admin/clientes')) ?>">← Clientes</a>
         <h1 class="page-title"><?= e($customer['name']) ?></h1>
+        <?php if ($customer['anonymized_at']): ?><p><span class="badge">Anonimizado em <?= e(format_datetime($customer['anonymized_at'], 'd/m/Y')) ?></span></p><?php endif ?>
         <p class="muted"><?= $customer['user_id'] ? 'Com conta' : 'Comprou sem conta' ?> · cliente desde <?= e(format_datetime($customer['created_at'], 'd/m/Y')) ?></p>
     </div>
 </div>
@@ -66,6 +68,22 @@ $whatsapp = whatsapp_url($customer['phone'], "Olá, {$customer['name']}! Aqui é
                         <?= e("{$address['street']}, {$address['number']}" . ($address['complement'] ? " — {$address['complement']}" : '')) ?><br>
                         <?= e("{$address['district']} · {$address['city']}/{$address['state']} · " . ZipCode::format((string) $address['zip_code'])) ?></p>
                 <?php endforeach ?>
+            </section>
+        <?php endif ?>
+        <?php if ($isOwner && !$customer['anonymized_at']): ?>
+            <section class="panel">
+                <h2 class="panel__title">Dados pessoais (LGPD)</h2>
+                <p class="muted panel__intro">Use a pedido do próprio cliente, depois de confirmar a identidade dele (ex.: resposta do e-mail cadastrado). As duas ações ficam registradas na auditoria.</p>
+                <form method="post" action="<?= e(url('/admin/clientes/' . $customer['id'] . '/exportar')) ?>">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn--secondary btn--sm">Exportar dados (JSON)</button>
+                </form>
+                <form method="post" action="<?= e(url('/admin/clientes/' . $customer['id'] . '/anonimizar')) ?>" class="danger-zone">
+                    <?= csrf_field() ?>
+                    <p>Anonimizar apaga conta, endereços, contato e carrinhos. Pedidos dos últimos <?= (int) config('security.privacy.order_retention_years', 5) ?> anos ficam guardados (obrigação fiscal). Não dá para desfazer.</p>
+                    <?= $this->partial('partials/field', ['name' => 'confirm', 'label' => 'Digite ANONIMIZAR para confirmar', 'autocomplete' => 'off', 'errors' => [], 'old' => []]) ?>
+                    <button type="submit" class="btn btn--danger btn--sm">Anonimizar cadastro</button>
+                </form>
             </section>
         <?php endif ?>
     </aside>

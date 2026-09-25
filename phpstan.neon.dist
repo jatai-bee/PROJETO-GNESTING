@@ -1,0 +1,14 @@
+parameters:
+    level: 6
+    paths:
+        - app
+        - bin
+        - config
+        - database
+        - public/index.php
+        - routes
+    excludePaths:
+        - app/Views
+    ignoreErrors:
+        # array_values() antes de numerar placeholders (:id0, :id1…) é defensivo: não confia no PHPDoc do chamador
+        - identifier: arrayValues.list

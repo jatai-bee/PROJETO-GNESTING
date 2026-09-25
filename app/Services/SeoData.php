@@ -77,7 +77,11 @@ final class SeoData
         ], static fn ($v) => $v !== null);
     }
 
-    /** JSON seguro para <script type="application/ld+json"> (não fecha a tag nem injeta HTML). */
+    /**
+     * JSON seguro para <script type="application/ld+json"> (não fecha a tag nem injeta HTML).
+     *
+     * @param array<string, mixed>|list<mixed> $data
+     */
     public static function encode(array $data): string
     {
         return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_THROW_ON_ERROR);

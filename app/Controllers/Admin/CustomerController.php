@@ -14,6 +14,8 @@ use GNesting\Enums\AdminRole;
 use GNesting\Repositories\AddressRepository;
 use GNesting\Repositories\CustomerRepository;
 use GNesting\Repositories\OrderRepository;
+use GNesting\Services\BusinessRuleException;
+use GNesting\Services\CustomerPrivacyService;
 
 /**
  * Clientes (consulta: gestor e atendimento). O atendimento vê o CPF mascarado
@@ -28,6 +30,7 @@ final class CustomerController extends Controller
         private readonly OrderRepository $orders,
         private readonly AddressRepository $addresses,
         private readonly Auth $auth,
+        private readonly CustomerPrivacyService $privacy,
     ) {
     }
 
@@ -55,7 +58,48 @@ final class CustomerController extends Controller
             'orders' => $this->orders->adminList(['customer_id' => (int) $customer['id']], 100, 0),
             'addresses' => $this->addresses->forCustomer((int) $customer['id']),
             'fullCpf' => $this->canSeeFullCpf(),
+            'isOwner' => ($this->auth->admin()['role'] ?? '') === AdminRole::Owner->value,
         ], 'admin');
+    }
+
+    /** LGPD: todos os dados do cliente em JSON (somente proprietário; fica na auditoria). */
+    public function export(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        try {
+            $data = $this->privacy->export($id);
+        } catch (BusinessRuleException $e) {
+            $this->flash('error', $e->getMessage());
+
+            return $this->redirect('/admin/clientes/' . $id);
+        }
+
+        return Response::json($data)
+            ->withHeader('Content-Disposition', 'attachment; filename="dados-cliente-' . $id . '.json"');
+    }
+
+    /** LGPD: anonimiza o cadastro a pedido do titular. Exige digitar ANONIMIZAR. */
+    public function anonymize(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        if ($request->string('confirm') !== 'ANONIMIZAR') {
+            $this->flash('error', 'Para confirmar, digite ANONIMIZAR no campo.');
+
+            return $this->redirect('/admin/clientes/' . $id);
+        }
+        try {
+            $result = $this->privacy->anonymize($id);
+        } catch (BusinessRuleException $e) {
+            $this->flash('error', $e->getMessage());
+
+            return $this->redirect('/admin/clientes/' . $id);
+        }
+        $this->flash('success', sprintf(
+            'Cadastro anonimizado. %d pedido(s) mantido(s) pela obrigação fiscal; %d pedido(s) com mais de %d anos também anonimizado(s).',
+            $result['orders_kept'], $result['orders_anonymized'], $result['retention_years'],
+        ));
+
+        return $this->redirect('/admin/clientes/' . $id);
     }
 
     private function canSeeFullCpf(): bool

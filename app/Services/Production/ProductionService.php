@@ -142,7 +142,11 @@ final class ProductionService
         }
     }
 
-    /** Chapas usadas = quantidade ÷ peças por chapa (2 casas), do material da ficha da variante. */
+    /**
+     * Chapas usadas = quantidade ÷ peças por chapa (2 casas), do material da ficha da variante.
+     *
+     * @param array<string, mixed> $job
+     */
     private function consumeMaterial(array $job, ?int $userId): void
     {
         $spec = $this->specs->findByVariant((int) $job['variant_id']);

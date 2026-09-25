@@ -65,7 +65,7 @@ final class ProductionFileService
         }
 
         try {
-            return $this->db->transaction(function () use ($specId, $file, $type, $originalName, $relative, $target, $size): int {
+            return $this->db->transaction(function () use ($specId, $type, $originalName, $relative, $target, $size): int {
                 $data = [
                     'file_type' => $type,
                     'original_name' => $originalName,

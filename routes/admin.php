@@ -19,6 +19,7 @@ use GNesting\Controllers\Admin\CustomerController;
 use GNesting\Controllers\Admin\SettingsController;
 use GNesting\Controllers\Admin\DashboardController;
 use GNesting\Controllers\Admin\OrderController;
+use GNesting\Controllers\Admin\PasswordResetController;
 use GNesting\Controllers\Admin\MaterialController;
 use GNesting\Controllers\Admin\PersonalizationController;
 use GNesting\Controllers\Admin\ProductController;
@@ -34,6 +35,10 @@ return static function (Router $r): void {
         $r->group(['middleware' => ['admin.guest']], static function (Router $r): void {
             $r->get('/login', [AuthController::class, 'showLogin']);
             $r->post('/login', [AuthController::class, 'login']);
+            $r->get('/recuperar-senha', [PasswordResetController::class, 'showRequest']);
+            $r->post('/recuperar-senha', [PasswordResetController::class, 'request']);
+            $r->get('/redefinir-senha/{token:[a-f0-9]{64}}', [PasswordResetController::class, 'showReset']);
+            $r->post('/redefinir-senha/{token:[a-f0-9]{64}}', [PasswordResetController::class, 'reset']);
         });
 
         $r->group(['middleware' => ['admin']], static function (Router $r): void {
@@ -143,6 +148,8 @@ return static function (Router $r): void {
             // Equipe e auditoria: somente proprietário
             $r->group(['middleware' => ['role:owner']], static function (Router $r): void {
                 $r->get('/configuracoes', [SettingsController::class, 'edit']);
+                $r->post('/clientes/{id:\d+}/exportar', [CustomerController::class, 'export']);
+                $r->post('/clientes/{id:\d+}/anonimizar', [CustomerController::class, 'anonymize']);
                 $r->post('/configuracoes', [SettingsController::class, 'update']);
                 $r->get('/usuarios', [AdminUserController::class, 'index']);
                 $r->get('/usuarios/novo', [AdminUserController::class, 'create']);

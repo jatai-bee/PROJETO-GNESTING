@@ -12,12 +12,12 @@ final class AdminRepository extends Repository
     /**
      * Administrador apto a entrar: perfil ativo + usuário ativo do tipo admin.
      *
-     * @return array{admin_id:int,user_id:int,name:string,role:string,email:string}|null
+     * @return array{admin_id:int,user_id:int,name:string,role:string,email:string,password_stamp:string}|null
      */
     public function findActiveByUserId(int $userId): ?array
     {
         return $this->fetchOne(
-            "SELECT a.id AS admin_id, a.user_id, a.name, a.role, u.email
+            "SELECT a.id AS admin_id, a.user_id, a.name, a.role, u.email, LEFT(SHA2(u.password_hash, 256), 16) AS password_stamp
                FROM admins a
                JOIN users u ON u.id = a.user_id
               WHERE a.user_id = :user_id

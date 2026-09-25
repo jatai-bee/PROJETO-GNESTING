@@ -28,7 +28,8 @@ Política obrigatória para todas as etapas. Cada item indica **onde** é implem
 - **Sessões de cliente e admin são separadas** (chaves distintas; login admin em `/admin/login`).
 - Senhas: `password_hash(PASSWORD_ARGON2ID)` com fallback para `PASSWORD_BCRYPT` (cost 12) se a hospedagem não tiver Argon2; `password_needs_rehash` no login.
 - Mensagem de erro de login genérica ("e-mail ou senha inválidos"), sem revelar se o e-mail existe.
-- Redefinição de senha: token aleatório de 32 bytes, gravado como **SHA-256**, válido por 60 min e de uso único.
+- Redefinição de senha: token aleatório de 32 bytes, gravado como **SHA-256**, válido por 60 min e de uso único; resposta igual exista ou não a conta. (`PasswordResetService`)
+- Trocar a senha encerra as outras sessões da conta (carimbo da senha na sessão, conferido pelo `Auth` a cada requisição).
 
 ## 5. Autorização (RBAC)
 - Papéis: `owner`, `manager`, `production`, `support` (enum `AdminRole`).
@@ -50,9 +51,11 @@ Política obrigatória para todas as etapas. Cada item indica **onde** é implem
 | Login cliente/admin | 5 tentativas / 15 min por IP+e-mail; bloqueio de 15 min |
 | Recuperar senha | 3 / hora por e-mail e 10 / hora por IP |
 | Cadastro | 5 / hora por IP |
-| Cupom | 10 / 10 min por sessão |
+| Cupom | 10 / 10 min por IP |
 | Busca, cotação de frete | 60 / min por IP |
-| Checkout | 10 / 10 min por sessão |
+| Checkout | 10 pedidos / hora por IP (`payment.max_orders_per_hour`) |
+
+Valores em `config/security.php` (`rate_limits`).
 
 ## 8. Uploads
 - Imagens de produto: MIME verificado pelo conteúdo (`finfo`) **e** extensão em lista branca (`jpg`, `jpeg`, `png`, `webp`), tamanho máximo pelo `.env`, reprocessadas com GD (remove metadados/EXIF e código embutido), nome aleatório. Ficam em `public/uploads`, onde o `.htaccess` impede executar PHP.
@@ -86,15 +89,19 @@ Registrar em `audit_logs`: login, logout, falha de login, criação, alteração
 ## 14. LGPD
 - Coletar só o necessário (nome, e-mail, telefone, CPF para nota fiscal/transportadora, endereço).
 - Opt-in explícito e separado para WhatsApp e marketing (`customers.whatsapp_opt_in`, `marketing_opt_in`).
-- Página de privacidade; exportação e anonimização de dados do cliente sob solicitação (etapa 11).
+- Página de privacidade; exportação (JSON) e anonimização do cliente sob solicitação, pelo proprietário, com guarda fiscal dos pedidos recentes (`CustomerPrivacyService`, [16](16-seguranca-e-testes.md) §2).
+- Só cookies necessários (sessão e carrinho): sem banner de consentimento enquanto não houver cookie de terceiros.
 
 ## 15. Checklist de verificação (Etapa 11)
-- [ ] Tentativa de SQLi em busca, filtros e login
-- [ ] XSS armazenado em nome de produto, personalização e avaliação
-- [ ] POST sem token CSRF é rejeitado (419)
-- [ ] Cliente A não acessa pedido do cliente B
-- [ ] Papel `support` não altera preço nem status de produção
-- [ ] Acesso direto a `/.env`, `/storage/...`, `/app/...` retorna 403
-- [ ] Upload de `.php` renomeado para `.jpg` é rejeitado
-- [ ] Erro forçado não exibe stack trace com `APP_DEBUG=false`
-- [ ] Preço alterado no HTML não altera o total do pedido
+
+Todos cobertos por testes automáticos — mapa item → teste em [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md) §4.
+
+- [x] Tentativa de SQLi em busca, filtros e login
+- [x] XSS armazenado em nome de produto, personalização e dados do cliente (avaliações ainda não existem: testar quando existirem)
+- [x] POST sem token CSRF é rejeitado (419)
+- [x] Cliente A não acessa pedido do cliente B
+- [x] Papel `support` não altera preço nem status de produção
+- [x] Acesso direto a `/.env`, `/storage/...`, `/app/...` retorna 403 (regras testadas + verificação manual no Apache — repetir no servidor real)
+- [x] Upload de `.php` renomeado para `.jpg` é rejeitado
+- [x] Erro forçado não exibe stack trace com `APP_DEBUG=false`
+- [x] Preço alterado no HTML não altera o total do pedido

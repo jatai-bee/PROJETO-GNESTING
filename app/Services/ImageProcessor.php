@@ -119,6 +119,7 @@ final class ImageProcessor
             'image/jpeg' => @imagecreatefromjpeg($path),
             'image/png' => @imagecreatefrompng($path),
             'image/webp' => @imagecreatefromwebp($path),
+            default => false,
         };
         if (!$image instanceof GdImage) {
             throw new BusinessRuleException('Arquivo de imagem corrompido ou inválido.');

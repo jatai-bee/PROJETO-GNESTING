@@ -101,10 +101,10 @@ final class Router
         };
     }
 
-    /** @return list<array{methods: list<string>, path: string}> */
+    /** @return list<array{methods: list<string>, path: string, middleware: list<string>}> */
     public function routes(): array
     {
-        return array_map(fn (array $r) => ['methods' => $r['methods'], 'path' => $r['path']], $this->routes);
+        return array_map(fn (array $r) => ['methods' => $r['methods'], 'path' => $r['path'], 'middleware' => $r['middleware']], $this->routes);
     }
 
     private function dispatcher(): Dispatcher

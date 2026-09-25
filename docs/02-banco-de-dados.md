@@ -59,6 +59,8 @@ reviews, wishlists, settings, audit_logs, schema_migrations
 - `users` guarda **só credenciais** (e-mail, hash, tipo, status).
 - `customers` guarda o perfil comercial. `user_id` é opcional para permitir **checkout sem cadastro**: o cliente visitante vira um `customer` sem login e pode criar a conta depois.
 - `admins` guarda nome e **papel**, base do controle de acesso (ver [05-seguranca.md](05-seguranca.md)).
+- `customers.anonymized_at` (migration 005): cadastro anonimizado a pedido do titular (LGPD). Os pedidos continuam ligados a ele por obrigação fiscal. Ver [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md) §2.
+- `password_resets` (desde a etapa 1, usada a partir da etapa 11): só o SHA-256 do token, 60 min, uso único.
 
 ### Produto × variante (SKU)
 - **Todo produto tem ao menos uma variante** (`is_default = 1`). O SKU, o preço, o material/acabamento *exibidos* e as medidas ficam na variante.

@@ -11,6 +11,7 @@
             <button type="submit" class="btn btn--primary btn--block">Entrar</button>
         </form>
 
+        <p class="auth__alt"><a href="<?= e(url('/recuperar-senha')) ?>">Esqueci minha senha</a></p>
         <p class="auth__alt">Ainda não tem conta? <a href="<?= e(url('/cadastro')) ?>">Criar conta</a></p>
     </div>
 </section>

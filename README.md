@@ -29,6 +29,7 @@ PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv
 | [13 — Pedidos](docs/13-pedidos.md) | gestão no painel, papéis, cancelamento e estorno, e-mails, SMTP, clientes |
 | [14 — Produção](docs/14-producao.md) | fila por etapa, retrabalho, previsão de carga, consumo de chapas, expedição e romaneio |
 | [15 — Marketing](docs/15-marketing.md) | cupons, WhatsApp e configurações da loja, sitemap, robots, Open Graph, JSON-LD, relacionados |
+| [16 — Segurança, LGPD e testes](docs/16-seguranca-e-testes.md) | recuperação de senha, sessões, exportação/anonimização (LGPD), checklist de segurança → testes, `composer check`, CI |
 
 ## Início rápido
 
@@ -39,7 +40,7 @@ php bin/generate-key.php
 composer migrate -- --create-db --seed
 php bin/create-admin.php --email=voce@gnesting.com.br --name="Seu Nome" --role=owner
 composer serve        # http://localhost:8000  ·  painel em /admin
-composer test
+composer check        # sintaxe + PHPStan + vulnerabilidades + testes (o mesmo que o CI roda)
 ```
 
 Detalhes em [docs/00-setup-laragon.md](docs/00-setup-laragon.md).
@@ -60,5 +61,5 @@ Cada etapa segue: analisar → planejar → implementar → testar → corrigir 
 | 8 | Pedidos: gestão, status, histórico, comunicação | ✅ concluída (177 testes no total) |
 | 9 | Produção: fila, CNC, acabamento, CQ, embalagem, expedição | ✅ concluída (185 testes no total) |
 | 10 | Marketing: cupons, SEO, WhatsApp, relacionados | ✅ concluída (195 testes no total) |
-| 11 | Segurança e testes | ⏭ próxima |
-| 12 | Produção: servidor, HTTPS, backups, monitoramento | — |
+| 11 | Segurança e testes | ✅ concluída (215 testes no total + PHPStan nível 6 + CI) |
+| 12 | Produção: servidor, HTTPS, backups, monitoramento | ⏭ próxima |

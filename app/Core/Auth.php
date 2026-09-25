@@ -12,7 +12,9 @@ use GNesting\Repositories\CustomerRepository;
  * separadas: sair do painel não desconecta a conta de cliente, e vice-versa.
  *
  * A cada consulta o perfil é relido do banco, então bloquear um usuário ou
- * trocar o papel de um admin vale imediatamente.
+ * trocar o papel de um admin vale imediatamente. A sessão guarda também um
+ * "carimbo" da senha (16 hex do SHA-256 do hash): se a senha for trocada, as
+ * outras sessões abertas daquele usuário caem na próxima requisição.
  */
 final class Auth
 {
@@ -33,10 +35,11 @@ final class Auth
     {
         $this->session->regenerate();
         $this->csrf->regenerate();
-        $this->session->set(self::ADMIN_KEY, ['user_id' => (int) $admin['user_id'], 'login_at' => time()]);
+        $stamp = $this->admins->findActiveByUserId((int) $admin['user_id'])['password_stamp'] ?? null;
+        $this->session->set(self::ADMIN_KEY, ['user_id' => (int) $admin['user_id'], 'login_at' => time(), 'stamp' => $stamp]);
     }
 
-    /** @return array{admin_id:int,user_id:int,name:string,role:string,email:string}|null */
+    /** @return array{admin_id:int,user_id:int,name:string,role:string,email:string,password_stamp:string}|null */
     public function admin(): ?array
     {
         $state = $this->session->get(self::ADMIN_KEY);
@@ -52,11 +55,23 @@ final class Auth
         }
 
         $admin = $this->admins->findActiveByUserId((int) $state['user_id']);
-        if ($admin === null) {
+        if ($admin === null || ($state['stamp'] ?? null) !== $admin['password_stamp']) {
             $this->logoutAdmin();
+
+            return null;
         }
 
         return $admin;
+    }
+
+    /** Depois de o próprio admin trocar a senha: mantém esta sessão (as outras caem). */
+    public function refreshAdminStamp(): void
+    {
+        $state = $this->session->get(self::ADMIN_KEY);
+        if (is_array($state) && isset($state['user_id'])) {
+            $state['stamp'] = $this->admins->findActiveByUserId((int) $state['user_id'])['password_stamp'] ?? null;
+            $this->session->set(self::ADMIN_KEY, $state);
+        }
     }
 
     public function logoutAdmin(): void
@@ -71,10 +86,11 @@ final class Auth
     {
         $this->session->regenerate();
         $this->csrf->regenerate();
-        $this->session->set(self::CUSTOMER_KEY, ['user_id' => (int) $customer['user_id']]);
+        $stamp = $this->customers->findActiveByUserId((int) $customer['user_id'])['password_stamp'] ?? null;
+        $this->session->set(self::CUSTOMER_KEY, ['user_id' => (int) $customer['user_id'], 'stamp' => $stamp]);
     }
 
-    /** @return array{customer_id:int,user_id:int,name:string,email:string}|null */
+    /** @return array{customer_id:int,user_id:int,name:string,email:string,password_stamp:string}|null */
     public function customer(): ?array
     {
         $state = $this->session->get(self::CUSTOMER_KEY);
@@ -83,8 +99,10 @@ final class Auth
         }
 
         $customer = $this->customers->findActiveByUserId((int) $state['user_id']);
-        if ($customer === null) {
+        if ($customer === null || ($state['stamp'] ?? null) !== $customer['password_stamp']) {
             $this->logoutCustomer();
+
+            return null;
         }
 
         return $customer;

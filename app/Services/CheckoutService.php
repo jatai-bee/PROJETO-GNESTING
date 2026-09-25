@@ -203,7 +203,7 @@ final class CheckoutService
             if ($coupon !== null) {
                 $this->coupons->redeem((int) $coupon['id'], $orderId, $customerId, $discount);
             }
-            if ($customerId !== null && ($input['save_address'] ?? false) && $input['logged_in']
+            if (($input['save_address'] ?? false) && $input['logged_in']
                 && !$this->addresses->exists($customerId, $address['zip_code'], $address['number'], $address['complement'])) {
                 $this->addresses->create($customerId, $address);
             }
@@ -290,7 +290,11 @@ final class CheckoutService
         return $customerId;
     }
 
-    /** Peso embalado: peso da embalagem, ou do produto + embalagem, ou o padrão. */
+    /**
+     * Peso embalado: peso da embalagem, ou do produto + embalagem, ou o padrão.
+     *
+     * @param array<string, mixed> $summary
+     */
     private function weight(array $summary): int
     {
         $default = (int) $this->config->get('shipping.default_package_weight_g', 1000);

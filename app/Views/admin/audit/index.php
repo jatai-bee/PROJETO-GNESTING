@@ -10,10 +10,13 @@ $actionLabels = [
     'login' => 'Entrou no painel', 'logout' => 'Saiu do painel', 'login_failed' => 'Falha de login',
     'create' => 'Criação', 'update' => 'Alteração', 'delete' => 'Exclusão', 'price_change' => 'Alteração de preço',
     'stock_change' => 'Alteração de estoque', 'status_change' => 'Mudança de situação',
+    'password_reset' => 'Senha redefinida por e-mail', 'export' => 'Exportação de dados (LGPD)', 'anonymize' => 'Anonimização (LGPD)',
 ];
 $entityLabels = [
-    'admin' => 'Usuário do painel', 'user' => 'Usuário', 'category' => 'Categoria', 'product' => 'Produto',
-    'product_image' => 'Imagem de produto',
+    'admin' => 'Usuário do painel', 'user' => 'Usuário', 'customer' => 'Cliente', 'category' => 'Categoria', 'product' => 'Produto',
+    'product_image' => 'Imagem de produto', 'product_variant' => 'Variação', 'personalization_rule' => 'Regra de personalização',
+    'production_spec' => 'Ficha de produção', 'production_file' => 'Arquivo de produção', 'production_job' => 'Ordem de produção',
+    'material' => 'Material', 'order' => 'Pedido', 'coupon' => 'Cupom', 'settings' => 'Configurações',
 ];
 $params = ['acao' => $filters['action'], 'tipo' => $filters['entity_type']];
 $pretty = static fn (?string $json): string => $json === null ? '' : (string) json_encode(json_decode($json, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

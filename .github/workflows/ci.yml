@@ -1,0 +1,55 @@
+# Verificação automática a cada push e pull request (docs/16-seguranca-e-testes.md).
+# Mesmos passos de `composer check`, num MySQL 8.4 igual ao de produção.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring, fileinfo, gd
+          coverage: none
+
+      - name: Dependências
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Ambiente de teste
+        run: |
+          cp .env.example .env
+          php bin/generate-key.php
+
+      - name: Sintaxe (php -l)
+        run: composer lint
+
+      - name: Análise estática (PHPStan)
+        run: composer analyse
+
+      - name: Vulnerabilidades conhecidas nas dependências
+        run: composer audit
+
+      - name: Testes (PHPUnit)
+        run: composer test

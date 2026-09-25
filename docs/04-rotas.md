@@ -10,6 +10,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 > **Implementadas (etapa 4):** home, `/produtos`, `/categoria/{slug}`, `/busca`, `/produto/{slug}`, carrinho (ver, adicionar, alterar, remover) e páginas institucionais. Regras em [09 — Catálogo e carrinho](09-catalogo-e-carrinho.md). Middleware global novo: `cart` (lê/grava o cookie do carrinho).
 > **Implementadas (etapa 7):** `GET/POST /checkout`, `GET /pedido/{numero}/confirmacao` (dono, link `?chave=` ou mesmo navegador; senão 404), `POST /pedido/{numero}/pagar`, `GET /conta/pedidos`, `POST /api/frete/cotar`, `POST /webhooks/pagamento/mercadopago` e, só em desenvolvimento, `/pagamento-simulado/{referencia}`. Guia: [12 — Checkout](12-checkout.md).
 > **Implementadas (etapa 10):** `POST /carrinho/cupom` (limite de 10 tentativas a cada 10 min por IP), `POST /carrinho/cupom/remover`, `GET /sitemap.xml` e `GET /robots.txt`. Guia: [15 — Marketing](15-marketing.md).
+> **Implementadas (etapa 11):** `/recuperar-senha` e `/redefinir-senha/{token}`. Guia: [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md).
 
 | Método | URL | Controller@ação | Middleware | Etapa |
 |---|---|---|---|---|
@@ -38,8 +39,8 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 | GET/POST | `/entrar` | `Store\AuthController@login` | S, C, L |
 | GET/POST | `/cadastro` | `Store\AuthController@register` | S, C, L |
 | POST | `/sair` | `Store\AuthController@logout` | S, C, A |
-| GET/POST | `/recuperar-senha` | `Store\PasswordController@request` | S, C, L |
-| GET/POST | `/redefinir-senha/{token}` | `Store\PasswordController@reset` | S, C, L |
+| GET/POST | `/recuperar-senha` | `Store\PasswordResetController@showRequest/request` | S, C, L |
+| GET/POST | `/redefinir-senha/{token}` | `Store\PasswordResetController@showReset/reset` (token = 64 hex) | S, C, L |
 | GET | `/conta` | `Store\AccountController@index` | S, A |
 | GET | `/conta/pedidos` | `Store\AccountController@orders` | S, A |
 | GET | `/conta/pedidos/{numero}` | `Store\AccountController@order` (verifica se o pedido é do cliente) | S, A |
@@ -54,6 +55,7 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 > **Implementadas (etapa 5):** `/admin/produtos/{id}/variantes` (opções, valores, `POST /gerar`, `/{variantId}/editar|padrao|excluir`) e `/admin/produtos/{id}/personalizacao` (`/novo`, `/{ruleId}/editar|excluir`). Guia: [10 — Variações e personalização](10-variacoes-e-personalizacao.md).
 > **Implementadas (etapa 9, manager e production):** `/admin/producao` · `/{id}` · `POST /{id}/avancar|retrabalho|assumir`, `/admin/expedicao` · `/{id}/romaneio` · `POST /{id}/enviar|entregue`, `POST /admin/materiais/{id}/movimento`. Guia: [14 — Produção](14-producao.md).
 > **Implementadas (etapa 10):** `/admin/cupons` · `/novo` · `/{id}/editar` · `POST /{id}/excluir` (manager) e `/admin/configuracoes` (owner: WhatsApp, e-mail de contato, faixa de avisos). Guia: [15 — Marketing](15-marketing.md).
+> **Implementadas (etapa 11):** `/admin/recuperar-senha` e `/admin/redefinir-senha/{token}` (fora do login) e, só **owner**, `POST /admin/clientes/{id}/exportar|anonimizar` (LGPD). Guia: [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md).
 > **Implementadas (etapa 8):** `/admin/pedidos` · `/{id}` · `POST /{id}/status|cancelar|nota|mensagem|reenviar-link` (manager, production, support — ações conforme o papel) e `/admin/clientes` · `/{id}` (manager, support). Guia: [13 — Pedidos](13-pedidos.md).
 > **Implementadas (etapa 6, papéis manager e production):** `/admin/fichas` (visão geral), `/admin/produtos/{id}/ficha-producao[/{variantId}]` (+ `/copiar`, `/arquivos`, `/arquivos/{fileId}/excluir`), `GET /admin/arquivos-producao/{fileId}` e `/admin/materiais` (`/novo`, `/{id}/editar|excluir`). Guia: [11 — Ficha de produção](11-ficha-de-producao.md).
 > Convenção: formulários usam a mesma URL no GET e no POST (`/novo`, `/{id}/editar`). Ações usam POST em subcaminhos (`/{id}/status`, `/{id}/excluir`, `/imagens/{imageId}/capa|mover|texto|excluir`).

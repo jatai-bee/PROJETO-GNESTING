@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GNesting\Controllers\Admin;
 
+use GNesting\Core\Auth;
 use GNesting\Core\Controller;
 use GNesting\Core\HttpException;
 use GNesting\Core\Request;
@@ -25,6 +26,7 @@ final class AdminUserController extends Controller
     public function __construct(
         private readonly AdminRepository $admins,
         private readonly AdminUserService $service,
+        private readonly Auth $auth,
     ) {
     }
 
@@ -117,6 +119,9 @@ final class AdminUserController extends Controller
         }
 
         $this->service->resetPassword((int) $user['admin_id'], $request->secret('password'));
+        if ((int) $user['user_id'] === (int) $request->attribute('admin')['user_id']) {
+            $this->auth->refreshAdminStamp(); // as outras sessões desta conta caem; esta continua
+        }
         $this->flash('success', 'Senha redefinida.');
 
         return $this->redirect($back);

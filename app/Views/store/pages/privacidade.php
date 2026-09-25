@@ -17,6 +17,7 @@
         <h2>Cookies</h2>
         <p>Usamos apenas cookies necessários ao funcionamento da loja: sessão (login e segurança) e carrinho (guarda seus itens por até 30 dias).</p>
         <h2>Seus direitos</h2>
-        <p>Você pode pedir acesso, correção ou exclusão dos seus dados escrevendo para <a href="mailto:contato@gnesting.com.br">contato@gnesting.com.br</a>. Alguns dados de pedidos precisam ser mantidos pelo prazo exigido pela legislação fiscal.</p>
+        <p>Você pode pedir acesso, correção, uma cópia dos seus dados (em arquivo) ou a exclusão do seu cadastro escrevendo, do e-mail cadastrado, para <a href="mailto:contato@gnesting.com.br">contato@gnesting.com.br</a>. Respondemos em até 15 dias.</p>
+        <p>Na exclusão, apagamos conta, endereços e contatos. Os dados dos pedidos dos últimos <?= (int) config('security.privacy.order_retention_years', 5) ?> anos são mantidos, porque a legislação fiscal e o Código de Defesa do Consumidor exigem; pedidos mais antigos são anonimizados junto com o cadastro.</p>
     </article>
 </div>

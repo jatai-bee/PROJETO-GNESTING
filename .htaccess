@@ -15,7 +15,7 @@ Options -Indexes
     # Bloqueia qualquer acesso direto a diretórios e arquivos sensíveis
     RewriteRule ^(app|bin|config|database|docs|routes|storage|tests|vendor)(/|$) - [F,L]
     RewriteRule (^|/)\.(?!well-known/) - [F,L]
-    RewriteRule ^(composer\.(json|lock)|phpunit\.xml.*|README\.md)$ - [F,L]
+    RewriteRule ^(composer\.(json|lock)|phpunit\.xml.*|phpstan\.neon.*|README\.md)$ - [F,L]
 
     # Encaminha tudo para /public
     RewriteCond %{REQUEST_URI} !^/public/

@@ -45,7 +45,7 @@ final class Container
 
     /**
      * @template T of object
-     * @param class-string<T>|string $id
+     * @param class-string<T> $id
      * @return T
      */
     public function get(string $id): object
@@ -90,7 +90,9 @@ final class Container
         foreach ($constructor->getParameters() as $parameter) {
             $type = $parameter->getType();
             if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
-                $arguments[] = $this->get($type->getName());
+                /** @var class-string $dependency */
+                $dependency = $type->getName();
+                $arguments[] = $this->get($dependency);
                 continue;
             }
             if ($parameter->isDefaultValueAvailable()) {

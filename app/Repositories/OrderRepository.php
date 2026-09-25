@@ -414,7 +414,6 @@ final class OrderRepository extends Repository
         );
     }
 
-    /** @param array<string, mixed> $data */
     public function createLinkedPayment(int $orderId, string $provider, string $providerPaymentId, int $amountCents): int
     {
         return $this->insert(

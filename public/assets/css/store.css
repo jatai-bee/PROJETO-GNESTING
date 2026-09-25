@@ -282,3 +282,25 @@
 
 /* JS: com auto-envio ativo, o botão "Atualizar" é dispensável */
 .js .cart-item__qty .btn { display: none; }
+
+/* ---- Variações e personalização (etapa 5) --------------------------------- */
+.price__from { font-size: var(--text-xs); color: var(--color-text-muted); }
+.buy-box select {
+  width: 100%; min-height: 44px; padding: 0 var(--space-3);
+  background: var(--gn-branco); border: var(--border-default); border-radius: var(--radius-sm);
+}
+.personalization {
+  margin: 0 0 var(--space-4); padding: var(--space-4);
+  background: var(--color-surface); border: var(--border-hairline);
+}
+.personalization legend { padding: 0 var(--space-2); font: var(--weight-medium) var(--text-lg)/1 var(--font-display); }
+.personalization .field:last-of-type { margin-bottom: var(--space-3); }
+.personalization__delta { margin-left: var(--space-1); color: var(--color-accent-text); font-weight: var(--weight-semibold); }
+.input--upper { text-transform: uppercase; }
+[hidden] { display: none !important; }
+
+.cart-item__personalization { display: grid; gap: 2px; margin: var(--space-1) 0; font-size: var(--text-sm); }
+.cart-item__personalization div { display: flex; gap: var(--space-1); }
+.cart-item__personalization dt { color: var(--color-text-muted); }
+.cart-item__personalization dd { font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+.cart-item__unit span { display: block; font-size: var(--text-xs); }

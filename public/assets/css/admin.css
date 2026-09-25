@@ -152,3 +152,25 @@ body.admin { flex-direction: column; background: var(--gn-cinza-100); }
   .table--stack .table__thumb { position: absolute; left: 0; top: var(--space-3); width: auto; padding: 0; }
   .table--stack .table__actions { padding-top: var(--space-2); }
 }
+
+/* ---- Variações e personalização (etapa 5) --------------------------------- */
+.option-block { padding: var(--space-4) 0; border-top: var(--border-hairline); }
+.option-block__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.chip-list { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0 var(--space-3); padding: 0; list-style: none; }
+.chip-list__item {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: 2px var(--space-3); border: var(--border-default); border-radius: var(--radius-pill);
+  background: var(--gn-branco); font-size: var(--text-sm);
+}
+.chip-list__remove {
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  color: var(--color-text-muted); font-size: var(--text-base); line-height: 1;
+}
+.chip-list__remove:hover { background: var(--gn-cinza-200); color: var(--gn-erro); }
+.inline-add { display: flex; gap: var(--space-2); max-width: 420px; }
+.inline-add input {
+  flex: 1; min-height: 36px; padding: 0 var(--space-3);
+  background: var(--gn-branco); border: var(--border-default); border-radius: var(--radius-sm);
+}
+.option-new { margin-top: var(--space-4); padding-top: var(--space-4); border-top: var(--border-hairline); }
+.option-new summary { cursor: pointer; font-weight: var(--weight-semibold); font-size: var(--text-sm); margin-bottom: var(--space-3); }

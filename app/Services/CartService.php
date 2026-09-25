@@ -6,6 +6,7 @@ namespace GNesting\Services;
 
 use GNesting\Core\CartContext;
 use GNesting\Core\Config;
+use GNesting\Core\ValidationException;
 use GNesting\Repositories\CartRepository;
 use GNesting\Repositories\CatalogRepository;
 
@@ -13,11 +14,13 @@ use GNesting\Repositories\CatalogRepository;
  * Carrinho do visitante (identificado pelo cookie — CartContext).
  *
  * Regras:
- * - preço e disponibilidade são sempre lidos na hora (nunca confiados ao carrinho);
- * - produto com estoque próprio ('stock') não passa do disponível; sob encomenda
- *   ('made_to_order') vai até o limite por linha;
- * - produto que saiu da loja continua listado, marcado como indisponível e fora do total;
- * - personalização obrigatória só é aceita a partir da etapa 5.
+ * - preço, acréscimos de personalização e disponibilidade são sempre lidos na hora;
+ *   preço unitário = preço da variante + acréscimos das regras/opções atuais;
+ * - a mesma variante com personalizações diferentes gera linhas diferentes (personalization_hash);
+ * - produto com estoque próprio ('stock') não passa do disponível, somando todas as linhas
+ *   da variante; sob encomenda ('made_to_order') vai até o limite por linha;
+ * - itens que deixaram de ser válidos (produto fora da loja, estoque insuficiente,
+ *   personalização que não atende mais às regras) continuam listados, marcados e fora do total.
  */
 final class CartService
 {
@@ -27,6 +30,7 @@ final class CartService
     public function __construct(
         private readonly CartRepository $carts,
         private readonly CatalogRepository $catalog,
+        private readonly PersonalizationService $personalization,
         private readonly CartContext $context,
         private readonly Config $config,
     ) {
@@ -47,6 +51,12 @@ final class CartService
 
         $rows = $this->carts->items($cartId);
         $variants = $this->catalog->variantsForCart(array_map(static fn (array $r): int => (int) $r['variant_id'], $rows));
+        $stored = $this->carts->personalizations($cartId);
+
+        $perVariant = [];
+        foreach ($rows as $row) {
+            $perVariant[(int) $row['variant_id']] = ($perVariant[(int) $row['variant_id']] ?? 0) + (int) $row['quantity'];
+        }
 
         $summary = $empty;
         foreach ($rows as $row) {
@@ -54,28 +64,40 @@ final class CartService
             $variant = $variants[(int) $row['variant_id']] ?? null;
 
             if ($variant === null) {
-                $summary['items'][] = ['id' => (int) $row['id'], 'quantity' => $quantity, 'issue' => 'unavailable'];
+                $summary['items'][] = ['id' => (int) $row['id'], 'quantity' => $quantity, 'issue' => 'unavailable', 'personalization' => []];
                 $summary['has_issues'] = true;
                 continue;
             }
 
+            try {
+                $chosen = $stored[(int) $row['id']] ?? [];
+                $personalization = $this->personalization->validate((int) $variant['product_id'], $chosen);
+                // Regra desativada depois da escolha: o valor deixaria de ser produzido — não pode sumir em silêncio
+                $personalizationValid = count($personalization['items']) === count($chosen);
+            } catch (ValidationException) {
+                $personalization = ['items' => [], 'price_delta_cents' => 0];
+                $personalizationValid = false;
+            }
+
             $limit = $this->limitFor($variant);
             $issue = match (true) {
-                (bool) $variant['requires_personalization'] => 'unavailable',
+                !$personalizationValid => 'personalization_invalid',
                 $limit === 0 => 'out_of_stock',
-                $quantity > $limit => 'insufficient_stock',
+                $perVariant[(int) $row['variant_id']] > $limit => 'insufficient_stock',
                 default => null,
             };
-            $unit = (int) $variant['price_cents'];
+            $unit = (int) $variant['price_cents'] + (int) $personalization['price_delta_cents'];
 
             $summary['items'][] = [
                 'id' => (int) $row['id'],
                 'quantity' => $quantity,
                 'issue' => $issue,
-                'max_quantity' => $limit,
+                'max_quantity' => max(1, $limit - ($perVariant[(int) $row['variant_id']] - $quantity)),
+                'base_price_cents' => (int) $variant['price_cents'],
+                'personalization_cents' => (int) $personalization['price_delta_cents'],
                 'unit_price_cents' => $unit,
-                'compare_at_price_cents' => $variant['compare_at_price_cents'] === null ? null : (int) $variant['compare_at_price_cents'],
                 'line_total_cents' => $unit * $quantity,
+                'personalization' => $personalization['items'],
             ] + $variant;
 
             if ($issue === null) {
@@ -99,11 +121,13 @@ final class CartService
     }
 
     /**
-     * Adiciona a variante (soma à linha existente).
+     * Adiciona a variante com a personalização informada (soma à linha idêntica, se houver).
      *
+     * @param array<int, string> $personalizationInput rule_id => valor bruto
      * @throws BusinessRuleException
+     * @throws ValidationException personalização inválida (chaves "pers_{rule_id}")
      */
-    public function add(int $variantId, int $quantity, ?int $customerId = null): void
+    public function add(int $variantId, int $quantity, array $personalizationInput = [], ?int $customerId = null): void
     {
         $this->assertQuantity($quantity);
 
@@ -111,22 +135,25 @@ final class CartService
         if ($variant === null) {
             throw new BusinessRuleException('Este produto não está disponível no momento.');
         }
-        if ((bool) $variant['requires_personalization']) {
-            throw new BusinessRuleException('Este produto exige personalização, disponível em breve na loja.');
-        }
+        // Valida antes de criar carrinho: erro não deixa rastro
+        $personalization = $this->personalization->validate((int) $variant['product_id'], $personalizationInput);
 
-        $cartId = $this->currentCartId() ?? $this->createCart($customerId);
-        $line = $this->carts->findLine($cartId, $variantId);
-        $newQuantity = ($line === null ? 0 : (int) $line['quantity']) + $quantity;
-        $this->assertStock($variant, $newQuantity);
+        $cartId = $this->currentCartId();
+        $inCart = $cartId === null ? 0 : $this->carts->variantQuantity($cartId, $variantId);
+        $line = $cartId === null ? null : $this->carts->findLine($cartId, $variantId, $personalization['hash']);
+        $this->assertStock($variant, $inCart + $quantity, ($line === null ? 0 : (int) $line['quantity']) + $quantity);
 
+        $cartId ??= $this->createCart($customerId);
         if ($line === null) {
             if ($this->carts->countLines($cartId) >= (int) $this->config->get('cart.max_lines', 30)) {
                 throw new BusinessRuleException('Seu carrinho atingiu o limite de itens diferentes.');
             }
-            $this->carts->addItem($cartId, $variantId, $quantity);
+            $itemId = $this->carts->addItem($cartId, $variantId, $quantity, $personalization['hash']);
+            foreach ($personalization['items'] as $item) {
+                $this->carts->addPersonalization($itemId, $item['rule_id'], $item['value_id'], $item['value_text']);
+            }
         } else {
-            $this->carts->setQuantity((int) $line['id'], $newQuantity);
+            $this->carts->setQuantity((int) $line['id'], (int) $line['quantity'] + $quantity);
         }
 
         $this->carts->touch($cartId, $customerId, $this->lifetimeDays());
@@ -157,7 +184,8 @@ final class CartService
         if ($variant === null) {
             throw new BusinessRuleException('Este produto não está mais disponível. Remova-o do carrinho.');
         }
-        $this->assertStock($variant, $quantity);
+        $otherLines = $this->carts->variantQuantity($cartId, $variantId) - (int) $item['quantity'];
+        $this->assertStock($variant, $otherLines + $quantity, $quantity);
 
         $this->carts->setQuantity($itemId, $quantity);
         $this->carts->touch($cartId, null, $this->lifetimeDays());
@@ -171,7 +199,7 @@ final class CartService
         }
     }
 
-    /** Limite da linha: disponível em estoque ou o máximo por linha (sob encomenda). */
+    /** Limite da variante: disponível em estoque ou o máximo por linha (sob encomenda). */
     private function limitFor(array $variant): int
     {
         $max = (int) $this->config->get('cart.max_quantity', 99);
@@ -187,17 +215,28 @@ final class CartService
         }
     }
 
-    /** @param array<string, mixed> $variant */
-    private function assertStock(array $variant, int $quantity): void
+    /**
+     * @param array<string, mixed> $variant
+     * @param int $variantTotal unidades da variante no carrinho após a mudança (todas as linhas)
+     * @param int $lineTotal    unidades da linha após a mudança
+     */
+    private function assertStock(array $variant, int $variantTotal, int $lineTotal): void
     {
+        $max = (int) $this->config->get('cart.max_quantity', 99);
+        if ($variant['stock_mode'] !== 'stock') {
+            if ($lineTotal > $max) {
+                throw new BusinessRuleException("A quantidade máxima por item é {$max}.");
+            }
+
+            return;
+        }
+
         $limit = $this->limitFor($variant);
         if ($limit === 0) {
             throw new BusinessRuleException('Este produto está esgotado no momento.');
         }
-        if ($quantity > $limit) {
-            throw new BusinessRuleException($variant['stock_mode'] === 'stock'
-                ? "Temos apenas {$limit} unidade(s) disponível(is) deste produto."
-                : "A quantidade máxima por item é {$limit}.");
+        if ($variantTotal > $limit) {
+            throw new BusinessRuleException("Temos apenas {$limit} unidade(s) disponível(is) deste produto.");
         }
     }
 

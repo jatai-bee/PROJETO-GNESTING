@@ -1,22 +1,55 @@
 <?php
 /**
  * @var array<string, mixed> $product
+ * @var list<array<string, mixed>> $variants  ativas, padrão primeiro (com in_stock, max_quantity)
+ * @var array<string, mixed> $selected        variação exibida
+ * @var string $variantLabel                  ex.: "Acabamento / Tamanho"
+ * @var bool $anyInStock
+ * @var list<array<string, mixed>> $rules     personalização (com 'values')
  * @var list<array{path: string, alt_text: string}> $images
  * @var list<string> $highlights
- * @var bool $inStock
- * @var int  $maxQuantity
  * @var list<array> $related
  * @var list<array> $breadcrumbs
+ * @var array $errors
+ * @var array $old
  */
-$compare = $product['compare_at_price_cents'] === null ? null : (int) $product['compare_at_price_cents'];
-$price = (int) $product['price_cents'];
+use GNesting\Services\PersonalizationService;
+
 $leadDays = (int) $product['production_lead_days'];
-$dimensions = array_filter([
-    $product['width_mm'] !== null ? round($product['width_mm'] / 10, 1) : null,
-    $product['height_mm'] !== null ? round($product['height_mm'] / 10, 1) : null,
-    $product['depth_mm'] !== null ? round($product['depth_mm'] / 10, 1) : null,
-], static fn ($v) => $v !== null);
 $cm = static fn (float $v): string => rtrim(rtrim(number_format($v, 1, ',', ''), '0'), ',');
+
+/** Textos exibidos de uma variação (servidor e troca via JS usam o mesmo formato). */
+$display = static function (array $v) use ($cm, $leadDays): array {
+    $price = (int) $v['price_cents'];
+    $compare = $v['compare_at_price_cents'] === null ? null : (int) $v['compare_at_price_cents'];
+    $dims = array_values(array_filter([$v['width_mm'], $v['height_mm'], $v['depth_mm']], static fn ($d) => $d !== null));
+    $available = (int) $v['available'];
+
+    if (!$v['in_stock']) {
+        $stock = 'Esgotado no momento.';
+    } elseif ($v['stock_mode'] === 'stock') {
+        $stock = 'Pronta entrega.' . ($available <= 5 ? " Restam {$available} unidade" . ($available > 1 ? 's' : '') . '.' : '');
+    } else {
+        $stock = "Produzido sob encomenda: fica pronto em até {$leadDays} dia" . ($leadDays > 1 ? 's úteis' : ' útil') . ' antes do envio.';
+    }
+
+    return [
+        'price' => money($price),
+        'compare' => $compare === null ? '' : money($compare),
+        'discount' => $compare === null ? '' : (int) round(($compare - $price) * 100 / $compare) . '% off',
+        'sku' => (string) $v['sku'],
+        'material' => (string) ($v['material_label'] ?? ''),
+        'finish' => (string) ($v['finish_label'] ?? ''),
+        'dims' => $dims === [] ? '' : implode(' × ', array_map(static fn ($d) => $cm($d / 10), $dims)) . ' cm',
+        'weight' => $v['weight_g'] === null ? '' : ((int) $v['weight_g'] >= 1000 ? $cm($v['weight_g'] / 1000) . ' kg' : (int) $v['weight_g'] . ' g'),
+        'stock' => $stock,
+        'in_stock' => (bool) $v['in_stock'],
+        'max' => max(1, (int) $v['max_quantity']),
+    ];
+};
+$shown = $display($selected);
+$fieldError = static fn (string $name): ?string => $errors[$name] ?? null;
+$oldValue = static fn (string $name, string $default = ''): string => (string) ($old[$name] ?? $default);
 ?>
 <div class="container">
     <?= $this->partial('partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>
@@ -49,51 +82,100 @@ $cm = static fn (float $v): string => rtrim(rtrim(number_format($v, 1, ',', ''),
             <?php endif ?>
         </div>
 
-        <div class="product__info">
+        <div class="product__info" data-variant-scope>
             <a class="eyebrow product__category" href="<?= e(url('/categoria/' . $product['category_slug'])) ?>"><?= e($product['category_name']) ?></a>
             <h1 class="product__title"><?= e($product['name']) ?></h1>
             <?php if (!empty($product['short_description'])): ?>
                 <p class="product__summary"><?= e($product['short_description']) ?></p>
             <?php endif ?>
 
-            <p class="price price--large">
-                <?php if ($compare !== null): ?>
-                    <s class="price__old"><span class="visually-hidden">De </span><?= e(money($compare)) ?></s>
-                    <span class="visually-hidden">por </span>
-                <?php endif ?>
-                <span class="price__current"><?= e(money($price)) ?></span>
-                <?php if ($compare !== null): ?>
-                    <span class="tag tag--accent"><?= e((int) round(($compare - $price) * 100 / $compare)) ?>% off</span>
-                <?php endif ?>
+            <p class="price price--large" aria-live="polite">
+                <s class="price__old" data-show="compare" <?= $shown['compare'] === '' ? 'hidden' : '' ?>><span class="visually-hidden">De </span><span data-field="compare"><?= e($shown['compare']) ?></span></s>
+                <span class="price__current" data-field="price"><?= e($shown['price']) ?></span>
+                <span class="tag tag--accent" data-field="discount" data-show="discount" <?= $shown['discount'] === '' ? 'hidden' : '' ?>><?= e($shown['discount']) ?></span>
             </p>
 
-            <?php if ($inStock): ?>
-                <form class="buy-box" method="post" action="<?= e(url('/carrinho/itens')) ?>">
+            <?php if (!$anyInStock): ?>
+                <p class="alert alert--warn" role="status">Produto esgotado no momento.</p>
+            <?php else: ?>
+                <form class="buy-box" method="post" action="<?= e(url('/carrinho/itens')) ?>" novalidate>
                     <?= csrf_field() ?>
-                    <input type="hidden" name="variant_id" value="<?= e($product['variant_id']) ?>">
                     <input type="hidden" name="back" value="<?= e('/produto/' . $product['slug']) ?>">
+
+                    <?php if (count($variants) > 1): ?>
+                        <div class="field">
+                            <label for="variant_id"><?= e($variantLabel) ?></label>
+                            <select id="variant_id" name="variant_id" data-variant-select>
+                                <?php foreach ($variants as $variant): ?>
+                                    <?php $data = $display($variant); ?>
+                                    <option value="<?= e($variant['id']) ?>" data-variant="<?= e(json_encode($data, JSON_UNESCAPED_UNICODE)) ?>"
+                                        <?= (int) $variant['id'] === (int) $selected['id'] ? 'selected' : '' ?>
+                                        <?= !$variant['in_stock'] && (int) $variant['id'] !== (int) $selected['id'] ? 'disabled' : '' ?>>
+                                        <?= e($variant['name'] ?? $variant['sku']) ?> — <?= e($data['price']) ?><?= $variant['in_stock'] ? '' : ' (esgotado)' ?>
+                                    </option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                    <?php else: ?>
+                        <input type="hidden" name="variant_id" value="<?= e($selected['id']) ?>">
+                    <?php endif ?>
+
+                    <?php if ($rules !== []): ?>
+                        <fieldset class="personalization">
+                            <legend>Personalize</legend>
+                            <?php foreach ($rules as $rule): ?>
+                                <?php
+                                $name = PersonalizationService::FIELD_PREFIX . $rule['id'];
+                                $error = $fieldError($name);
+                                $delta = (int) $rule['price_delta_cents'];
+                                $hintId = $name . '-hint';
+                                $describedBy = trim((!empty($rule['help_text']) ? $hintId : '') . ($error ? " {$name}-error" : ''));
+                                ?>
+                                <div class="field<?= $error ? ' field--invalid' : '' ?>">
+                                    <label for="<?= e($name) ?>">
+                                        <?= e($rule['label']) ?>
+                                        <?php if (!$rule['is_required']): ?><span class="field__optional">(opcional)</span><?php endif ?>
+                                        <?php if ($delta > 0): ?><span class="personalization__delta">+ <?= e(money($delta)) ?></span><?php endif ?>
+                                    </label>
+                                    <?php if ($rule['type'] === 'select'): ?>
+                                        <select id="<?= e($name) ?>" name="<?= e($name) ?>" <?= $rule['is_required'] ? 'required' : '' ?>
+                                            <?= $error ? 'aria-invalid="true"' : '' ?> <?= $describedBy !== '' ? 'aria-describedby="' . e($describedBy) . '"' : '' ?>>
+                                            <option value=""><?= $rule['is_required'] ? 'Escolha...' : 'Sem personalização' ?></option>
+                                            <?php foreach ($rule['values'] as $value): ?>
+                                                <option value="<?= e($value['id']) ?>" <?= $oldValue($name) === (string) $value['id'] ? 'selected' : '' ?>>
+                                                    <?= e($value['label']) ?><?= (int) $value['price_delta_cents'] > 0 ? ' (+ ' . e(money((int) $value['price_delta_cents'])) . ')' : '' ?>
+                                                </option>
+                                            <?php endforeach ?>
+                                        </select>
+                                    <?php else: ?>
+                                        <input id="<?= e($name) ?>" name="<?= e($name) ?>"
+                                               type="<?= $rule['type'] === 'date' ? 'date' : 'text' ?>"
+                                               value="<?= e($oldValue($name)) ?>"
+                                               <?php if ($rule['type'] !== 'date' && $rule['max_length'] !== null): ?>maxlength="<?= e($rule['max_length']) ?>"<?php endif ?>
+                                               <?php if ($rule['type'] === 'initial'): ?>autocapitalize="characters" class="input--upper"<?php endif ?>
+                                               <?= $rule['type'] === 'date' ? 'min="1900-01-01" max="2100-12-31"' : 'autocomplete="off" spellcheck="false"' ?>
+                                               <?= $rule['is_required'] ? 'required' : '' ?>
+                                               <?= $error ? 'aria-invalid="true"' : '' ?>
+                                               <?= $describedBy !== '' ? 'aria-describedby="' . e($describedBy) . '"' : '' ?>>
+                                    <?php endif ?>
+                                    <?php if (!empty($rule['help_text'])): ?><small id="<?= e($hintId) ?>" class="field__hint"><?= e($rule['help_text']) ?></small><?php endif ?>
+                                    <?php if ($error): ?><p id="<?= e($name) ?>-error" class="field__error"><?= e($error) ?></p><?php endif ?>
+                                </div>
+                            <?php endforeach ?>
+                            <p class="field__hint">Confira a grafia: a personalização é produzida exatamente como digitada. O acréscimo entra no preço de cada unidade.</p>
+                        </fieldset>
+                    <?php endif ?>
+
                     <div class="buy-box__row">
                         <div class="field buy-box__qty">
                             <label for="quantity">Quantidade</label>
-                            <input id="quantity" type="number" name="quantity" value="1" min="1" max="<?= e($maxQuantity) ?>" inputmode="numeric" required>
+                            <input id="quantity" type="number" name="quantity" value="<?= e($oldValue('quantity', '1')) ?>" min="1"
+                                   max="<?= e($shown['max']) ?>" inputmode="numeric" required data-field-max>
                         </div>
-                        <button type="submit" class="btn btn--primary buy-box__submit">Adicionar ao carrinho</button>
+                        <button type="submit" class="btn btn--primary buy-box__submit" data-buy <?= $shown['in_stock'] ? '' : 'disabled' ?>>Adicionar ao carrinho</button>
                     </div>
                 </form>
-                <p class="stock-note">
-                    <?php if ($product['stock_mode'] === 'stock'): ?>
-                        <strong>Pronta entrega.</strong>
-                        <?php if ((int) $product['available'] <= 5): ?>Restam <?= e($product['available']) ?> unidade<?= (int) $product['available'] > 1 ? 's' : '' ?>.<?php endif ?>
-                    <?php else: ?>
-                        <strong>Produzido sob encomenda:</strong> fica pronto em até <?= e($leadDays) ?> dia<?= $leadDays > 1 ? 's' : '' ?> úte<?= $leadDays > 1 ? 'is' : 'il' ?> antes do envio.
-                    <?php endif ?>
-                </p>
-            <?php else: ?>
-                <p class="alert alert--warn" role="status">Produto esgotado no momento.</p>
-            <?php endif ?>
-
-            <?php if ((int) $product['personalization_enabled'] === 1): ?>
-                <p class="notice">Este objeto aceita personalização. As opções estarão disponíveis aqui em breve.</p>
+                <p class="stock-note" data-field="stock"><?= e($shown['stock']) ?></p>
             <?php endif ?>
 
             <?php if ($highlights !== []): ?>
@@ -105,19 +187,13 @@ $cm = static fn (float $v): string => rtrim(rtrim(number_format($v, 1, ',', ''),
             <?php endif ?>
 
             <dl class="specs">
-                <?php if (!empty($product['material_label'])): ?>
-                    <div><dt>Material</dt><dd><?= e($product['material_label']) ?></dd></div>
-                <?php endif ?>
-                <?php if (!empty($product['finish_label'])): ?>
-                    <div><dt>Acabamento</dt><dd><?= e($product['finish_label']) ?></dd></div>
-                <?php endif ?>
-                <?php if ($dimensions !== []): ?>
-                    <div><dt>Medidas</dt><dd><?= e(implode(' × ', array_map($cm, $dimensions))) ?> cm <span class="muted">(L × A<?= count($dimensions) > 2 ? ' × P' : '' ?>)</span></dd></div>
-                <?php endif ?>
-                <?php if ($product['weight_g'] !== null): ?>
-                    <div><dt>Peso</dt><dd><?= (int) $product['weight_g'] >= 1000 ? e($cm($product['weight_g'] / 1000)) . ' kg' : e($product['weight_g']) . ' g' ?></dd></div>
-                <?php endif ?>
-                <div><dt>Código</dt><dd class="mono"><?= e($product['sku']) ?></dd></div>
+                <?php foreach (['material' => 'Material', 'finish' => 'Acabamento', 'dims' => 'Medidas', 'weight' => 'Peso'] as $key => $label): ?>
+                    <div data-show="<?= e($key) ?>" <?= $shown[$key] === '' ? 'hidden' : '' ?>>
+                        <dt><?= e($label) ?></dt>
+                        <dd data-field="<?= e($key) ?>"><?= e($shown[$key]) ?></dd>
+                    </div>
+                <?php endforeach ?>
+                <div><dt>Código</dt><dd class="mono" data-field="sku"><?= e($shown['sku']) ?></dd></div>
             </dl>
         </div>
     </article>

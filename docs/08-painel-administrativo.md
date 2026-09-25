@@ -30,7 +30,7 @@ O menu mostra só o que o papel pode usar. Acessos diretos por URL fora da permi
   - "Produzido sob pedido" é o padrão da G-Nesting: a quantidade física não limita a venda.
   - "Pronta entrega" controla quantidade. Cada ajuste gera uma movimentação e um registro de auditoria.
 - **Excluir** tira o produto da loja e do painel, mas preserva o histórico. Prefira **Desativar** quando for temporário.
-- Variações (cores, acabamentos), personalização e ficha de produção chegam nas etapas 5 e 6. As abas já aparecem no produto, desabilitadas.
+- Variações (cores, acabamentos, tamanhos) e personalização ficam nas abas **Variações** e **Personalização** do produto — guia em [10 — Variações e personalização](10-variacoes-e-personalizacao.md). A ficha de produção chega na etapa 6 (aba já visível, desabilitada).
 
 ## 3. Imagens: o que o sistema faz
 

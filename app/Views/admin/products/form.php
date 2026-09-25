@@ -26,12 +26,7 @@ $dimension = fn (string $name, string $label, string $suffix): string => $f('par
         <h1 class="page-title"><?= $product ? e($product['name']) : 'Novo produto' ?></h1>
     </div>
     <?php if ($product): ?>
-        <nav class="tabs" aria-label="Seções do produto">
-            <a href="<?= e(url($action)) ?>" aria-current="page">Dados</a>
-            <a href="<?= e(url("/admin/produtos/{$product['id']}/imagens")) ?>">Imagens (<?= e($imageCount) ?>)</a>
-            <span class="tabs__soon" title="Etapa 5">Variações e personalização</span>
-            <span class="tabs__soon" title="Etapa 6">Ficha de produção</span>
-        </nav>
+        <?= $this->partial('admin/products/tabs', ['product' => $product, 'active' => 'dados', 'imageCount' => $imageCount]) ?>
     <?php endif ?>
 </div>
 
@@ -75,6 +70,9 @@ $dimension = fn (string $name, string $label, string $suffix): string => $f('par
 
     <section class="panel">
         <h2 class="panel__title">Preço e identificação</h2>
+        <?php if ($product): ?>
+            <p class="muted">SKU, preço, material, medidas e estoque desta página são os da <strong>variação padrão</strong>. As demais ficam na aba Variações.</p>
+        <?php endif ?>
         <div class="form-grid">
             <?= $f('partials/field', ['name' => 'sku', 'label' => 'SKU', 'value' => $p['sku'] ?? '', 'maxlength' => 40, 'placeholder' => 'REL-GEO-001',
                 'hint' => 'Código único e permanente do produto.']) ?>

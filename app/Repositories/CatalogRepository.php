@@ -24,9 +24,22 @@ final class CatalogRepository extends Repository
     private const VISIBLE_WHERE = ' WHERE p.is_active = 1 AND p.deleted_at IS NULL
         AND (c.parent_id IS NULL OR (cp.is_active = 1 AND cp.deleted_at IS NULL))';
 
+    // Faixa de preço e disponibilidade considerando todas as variantes ativas
+    private const PRICE_JOIN = ' JOIN (
+            SELECT va.product_id, MIN(va.price_cents) AS min_price, MAX(va.price_cents) AS max_price,
+                   COUNT(*) AS variant_count,
+                   SUM(COALESCE(ia.stock_mode, \'made_to_order\') = \'made_to_order\'
+                       OR COALESCE(ia.quantity_on_hand, 0) - COALESCE(ia.quantity_reserved, 0) > 0) AS sellable_count
+              FROM product_variants va
+              LEFT JOIN inventory ia ON ia.variant_id = va.id
+             WHERE va.is_active = 1 AND va.deleted_at IS NULL
+             GROUP BY va.product_id
+        ) pv ON pv.product_id = p.id';
+
     private const CARD_FIELDS = 'SELECT p.id, p.name, p.slug, p.short_description, p.is_new, p.is_featured,
             p.production_lead_days, c.name AS category_name, c.slug AS category_slug,
             v.id AS variant_id, v.price_cents, v.compare_at_price_cents,
+            pv.min_price, pv.max_price, pv.variant_count, pv.sellable_count,
             COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode,
             GREATEST(COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0), 0) AS available,
             cover.path AS cover_path, cover.alt_text AS cover_alt';
@@ -57,18 +70,20 @@ final class CatalogRepository extends Repository
         // Cada termo precisa aparecer em algum campo (E entre termos, OU entre campos)
         foreach (array_values($filters['terms'] ?? []) as $n => $term) {
             $like = '%' . addcslashes($term, '%_\\') . '%';
-            $sql .= " AND (p.name LIKE :t{$n}a OR p.short_description LIKE :t{$n}b OR c.name LIKE :t{$n}c OR v.sku LIKE :t{$n}d)";
+            $sql .= " AND (p.name LIKE :t{$n}a OR p.short_description LIKE :t{$n}b OR c.name LIKE :t{$n}c
+                      OR EXISTS (SELECT 1 FROM product_variants vs WHERE vs.product_id = p.id AND vs.is_active = 1
+                                    AND vs.deleted_at IS NULL AND vs.sku LIKE :t{$n}d))";
             foreach (['a', 'b', 'c', 'd'] as $suffix) {
                 $params["t{$n}{$suffix}"] = $like;
             }
         }
 
         if (($filters['min_cents'] ?? null) !== null) {
-            $sql .= ' AND v.price_cents >= :min_cents';
+            $sql .= ' AND pv.min_price >= :min_cents';
             $params['min_cents'] = $filters['min_cents'];
         }
         if (($filters['max_cents'] ?? null) !== null) {
-            $sql .= ' AND v.price_cents <= :max_cents';
+            $sql .= ' AND pv.min_price <= :max_cents';
             $params['max_cents'] = $filters['max_cents'];
         }
 
@@ -80,7 +95,7 @@ final class CatalogRepository extends Repository
     {
         [$where, $params] = $this->where($filters);
 
-        return (int) $this->fetchValue('SELECT COUNT(*)' . self::VISIBLE_FROM . $where, $params);
+        return (int) $this->fetchValue('SELECT COUNT(*)' . self::VISIBLE_FROM . self::PRICE_JOIN . $where, $params);
     }
 
     /**
@@ -93,8 +108,8 @@ final class CatalogRepository extends Repository
 
         $order = match ($sort) {
             'novidades' => 'COALESCE(p.published_at, p.created_at) DESC',
-            'menor-preco' => 'v.price_cents ASC',
-            'maior-preco' => 'v.price_cents DESC',
+            'menor-preco' => 'pv.min_price ASC',
+            'maior-preco' => 'pv.min_price DESC',
             'mais-vendidos' => 'p.sales_count DESC',
             default => 'p.is_featured DESC, p.sales_count DESC, COALESCE(p.published_at, p.created_at) DESC',
         };
@@ -107,7 +122,7 @@ final class CatalogRepository extends Repository
         }
 
         return $this->fetchAll(
-            self::CARD_FIELDS . self::VISIBLE_FROM . self::COVER_JOIN . $where
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . $where
             . " ORDER BY {$order}, p.id DESC LIMIT :limit OFFSET :offset",
             $params + ['limit' => $limit, 'offset' => $offset]
         );
@@ -117,7 +132,7 @@ final class CatalogRepository extends Repository
     public function featured(int $limit): array
     {
         return $this->fetchAll(
-            self::CARD_FIELDS . self::VISIBLE_FROM . self::COVER_JOIN . self::VISIBLE_WHERE
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE
             . ' AND p.is_featured = 1 ORDER BY p.sales_count DESC, p.id DESC LIMIT :limit',
             ['limit' => $limit]
         );
@@ -127,7 +142,7 @@ final class CatalogRepository extends Repository
     public function newest(int $limit): array
     {
         return $this->fetchAll(
-            self::CARD_FIELDS . self::VISIBLE_FROM . self::COVER_JOIN . self::VISIBLE_WHERE
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE
             . ' AND p.is_new = 1 ORDER BY COALESCE(p.published_at, p.created_at) DESC, p.id DESC LIMIT :limit',
             ['limit' => $limit]
         );
@@ -137,7 +152,7 @@ final class CatalogRepository extends Repository
     public function related(int $productId, int $categoryId, int $limit): array
     {
         return $this->fetchAll(
-            self::CARD_FIELDS . self::VISIBLE_FROM . self::COVER_JOIN . self::VISIBLE_WHERE
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE
             . ' AND p.category_id = :category_id AND p.id <> :id
               ORDER BY p.is_featured DESC, p.sales_count DESC, p.id DESC LIMIT :limit',
             ['category_id' => $categoryId, 'id' => $productId, 'limit' => $limit]
@@ -162,6 +177,26 @@ final class CatalogRepository extends Repository
                     GREATEST(COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0), 0) AS available'
             . self::VISIBLE_FROM . self::VISIBLE_WHERE . ' AND p.slug = :slug',
             ['slug' => $slug]
+        );
+    }
+
+    /**
+     * Variantes ativas de um produto (para escolha na página), padrão primeiro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function variantsForProduct(int $productId): array
+    {
+        return $this->fetchAll(
+            'SELECT v.id, v.sku, v.name, v.price_cents, v.compare_at_price_cents, v.material_label, v.finish_label,
+                    v.width_mm, v.height_mm, v.depth_mm, v.weight_g, v.is_default,
+                    COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode,
+                    GREATEST(COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0), 0) AS available
+               FROM product_variants v
+               LEFT JOIN inventory i ON i.variant_id = v.id
+              WHERE v.product_id = :id AND v.is_active = 1 AND v.deleted_at IS NULL
+              ORDER BY v.is_default DESC, v.sort_order, v.id',
+            ['id' => $productId]
         );
     }
 
@@ -216,9 +251,7 @@ final class CatalogRepository extends Repository
                     p.id AS product_id, p.name, p.slug, p.production_lead_days,
                     COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode,
                     GREATEST(COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0), 0) AS available,
-                    cover.path AS cover_path, cover.alt_text AS cover_alt,
-                    EXISTS (SELECT 1 FROM personalization_rules r
-                             WHERE r.product_id = p.id AND r.is_required = 1 AND r.is_active = 1) AS requires_personalization
+                    cover.path AS cover_path, cover.alt_text AS cover_alt
                FROM product_variants v
                JOIN products p ON p.id = v.product_id
                JOIN categories c ON c.id = p.category_id AND c.is_active = 1 AND c.deleted_at IS NULL

@@ -69,14 +69,47 @@ final class CartRepository extends Repository
         );
     }
 
-    /** @return array{id: int, quantity: int}|null linha sem personalização da variante */
-    public function findLine(int $cartId, int $variantId): ?array
+    /** @return array{id: int, quantity: int}|null linha da variante com essa personalização ('' = nenhuma) */
+    public function findLine(int $cartId, int $variantId, string $personalizationHash): ?array
     {
         return $this->fetchOne(
-            "SELECT id, quantity FROM cart_items
-              WHERE cart_id = :cart_id AND variant_id = :variant_id AND personalization_hash = ''",
-            ['cart_id' => $cartId, 'variant_id' => $variantId]
+            'SELECT id, quantity FROM cart_items
+              WHERE cart_id = :cart_id AND variant_id = :variant_id AND personalization_hash = :hash',
+            ['cart_id' => $cartId, 'variant_id' => $variantId, 'hash' => $personalizationHash]
         );
+    }
+
+    public function addPersonalization(int $itemId, int $ruleId, ?int $valueId, ?string $valueText): void
+    {
+        $this->execute(
+            'INSERT INTO cart_item_personalizations (cart_item_id, rule_id, value_id, value_text)
+             VALUES (:item_id, :rule_id, :value_id, :value_text)',
+            ['item_id' => $itemId, 'rule_id' => $ruleId, 'value_id' => $valueId, 'value_text' => $valueText]
+        );
+    }
+
+    /**
+     * Personalizações gravadas, por item: item_id => [rule_id => valor bruto (texto ou id da opção)].
+     *
+     * @return array<int, array<int, string>>
+     */
+    public function personalizations(int $cartId): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT cip.cart_item_id, cip.rule_id, cip.value_id, cip.value_text
+               FROM cart_item_personalizations cip
+               JOIN cart_items ci ON ci.id = cip.cart_item_id
+              WHERE ci.cart_id = :cart_id',
+            ['cart_id' => $cartId]
+        );
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['cart_item_id']][(int) $row['rule_id']] = $row['value_id'] !== null
+                ? (string) $row['value_id']
+                : (string) $row['value_text'];
+        }
+
+        return $map;
     }
 
     public function countLines(int $cartId): int
@@ -84,11 +117,21 @@ final class CartRepository extends Repository
         return (int) $this->fetchValue('SELECT COUNT(*) FROM cart_items WHERE cart_id = :cart_id', ['cart_id' => $cartId]);
     }
 
-    public function addItem(int $cartId, int $variantId, int $quantity): int
+    public function addItem(int $cartId, int $variantId, int $quantity, string $personalizationHash = ''): int
     {
         return $this->insert(
-            'INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES (:cart_id, :variant_id, :quantity)',
-            ['cart_id' => $cartId, 'variant_id' => $variantId, 'quantity' => $quantity]
+            'INSERT INTO cart_items (cart_id, variant_id, quantity, personalization_hash)
+             VALUES (:cart_id, :variant_id, :quantity, :hash)',
+            ['cart_id' => $cartId, 'variant_id' => $variantId, 'quantity' => $quantity, 'hash' => $personalizationHash]
+        );
+    }
+
+    /** Soma de unidades da variante no carrinho (todas as linhas, com e sem personalização). */
+    public function variantQuantity(int $cartId, int $variantId): int
+    {
+        return (int) $this->fetchValue(
+            'SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE cart_id = :cart_id AND variant_id = :variant_id',
+            ['cart_id' => $cartId, 'variant_id' => $variantId]
         );
     }
 

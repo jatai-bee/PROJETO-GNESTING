@@ -192,4 +192,84 @@ final class AdminPanelHttpTest extends IntegrationTestCase
         $this->post("/admin/categorias/{$relogios}/excluir");
         self::assertStringContainsString('Mova os produtos', $this->request('GET', '/admin/categorias')->body());
     }
+
+    // ---- Etapa 5: variações e personalização -------------------------------
+
+    private function referenceProductId(): int
+    {
+        return (int) $this->fetchValue("SELECT id FROM products WHERE slug = 'relogio-geometrico-g-nesting'");
+    }
+
+    public function testVariantAndPersonalizationTabsRequireManager(): void
+    {
+        $id = $this->referenceProductId();
+        $this->loginAs(AdminRole::Support);
+
+        self::assertSame(403, $this->request('GET', "/admin/produtos/{$id}/variantes")->status());
+        self::assertSame(403, $this->request('GET', "/admin/produtos/{$id}/personalizacao")->status());
+        self::assertSame(403, $this->post("/admin/produtos/{$id}/variantes/opcoes", ['name' => 'Cor', 'values' => 'Azul'])->status());
+        self::assertSame(0, (int) $this->fetchValue('SELECT COUNT(*) FROM product_options'));
+    }
+
+    public function testManagerBuildsVariantsThroughPanel(): void
+    {
+        $id = $this->referenceProductId();
+        $this->loginAs(AdminRole::Manager);
+
+        $page = $this->request('GET', "/admin/produtos/{$id}/variantes");
+        self::assertSame(200, $page->status());
+        self::assertStringContainsString('vendido em uma única versão', $page->body());
+
+        self::assertSame("/admin/produtos/{$id}/variantes", $this->post("/admin/produtos/{$id}/variantes/opcoes", ['name' => 'Acabamento', 'values' => 'Natural, Preto'])->header('Location'));
+        $this->post("/admin/produtos/{$id}/variantes/gerar");
+        $body = $this->request('GET', "/admin/produtos/{$id}/variantes")->body();
+        self::assertStringContainsString('1 variação(ões) criada(s)', $body);
+        self::assertStringContainsString('REL-GEO-001-PRET', $body);
+
+        // Regra de negócio recusada volta com mensagem (sem 405/500)
+        $option = (int) $this->fetchValue("SELECT id FROM product_options WHERE name = 'Acabamento'");
+        $this->post("/admin/produtos/{$id}/variantes/opcoes/{$option}/excluir");
+        self::assertStringContainsString('único valor', $this->request('GET', "/admin/produtos/{$id}/variantes")->body());
+
+        // Edição da variação: erro de validação volta ao formulário; sucesso volta à lista
+        $black = (int) $this->fetchValue("SELECT id FROM product_variants WHERE sku = 'REL-GEO-001-PRET'");
+        $form = [
+            'sku' => 'REL-GEO-001-PRETO', 'price' => '149,90', 'compare_at_price' => '100,00', 'material_label' => 'MDF preto 6 mm',
+            'finish_label' => 'Preto', 'width_mm' => '350', 'height_mm' => '350', 'depth_mm' => '6', 'weight_g' => '600',
+            'package_width_mm' => '', 'package_height_mm' => '', 'package_length_mm' => '', 'package_weight_g' => '',
+            'stock_mode' => 'made_to_order', 'quantity_on_hand' => '0', 'is_active' => '1',
+        ];
+        $invalid = $this->post("/admin/produtos/{$id}/variantes/{$black}/editar", $form);
+        self::assertSame("/admin/produtos/{$id}/variantes/{$black}/editar", $invalid->header('Location'));
+        self::assertStringContainsString('maior que o preço de venda', $this->request('GET', "/admin/produtos/{$id}/variantes/{$black}/editar")->body());
+
+        $saved = $this->post("/admin/produtos/{$id}/variantes/{$black}/editar", ['compare_at_price' => ''] + $form);
+        self::assertSame("/admin/produtos/{$id}/variantes", $saved->header('Location'));
+        self::assertSame(14990, (int) $this->fetchValue('SELECT price_cents FROM product_variants WHERE id = :id', ['id' => $black]));
+    }
+
+    public function testManagerCreatesPersonalizationRuleThroughPanel(): void
+    {
+        $id = $this->referenceProductId();
+        $this->loginAs(AdminRole::Manager);
+
+        self::assertStringContainsString('Nome gravado', $this->request('GET', "/admin/produtos/{$id}/personalizacao")->body(), 'Regra do seed listada');
+
+        $form = [
+            'label' => 'Fonte', 'help_text' => 'Estilo da letra', 'type' => 'select', 'min_length' => '', 'max_length' => '',
+            'charset' => 'letters_numbers', 'max_size_mm' => '', 'price_delta' => '', 'sort_order' => '20',
+            'is_active' => '1', 'values_text' => '',
+        ];
+        $invalid = $this->post("/admin/produtos/{$id}/personalizacao/novo", $form);
+        self::assertSame("/admin/produtos/{$id}/personalizacao/novo", $invalid->header('Location'));
+        self::assertStringContainsString('ao menos uma opção', $this->request('GET', "/admin/produtos/{$id}/personalizacao/novo")->body());
+
+        $created = $this->post("/admin/produtos/{$id}/personalizacao/novo", ['values_text' => "Clássica\nManuscrita | 10,00"] + $form);
+        self::assertSame("/admin/produtos/{$id}/personalizacao", $created->header('Location'));
+        $list = $this->request('GET', "/admin/produtos/{$id}/personalizacao")->body();
+        self::assertStringContainsString('Manuscrita (+R$ 10,00)', $list);
+
+        // Aparece na loja como campo do produto
+        self::assertStringContainsString('Manuscrita (+ R$ 10,00)', $this->request('GET', '/produto/relogio-geometrico-g-nesting')->body());
+    }
 }

@@ -15,8 +15,10 @@ use GNesting\Controllers\Admin\AuditLogController;
 use GNesting\Controllers\Admin\AuthController;
 use GNesting\Controllers\Admin\CategoryController;
 use GNesting\Controllers\Admin\DashboardController;
+use GNesting\Controllers\Admin\PersonalizationController;
 use GNesting\Controllers\Admin\ProductController;
 use GNesting\Controllers\Admin\ProductImageController;
+use GNesting\Controllers\Admin\VariantController;
 use GNesting\Core\Router;
 
 return static function (Router $r): void {
@@ -53,6 +55,26 @@ return static function (Router $r): void {
                 $r->post('/produtos/{id:\d+}/imagens/{imageId:\d+}/capa', [ProductImageController::class, 'cover']);
                 $r->post('/produtos/{id:\d+}/imagens/{imageId:\d+}/mover', [ProductImageController::class, 'move']);
                 $r->post('/produtos/{id:\d+}/imagens/{imageId:\d+}/excluir', [ProductImageController::class, 'destroy']);
+
+                // Variações: opções → valores → combinações (SKUs)
+                $r->get('/produtos/{id:\d+}/variantes', [VariantController::class, 'index']);
+                $r->post('/produtos/{id:\d+}/variantes/opcoes', [VariantController::class, 'addOption']);
+                $r->post('/produtos/{id:\d+}/variantes/opcoes/{optionId:\d+}/valores', [VariantController::class, 'addValue']);
+                $r->post('/produtos/{id:\d+}/variantes/opcoes/{optionId:\d+}/valores/{valueId:\d+}/excluir', [VariantController::class, 'deleteValue']);
+                $r->post('/produtos/{id:\d+}/variantes/opcoes/{optionId:\d+}/excluir', [VariantController::class, 'deleteOption']);
+                $r->post('/produtos/{id:\d+}/variantes/gerar', [VariantController::class, 'generate']);
+                $r->get('/produtos/{id:\d+}/variantes/{variantId:\d+}/editar', [VariantController::class, 'edit']);
+                $r->post('/produtos/{id:\d+}/variantes/{variantId:\d+}/editar', [VariantController::class, 'update']);
+                $r->post('/produtos/{id:\d+}/variantes/{variantId:\d+}/padrao', [VariantController::class, 'makeDefault']);
+                $r->post('/produtos/{id:\d+}/variantes/{variantId:\d+}/excluir', [VariantController::class, 'destroy']);
+
+                // Personalização controlada
+                $r->get('/produtos/{id:\d+}/personalizacao', [PersonalizationController::class, 'index']);
+                $r->get('/produtos/{id:\d+}/personalizacao/novo', [PersonalizationController::class, 'create']);
+                $r->post('/produtos/{id:\d+}/personalizacao/novo', [PersonalizationController::class, 'store']);
+                $r->get('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/editar', [PersonalizationController::class, 'edit']);
+                $r->post('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/editar', [PersonalizationController::class, 'update']);
+                $r->post('/produtos/{id:\d+}/personalizacao/{ruleId:\d+}/excluir', [PersonalizationController::class, 'destroy']);
             });
 
             // Equipe e auditoria: somente proprietário

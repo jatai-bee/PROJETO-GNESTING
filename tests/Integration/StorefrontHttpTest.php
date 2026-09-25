@@ -344,15 +344,131 @@ final class StorefrontHttpTest extends IntegrationTestCase
         ));
     }
 
-    public function testRequiredPersonalizationIsRefusedUntilStageFive(): void
+    // ---- Variações e personalização (etapa 5) --------------------------------
+
+    /** Regra de texto obrigatória "Nome" (até 12, letras) + R$ 20,00. */
+    private function requiredNameRule(int $productId): int
+    {
+        $this->db->pdo()->prepare(
+            "INSERT INTO personalization_rules (product_id, field_key, label, type, is_required, min_length, max_length, charset, price_delta_cents)
+             VALUES (?, 'nome', 'Nome', 'text', 1, 2, 12, 'letters', 2000)"
+        )->execute([$productId]);
+
+        return (int) $this->db->pdo()->lastInsertId();
+    }
+
+    public function testRequiredPersonalizationErrorsReturnToProductWithTypedValues(): void
     {
         $p = $this->product('Placa com Nome', 8000);
-        $this->db->pdo()->prepare(
-            "INSERT INTO personalization_rules (product_id, field_key, label, type, is_required) VALUES (?, 'nome', 'Nome', 'text', 1)"
-        )->execute([$p['id']]);
+        $rule = $this->requiredNameRule($p['id']);
 
-        $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '1']);
-        self::assertSame(0, (int) $this->fetchValue('SELECT COUNT(*) FROM cart_items WHERE variant_id = :v', ['v' => $p['variant_id']]));
+        $page = $this->get('/produto/placa-com-nome')->body();
+        self::assertStringContainsString('name="pers_' . $rule . '"', $page);
+        self::assertStringContainsString('+ R$ 20,00', $page);
+
+        $missing = $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '2', 'back' => '/produto/placa-com-nome']);
+        self::assertSame('/produto/placa-com-nome', $missing->header('Location'));
+        self::assertStringContainsString('Preencha', $this->get('/produto/placa-com-nome')->body());
+
+        $this->post('/carrinho/itens', [
+            'variant_id' => (string) $p['variant_id'], 'quantity' => '2', 'back' => '/produto/placa-com-nome', "pers_{$rule}" => 'Ana 123',
+        ]);
+        $back = $this->get('/produto/placa-com-nome')->body();
+        self::assertStringContainsString('aceita: somente letras', $back);
+        self::assertStringContainsString('value="Ana 123"', $back, 'O que foi digitado volta ao formulário');
+        self::assertStringContainsString('value="2"', $back, 'Quantidade preservada');
+        self::assertSame(0, (int) $this->fetchValue('SELECT COUNT(*) FROM carts'), 'Erro de personalização não cria carrinho');
+    }
+
+    public function testPersonalizedLinesArePricedServerSideAndKeptSeparate(): void
+    {
+        $p = $this->product('Placa com Nome', 8000);
+        $rule = $this->requiredNameRule($p['id']);
+        $add = fn (string $name, string $qty = '1') => $this->post('/carrinho/itens', [
+            'variant_id' => (string) $p['variant_id'], 'quantity' => $qty, "pers_{$rule}" => $name,
+            'price' => '1,00', 'price_delta_cents' => '0', // campos forjados: ignorados
+        ]);
+
+        self::assertSame('/carrinho', $add('Ana')->header('Location'));
+        $add('ana ', '2'); // espaço some na normalização, mas maiúscula/minúscula conta: outra linha
+        $add('Ana');
+        $add('Bia');
+
+        self::assertSame(3, (int) $this->fetchValue('SELECT COUNT(*) FROM cart_items WHERE variant_id = :v', ['v' => $p['variant_id']]));
+        self::assertSame(2, (int) $this->fetchValue(
+            "SELECT ci.quantity FROM cart_items ci JOIN cart_item_personalizations cip ON cip.cart_item_id = ci.id WHERE cip.value_text = 'Ana'"
+        ), 'Mesma personalização soma na mesma linha');
+
+        $cart = $this->get('/carrinho')->body();
+        self::assertStringContainsString('Nome:</dt> <dd>Bia', $cart);
+        self::assertStringContainsString('R$ 100,00 cada', $cart, '80,00 + 20,00 de personalização');
+        self::assertStringContainsString('R$ 500,00', $cart, 'Subtotal: 5 unidades × 100,00');
+
+        // Acréscimo muda no painel: carrinho reflete; regra desativada: item marcado e fora do total
+        $this->db->pdo()->prepare('UPDATE personalization_rules SET price_delta_cents = 3000 WHERE id = ?')->execute([$rule]);
+        self::assertStringContainsString('R$ 550,00', $this->get('/carrinho')->body());
+        $this->db->pdo()->prepare('UPDATE personalization_rules SET is_active = 0 WHERE id = ?')->execute([$rule]);
+        $changed = $this->get('/carrinho')->body();
+        self::assertStringContainsString('A personalização deste item mudou', $changed);
+        self::assertStringContainsString('R$ 0,00', $changed);
+    }
+
+    public function testPersonalizationOfAnotherProductIsIgnored(): void
+    {
+        $plain = $this->product('Porta-Copos', 3000);
+        $other = $this->product('Placa com Nome', 8000);
+        $rule = $this->requiredNameRule($other['id']);
+
+        $this->post('/carrinho/itens', ['variant_id' => (string) $plain['variant_id'], 'quantity' => '1', "pers_{$rule}" => 'Ana']);
+        self::assertSame(0, (int) $this->fetchValue('SELECT COUNT(*) FROM cart_item_personalizations'));
+        self::assertSame('', $this->fetchValue('SELECT personalization_hash FROM cart_items WHERE variant_id = :v', ['v' => $plain['variant_id']]));
+    }
+
+    public function testVariantChoiceOnProductPageAndInCart(): void
+    {
+        $p = $this->product('Relógio Duo', 10000, ['category' => 'relogios']);
+        $variants = $this->container->get(\GNesting\Services\VariantService::class);
+        $variants->addOption($p['id'], 'Acabamento', 'Natural, Preto');
+        $variants->generateCombinations($p['id']);
+        $black = (int) $this->fetchValue("SELECT id FROM product_variants WHERE product_id = :p AND name = 'Preto'", ['p' => $p['id']]);
+        $this->db->pdo()->prepare('UPDATE product_variants SET price_cents = 13000 WHERE id = ?')->execute([$black]);
+
+        $listing = $this->get('/categoria/relogios')->body();
+        self::assertStringContainsString('a partir de', $listing);
+
+        $page = $this->get('/produto/relogio-duo')->body();
+        self::assertStringContainsString('<label for="variant_id">Acabamento</label>', $page);
+        self::assertStringContainsString('Preto — R$ 130,00', $page);
+        self::assertStringContainsString('R$ 100,00', $page, 'Padrão exibida');
+        self::assertStringContainsString('R$ 130,00</span>', $this->get('/produto/relogio-duo', ['variante' => (string) $black])->body(), 'Link direto para a variação');
+
+        $this->post('/carrinho/itens', ['variant_id' => (string) $black, 'quantity' => '1']);
+        $cart = $this->get('/carrinho')->body();
+        self::assertStringContainsString('Preto', $cart);
+        self::assertStringContainsString('R$ 130,00', $cart);
+
+        // Variação desativada some da página e não pode ser comprada
+        $this->db->pdo()->prepare('UPDATE product_variants SET is_active = 0 WHERE id = ?')->execute([$black]);
+        self::assertStringNotContainsString('Preto — ', $this->get('/produto/relogio-duo')->body());
+        self::assertStringContainsString('não está mais disponível', $this->get('/carrinho')->body());
+    }
+
+    public function testStockIsSharedAcrossPersonalizedLinesOfTheSameVariant(): void
+    {
+        $p = $this->product('Chaveiro Pronto', 2500, ['stock_mode' => 'stock', 'qty' => 3]);
+        $this->db->pdo()->prepare(
+            "INSERT INTO personalization_rules (product_id, field_key, label, type, is_required, min_length, max_length, charset)
+             VALUES (?, 'inicial', 'Inicial', 'initial', 0, 1, 1, 'letters')"
+        )->execute([$p['id']]);
+        $rule = (int) $this->db->pdo()->lastInsertId();
+
+        $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '2', "pers_{$rule}" => 'a']);
+        $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '2', "pers_{$rule}" => 'b', 'back' => '/produto/chaveiro-pronto']);
+        self::assertStringContainsString('apenas 3 unidade', $this->get('/produto/chaveiro-pronto')->body());
+
+        $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '1', "pers_{$rule}" => 'b']);
+        self::assertSame(3, (int) $this->fetchValue('SELECT SUM(quantity) FROM cart_items'));
+        self::assertStringContainsString('Inicial:</dt> <dd>A', $this->get('/carrinho')->body(), 'Inicial em maiúscula');
     }
 
     public function testCartChangesRequireCsrfToken(): void

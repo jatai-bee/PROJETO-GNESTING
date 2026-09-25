@@ -1,10 +1,12 @@
 <?php
 /**
  * Cartão de produto das listagens.
- * @var array<string, mixed> $product linha de CatalogRepository (CARD_FIELDS)
+ * @var array<string, mixed> $product linha de CatalogRepository (CARD_FIELDS + faixa de preço das variantes)
  */
-$soldOut = $product['stock_mode'] === 'stock' && (int) $product['available'] <= 0;
-$compare = $product['compare_at_price_cents'] === null ? null : (int) $product['compare_at_price_cents'];
+$soldOut = (int) $product['sellable_count'] === 0;
+$priceRange = (int) $product['min_price'] !== (int) $product['max_price'];
+// Preço "de" só faz sentido quando há um preço único (a variante padrão)
+$compare = $priceRange || $product['compare_at_price_cents'] === null ? null : (int) $product['compare_at_price_cents'];
 $href = url('/produto/' . $product['slug']);
 ?>
 <article class="product-card">
@@ -33,7 +35,8 @@ $href = url('/produto/' . $product['slug']);
                 <s class="price__old"><span class="visually-hidden">De </span><?= e(money($compare)) ?></s>
                 <span class="visually-hidden">por </span>
             <?php endif ?>
-            <span class="price__current"><?= e(money((int) $product['price_cents'])) ?></span>
+            <?php if ($priceRange): ?><span class="price__from">a partir de</span><?php endif ?>
+            <span class="price__current"><?= e(money((int) $product['min_price'])) ?></span>
         </p>
     </div>
 </article>

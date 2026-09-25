@@ -56,8 +56,8 @@ Disponibilidade:
 | `stock` com saldo | "Pronta entrega" (+ "Restam N" quando ≤ 5) | até o saldo (`em estoque − reservado`) |
 | `stock` sem saldo | "Esgotado", sem botão de compra | bloqueada |
 
-Personalização: produtos com `personalization_enabled` mostram um aviso. Os campos entram na **etapa 5**; até lá,
-produto com regra de personalização **obrigatória** não pode ser adicionado ao carrinho.
+Variações e personalização (seletor de variação, campos de personalização, preços e regras no carrinho):
+ver [10 — Variações e personalização](10-variacoes-e-personalizacao.md).
 
 ## 5. Carrinho
 

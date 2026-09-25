@@ -14,12 +14,7 @@ $movableIds = array_column($movable, 'id');
         <a class="back-link" href="<?= e(url('/admin/produtos')) ?>">← Produtos</a>
         <h1 class="page-title"><?= e($product['name']) ?></h1>
     </div>
-    <nav class="tabs" aria-label="Seções do produto">
-        <a href="<?= e(url("/admin/produtos/{$product['id']}/editar")) ?>">Dados</a>
-        <a href="<?= e(url($base)) ?>" aria-current="page">Imagens (<?= e(count($images)) ?>)</a>
-        <span class="tabs__soon" title="Etapa 5">Variações e personalização</span>
-        <span class="tabs__soon" title="Etapa 6">Ficha de produção</span>
-    </nav>
+    <?= $this->partial('admin/products/tabs', ['product' => $product, 'active' => 'imagens', 'imageCount' => count($images)]) ?>
 </div>
 
 <?php if (!$product['is_active']): ?>

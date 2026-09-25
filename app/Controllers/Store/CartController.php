@@ -9,7 +9,9 @@ use GNesting\Core\Controller;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Services\BusinessRuleException;
+use GNesting\Core\ValidationException;
 use GNesting\Services\CartService;
+use GNesting\Services\PersonalizationService;
 
 /**
  * Carrinho. Todas as alterações são POST com CSRF e terminam em redirect (PRG).
@@ -38,10 +40,20 @@ final class CartController extends Controller
         $quantity = $this->intInput($request, 'quantity', 1);
         $back = $this->safeRedirectPath($request->string('back'), '/carrinho');
 
+        $personalization = $this->personalizationInput($request);
+
         try {
-            $this->cart->add($variantId, $quantity, $this->auth->customer()['customer_id'] ?? null);
+            $this->cart->add($variantId, $quantity, $personalization, $this->auth->customer()['customer_id'] ?? null);
         } catch (BusinessRuleException $e) {
             $this->flash('error', $e->getMessage());
+            $this->flash('old', $this->oldInput($request, $personalization));
+
+            return $this->redirect($back);
+        } catch (ValidationException $e) {
+            // Volta para a página do produto com as mensagens e o que foi digitado
+            $this->flash('errors', $e->errors());
+            $this->flash('old', $this->oldInput($request, $personalization));
+            $this->flash('error', 'Confira a personalização.');
 
             return $this->redirect($back);
         }
@@ -69,6 +81,38 @@ final class CartController extends Controller
         $this->flash('success', 'Item removido do carrinho.');
 
         return $this->redirect('/carrinho');
+    }
+
+    /**
+     * Campos "pers_{rule_id}". Quais regras existem e o que aceitam é decidido pelo serviço;
+     * aqui só se coleta texto (arrays e campos desconhecidos são ignorados).
+     *
+     * @return array<int, string>
+     */
+    private function personalizationInput(Request $request): array
+    {
+        $input = [];
+        foreach (array_keys($request->all()) as $key) {
+            if (is_string($key) && preg_match('/^' . PersonalizationService::FIELD_PREFIX . '(\d{1,18})$/', $key, $m)) {
+                $input[(int) $m[1]] = mb_substr($request->string($key), 0, 255);
+            }
+        }
+
+        return $input;
+    }
+
+    /**
+     * @param array<int, string> $personalization
+     * @return array<string, string>
+     */
+    private function oldInput(Request $request, array $personalization): array
+    {
+        $old = ['quantity' => $request->string('quantity'), 'variant_id' => $request->string('variant_id')];
+        foreach ($personalization as $ruleId => $value) {
+            $old[PersonalizationService::FIELD_PREFIX . $ruleId] = $value;
+        }
+
+        return $old;
     }
 
     /** Inteiro do formulário; texto inválido vira -1 (recusado pela validação do serviço). */

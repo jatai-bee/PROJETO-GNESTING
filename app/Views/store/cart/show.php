@@ -6,6 +6,7 @@ $issueText = [
     'unavailable' => 'Este produto não está mais disponível. Remova-o para continuar.',
     'out_of_stock' => 'Esgotado no momento. Remova-o para continuar.',
     'insufficient_stock' => 'Quantidade acima do disponível. Ajuste para continuar.',
+    'personalization_invalid' => 'A personalização deste item mudou na loja. Remova-o e adicione de novo.',
 ];
 ?>
 <div class="container">
@@ -41,7 +42,19 @@ $issueText = [
                             <?php if (!empty($item['variant_name'])): ?>
                                 <p class="muted"><?= e($item['variant_name']) ?></p>
                             <?php endif ?>
-                            <p class="cart-item__unit muted"><?= e(money($item['unit_price_cents'])) ?> cada</p>
+                            <?php if ($item['personalization'] !== []): ?>
+                                <dl class="cart-item__personalization">
+                                    <?php foreach ($item['personalization'] as $choice): ?>
+                                        <div><dt><?= e($choice['label']) ?>:</dt> <dd><?= e($choice['display']) ?></dd></div>
+                                    <?php endforeach ?>
+                                </dl>
+                            <?php endif ?>
+                            <p class="cart-item__unit muted">
+                                <?= e(money($item['unit_price_cents'])) ?> cada
+                                <?php if ($item['personalization_cents'] > 0): ?>
+                                    <span>(<?= e(money($item['base_price_cents'])) ?> + <?= e(money($item['personalization_cents'])) ?> de personalização)</span>
+                                <?php endif ?>
+                            </p>
                             <?php if ($item['issue'] !== null): ?>
                                 <p class="field__error"><?= e($issueText[$item['issue']]) ?></p>
                             <?php endif ?>

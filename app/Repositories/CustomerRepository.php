@@ -40,6 +40,57 @@ final class CustomerRepository extends Repository
         );
     }
 
+    private const ADMIN_FROM = " FROM customers c
+        LEFT JOIN (SELECT customer_id, COUNT(*) AS orders_count,
+                          SUM(CASE WHEN paid_at IS NOT NULL AND status <> 'cancelled' THEN total_cents ELSE 0 END) AS spent_cents,
+                          MAX(placed_at) AS last_order_at
+                     FROM orders GROUP BY customer_id) o ON o.customer_id = c.id";
+
+    /** @return array{0: string, 1: array<string, mixed>} */
+    private function adminWhere(string $q): array
+    {
+        if ($q === '') {
+            return ['', []];
+        }
+        $like = '%' . addcslashes($q, '%_\\') . '%';
+        $digits = (string) preg_replace('/\D/', '', $q);
+        $sql = ' WHERE (c.name LIKE :q1 OR c.email LIKE :q2' . (strlen($digits) >= 4 ? ' OR c.cpf LIKE :q3 OR c.phone LIKE :q4' : '') . ')';
+        $params = ['q1' => $like, 'q2' => $like] + (strlen($digits) >= 4 ? ['q3' => "%{$digits}%", 'q4' => "%{$digits}%"] : []);
+
+        return [$sql, $params];
+    }
+
+    public function adminCount(string $q): int
+    {
+        [$where, $params] = $this->adminWhere($q);
+
+        return (int) $this->fetchValue('SELECT COUNT(*) FROM customers c' . $where, $params);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function adminList(string $q, int $limit, int $offset): array
+    {
+        [$where, $params] = $this->adminWhere($q);
+
+        return $this->fetchAll(
+            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.created_at,
+                    COALESCE(o.orders_count, 0) AS orders_count, COALESCE(o.spent_cents, 0) AS spent_cents, o.last_order_at'
+            . self::ADMIN_FROM . $where . ' ORDER BY COALESCE(o.last_order_at, c.created_at) DESC, c.id DESC LIMIT :limit OFFSET :offset',
+            $params + ['limit' => $limit, 'offset' => $offset]
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    public function adminFind(int $customerId): ?array
+    {
+        return $this->fetchOne(
+            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.whatsapp_opt_in, c.marketing_opt_in, c.created_at,
+                    COALESCE(o.orders_count, 0) AS orders_count, COALESCE(o.spent_cents, 0) AS spent_cents, o.last_order_at'
+            . self::ADMIN_FROM . ' WHERE c.id = :id',
+            ['id' => $customerId]
+        );
+    }
+
     /** @return array{id:int,name:string,email:string,cpf:?string,phone:?string}|null */
     public function findContact(int $customerId): ?array
     {

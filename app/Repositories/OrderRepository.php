@@ -162,12 +162,172 @@ final class OrderRepository extends Repository
         $this->execute('UPDATE orders SET cancel_reason = :reason WHERE id = :id', ['reason' => mb_substr($reason, 0, 200), 'id' => $orderId]);
     }
 
+    /** Nota interna registrada pelo sistema (sem autor). */
     public function appendAdminNote(int $orderId, string $note): void
     {
-        $this->execute(
-            "UPDATE orders SET admin_notes = TRIM(CONCAT(COALESCE(admin_notes, ''), '\n', :note)) WHERE id = :id",
-            ['note' => '[' . gmdate('Y-m-d H:i') . ' UTC] ' . $note, 'id' => $orderId]
+        $this->addNote($orderId, null, 'internal', $note);
+    }
+
+    public function addNote(int $orderId, ?int $userId, string $visibility, string $body): int
+    {
+        return $this->insert(
+            'INSERT INTO order_notes (order_id, user_id, visibility, body) VALUES (:order_id, :user_id, :visibility, :body)',
+            ['order_id' => $orderId, 'user_id' => $userId, 'visibility' => $visibility, 'body' => $body]
         );
+    }
+
+    public function markNoteEmailed(int $noteId): void
+    {
+        $this->execute('UPDATE order_notes SET emailed_at = UTC_TIMESTAMP() WHERE id = :id', ['id' => $noteId]);
+    }
+
+    /** @return list<array<string, mixed>> $visibility null = todas (painel); 'customer' = página do cliente */
+    public function notes(int $orderId, ?string $visibility = null): array
+    {
+        return $this->fetchAll(
+            'SELECT n.id, n.visibility, n.body, n.emailed_at, n.created_at, a.name AS author_name
+               FROM order_notes n
+               LEFT JOIN admins a ON a.user_id = n.user_id
+              WHERE n.order_id = :id' . ($visibility === null ? '' : ' AND n.visibility = :visibility') . '
+              ORDER BY n.id',
+            ['id' => $orderId] + ($visibility === null ? [] : ['visibility' => $visibility])
+        );
+    }
+
+    // ---- Remessas -------------------------------------------------------------
+
+    /** @param array{carrier: string, service: ?string, tracking_code: ?string, tracking_url: ?string} $data */
+    public function createShipment(int $orderId, array $data): int
+    {
+        return $this->insert(
+            "INSERT INTO shipments (order_id, carrier, service, tracking_code, tracking_url, status, shipped_at)
+             VALUES (:order_id, :carrier, :service, :tracking_code, :tracking_url, 'posted', UTC_TIMESTAMP())",
+            $data + ['order_id' => $orderId]
+        );
+    }
+
+    public function markShipmentsDelivered(int $orderId): void
+    {
+        $this->execute(
+            "UPDATE shipments SET status = 'delivered', delivered_at = UTC_TIMESTAMP() WHERE order_id = :id AND status <> 'delivered'",
+            ['id' => $orderId]
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    public function latestShipment(int $orderId): ?array
+    {
+        return $this->fetchOne(
+            'SELECT id, carrier, service, tracking_code, tracking_url, status, shipped_at, delivered_at
+               FROM shipments WHERE order_id = :id ORDER BY id DESC LIMIT 1',
+            ['id' => $orderId]
+        );
+    }
+
+    // ---- Painel ---------------------------------------------------------------
+
+    /**
+     * @param array{status?: string, payment?: string, q?: string, from?: string, to?: string, customer_id?: int} $filters
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function adminWhere(array $filters): array
+    {
+        $sql = ' WHERE 1 = 1';
+        $params = [];
+        if (($filters['status'] ?? '') === 'open') {
+            $sql .= " AND o.status NOT IN ('delivered', 'cancelled')";
+        } elseif (($filters['status'] ?? '') !== '') {
+            $sql .= ' AND o.status = :status';
+            $params['status'] = $filters['status'];
+        }
+        if (($filters['payment'] ?? '') !== '') {
+            $sql .= ' AND o.payment_status = :payment';
+            $params['payment'] = $filters['payment'];
+        }
+        if (($filters['customer_id'] ?? 0) > 0) {
+            $sql .= ' AND o.customer_id = :customer_id';
+            $params['customer_id'] = $filters['customer_id'];
+        }
+        if (($filters['q'] ?? '') !== '') {
+            $like = '%' . addcslashes($filters['q'], '%_\\') . '%';
+            $digits = (string) preg_replace('/\D/', '', $filters['q']);
+            $sql .= ' AND (o.number LIKE :q1 OR o.customer_name LIKE :q2 OR o.customer_email LIKE :q3'
+                . ($digits !== '' && strlen($digits) >= 4 ? ' OR o.customer_cpf LIKE :q4 OR o.customer_phone LIKE :q5' : '') . ')';
+            $params += ['q1' => $like, 'q2' => $like, 'q3' => $like];
+            if ($digits !== '' && strlen($digits) >= 4) {
+                $params += ['q4' => '%' . $digits . '%', 'q5' => '%' . $digits . '%'];
+            }
+        }
+        if (($filters['from'] ?? '') !== '') {
+            $sql .= ' AND o.placed_at >= :from';
+            $params['from'] = $filters['from'];
+        }
+        if (($filters['to'] ?? '') !== '') {
+            $sql .= ' AND o.placed_at < :to';
+            $params['to'] = $filters['to'];
+        }
+
+        return [$sql, $params];
+    }
+
+    /** @param array<string, mixed> $filters */
+    public function adminCount(array $filters): int
+    {
+        [$where, $params] = $this->adminWhere($filters);
+
+        return (int) $this->fetchValue('SELECT COUNT(*) FROM orders o' . $where, $params);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
+     */
+    public function adminList(array $filters, int $limit, int $offset): array
+    {
+        [$where, $params] = $this->adminWhere($filters);
+
+        return $this->fetchAll(
+            'SELECT o.id, o.number, o.status, o.payment_status, o.total_cents, o.customer_name, o.customer_email,
+                    o.ship_city, o.ship_state, o.placed_at, o.paid_at, o.production_days, o.shipping_service,
+                    (SELECT COALESCE(SUM(quantity), 0) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
+                    (SELECT COUNT(*) FROM order_item_personalizations oip JOIN order_items oi2 ON oi2.id = oip.order_item_id
+                      WHERE oi2.order_id = o.id) AS personalization_count
+               FROM orders o' . $where . '
+              ORDER BY o.placed_at DESC, o.id DESC LIMIT :limit OFFSET :offset',
+            $params + ['limit' => $limit, 'offset' => $offset]
+        );
+    }
+
+    /** @return array<string, int> status => quantidade */
+    public function statusCounts(): array
+    {
+        $counts = [];
+        foreach ($this->fetchAll('SELECT status, COUNT(*) AS total FROM orders GROUP BY status') as $row) {
+            $counts[(string) $row['status']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Indicadores do painel (valores de pedidos pagos, em centavos).
+     *
+     * @return array{paid_today: int, paid_month: int, orders_month: int, awaiting_payment: int, in_production: int, ready_to_ship: int}
+     */
+    public function kpis(string $todayStartUtc, string $monthStartUtc): array
+    {
+        $row = $this->fetchOne(
+            "SELECT
+                COALESCE((SELECT SUM(total_cents) FROM orders WHERE paid_at >= :today AND status <> 'cancelled'), 0) AS paid_today,
+                COALESCE((SELECT SUM(total_cents) FROM orders WHERE paid_at >= :month AND status <> 'cancelled'), 0) AS paid_month,
+                (SELECT COUNT(*) FROM orders WHERE paid_at >= :month2 AND status <> 'cancelled') AS orders_month,
+                (SELECT COUNT(*) FROM orders WHERE status = 'awaiting_payment') AS awaiting_payment,
+                (SELECT COUNT(*) FROM orders WHERE status IN ('production_pending', 'in_production', 'finishing', 'quality_control', 'packaging')) AS in_production,
+                (SELECT COUNT(*) FROM orders WHERE status = 'ready_to_ship') AS ready_to_ship",
+            ['today' => $todayStartUtc, 'month' => $monthStartUtc, 'month2' => $monthStartUtc]
+        ) ?? [];
+
+        return array_map('intval', $row);
     }
 
     /**
@@ -272,6 +432,25 @@ final class OrderRepository extends Repository
                 'refunded' => (int) ($data['status'] === 'refunded'),
                 'refunded2' => (int) ($data['status'] === 'refunded'),
             ]
+        );
+    }
+
+    /** @return array<string, mixed>|null pagamento aprovado do pedido (para estorno) */
+    public function paidPayment(int $orderId): ?array
+    {
+        return $this->fetchOne(
+            "SELECT id, provider, provider_payment_id, amount_cents FROM payments
+              WHERE order_id = :id AND status IN ('paid', 'authorized') ORDER BY id DESC LIMIT 1",
+            ['id' => $orderId]
+        );
+    }
+
+    public function markPaymentRefunded(int $paymentId, string $reason): void
+    {
+        $this->execute(
+            "UPDATE payments SET status = 'refunded', refunded_cents = amount_cents, refunded_at = UTC_TIMESTAMP(),
+                    failure_reason = :reason WHERE id = :id",
+            ['reason' => mb_substr($reason, 0, 200), 'id' => $paymentId]
         );
     }
 

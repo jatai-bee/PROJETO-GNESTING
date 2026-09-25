@@ -106,6 +106,32 @@ final class InventoryRepository extends Repository
         $this->addOrderMovement($variantId, 'out', -$quantity, 'Saída por pedido pago', $orderId);
     }
 
+    /**
+     * Cancelamento de pedido já pago (antes do envio): as saídas de estoque do pedido voltam.
+     *
+     * @return int unidades devolvidas
+     */
+    public function returnOrderStock(int $orderId): int
+    {
+        $rows = $this->fetchAll(
+            "SELECT variant_id, -SUM(quantity) AS qty FROM inventory_movements
+              WHERE reference_type = 'order' AND reference_id = :id AND type IN ('out', 'in')
+              GROUP BY variant_id HAVING qty > 0",
+            ['id' => $orderId]
+        );
+        $total = 0;
+        foreach ($rows as $row) {
+            $this->execute(
+                'UPDATE inventory SET quantity_on_hand = quantity_on_hand + :qty WHERE variant_id = :id',
+                ['qty' => (int) $row['qty'], 'id' => (int) $row['variant_id']]
+            );
+            $this->addOrderMovement((int) $row['variant_id'], 'in', (int) $row['qty'], 'Devolvido ao estoque: pedido cancelado', $orderId);
+            $total += (int) $row['qty'];
+        }
+
+        return $total;
+    }
+
     private function addOrderMovement(int $variantId, string $type, int $quantity, string $reason, int $orderId): void
     {
         $this->execute(

@@ -15,7 +15,7 @@ Decisões (2026-09-25): pagamento pelo **Mercado Pago — Checkout Pro**; **comp
 7. **E-mail de confirmação** com o **link privado** do pedido (`?chave=…`).
 
 Quem pode abrir um pedido: o cliente logado dono dele, quem tem o link privado, ou o mesmo navegador que acabou de comprar.
-Para qualquer outra pessoa o pedido **não existe** (404). A chave é aleatória (48 hex) e o banco guarda só o SHA-256.
+Para qualquer outra pessoa o pedido **não existe** (404). A chave é derivada do número do pedido com a `APP_KEY` (HMAC) — ver [13 — Pedidos](13-pedidos.md) §4.
 
 ## 2. O que acontece ao finalizar (uma transação)
 
@@ -83,8 +83,7 @@ A UF é obtida pelas faixas de CEP dos Correios (`app/Helpers/ZipCode.php`). Cot
 
 ## 7. E-mail
 
-`MAIL_DRIVER=log` (padrão; grava em `storage/logs/mail-AAAA-MM-DD.log`) ou `mail` (função `mail()` da hospedagem, remetente `MAIL_FROM_*`).
-Nesta etapa: confirmação do pedido. SMTP autenticado e demais avisos (pagamento aprovado, envio) entram na etapa 8.
+E-mails ao cliente, SMTP e a lista de avisos automáticos: ver [13 — Pedidos](13-pedidos.md) §4.
 
 ## 8. Onde está no código
 

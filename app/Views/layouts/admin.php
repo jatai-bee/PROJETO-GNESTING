@@ -15,13 +15,13 @@ $role = AdminRole::tryFrom($currentAdmin['role']);
 // Itens sem 'href' são de etapas futuras: aparecem desabilitados.
 $menu = [
     ['label' => 'Painel', 'href' => '/admin', 'roles' => null],
+    ['label' => 'Pedidos', 'href' => '/admin/pedidos', 'roles' => ['manager', 'production', 'support']],
+    ['label' => 'Clientes', 'href' => '/admin/clientes', 'roles' => ['manager', 'support']],
+    ['label' => 'Produção', 'href' => null, 'stage' => 9, 'roles' => ['manager', 'production']],
     ['label' => 'Produtos', 'href' => '/admin/produtos', 'roles' => ['manager']],
     ['label' => 'Categorias', 'href' => '/admin/categorias', 'roles' => ['manager']],
     ['label' => 'Fichas de produção', 'href' => '/admin/fichas', 'roles' => ['manager', 'production']],
     ['label' => 'Materiais', 'href' => '/admin/materiais', 'roles' => ['manager', 'production']],
-    ['label' => 'Pedidos', 'href' => null, 'stage' => 8, 'roles' => ['manager', 'production', 'support']],
-    ['label' => 'Produção', 'href' => null, 'stage' => 9, 'roles' => ['manager', 'production']],
-    ['label' => 'Clientes', 'href' => null, 'stage' => 8, 'roles' => ['manager', 'support']],
     ['label' => 'Cupons', 'href' => null, 'stage' => 10, 'roles' => ['manager']],
     ['label' => 'Usuários', 'href' => '/admin/usuarios', 'roles' => ['owner']],
     ['label' => 'Auditoria', 'href' => '/admin/logs', 'roles' => ['owner']],

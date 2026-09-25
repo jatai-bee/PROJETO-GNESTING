@@ -16,7 +16,6 @@ use GNesting\Repositories\InventoryRepository;
 use GNesting\Repositories\OrderRepository;
 use GNesting\Repositories\ProductionSpecRepository;
 use GNesting\Services\Auth\AuthService;
-use GNesting\Services\Mail\Mailer;
 use GNesting\Services\Shipping\ShippingCalculator;
 use GNesting\Services\Shipping\ShippingOption;
 
@@ -40,7 +39,8 @@ final class CheckoutService
         private readonly InventoryRepository $inventory,
         private readonly ProductionSpecRepository $specs,
         private readonly AuditService $audit,
-        private readonly Mailer $mailer,
+        private readonly OrderNotifier $notifier,
+        private readonly OrderLink $links,
         private readonly Config $config,
         private readonly Logger $logger,
     ) {
@@ -109,14 +109,12 @@ final class CheckoutService
             throw new ValidationException(['shipping_code' => 'Escolha uma opção de entrega para este CEP.']);
         }
 
-        $token = bin2hex(random_bytes(24));
-
-        $result = $this->db->transaction(function () use ($summary, $contact, $address, $option, $token, $customerId, $input): array {
+        $result = $this->db->transaction(function () use ($summary, $contact, $address, $option, $customerId, $input): array {
             $customerId = $this->resolveCustomer($customerId, $contact);
 
             $subtotal = (int) $summary['subtotal_cents'];
             $orderId = $this->orders->create([
-                'access_token_hash' => hash('sha256', $token),
+                'access_token_hash' => null, // chave do link é derivada do número (OrderLink)
                 'customer_id' => $customerId,
                 'subtotal_cents' => $subtotal,
                 'shipping_cents' => $option->priceCents,
@@ -187,10 +185,14 @@ final class CheckoutService
                 'number' => $order['number'], 'total_cents' => $order['total_cents'], 'items' => count($summary['items']),
             ]);
 
-            return ['order_id' => $orderId, 'number' => (string) $order['number'], 'token' => $token];
+            return ['order_id' => $orderId, 'number' => (string) $order['number'], 'token' => $this->links->token((string) $order['number'])];
         });
 
-        $this->sendConfirmation($result['order_id'], $result['token']);
+        try {
+            $this->notifier->placed($result['order_id']);
+        } catch (\Throwable $e) {
+            $this->logger->error('Falha no e-mail de confirmação do pedido', ['order' => $result['number'], 'error' => $e->getMessage()]);
+        }
 
         return $result;
     }
@@ -275,34 +277,5 @@ final class CheckoutService
         }
 
         return $total;
-    }
-
-    private function sendConfirmation(int $orderId, string $token): void
-    {
-        $order = $this->orders->find($orderId);
-        if ($order === null) {
-            return;
-        }
-        $lines = [];
-        foreach ($this->orders->items($orderId) as $item) {
-            $lines[] = sprintf('- %d × %s%s — %s', $item['quantity'], $item['product_name'],
-                $item['variant_name'] ? " ({$item['variant_name']})" : '', money((int) $item['line_total_cents']));
-            foreach ($item['personalization'] as $choice) {
-                $lines[] = '    ' . $choice['label'] . ': ' . ($choice['value_label'] ?? $choice['value_text']);
-            }
-        }
-        $link = absolute_url('/pedido/' . $order['number'] . '/confirmacao') . '?chave=' . $token;
-        $body = "Olá, {$order['customer_name']}!\n\n"
-            . "Recebemos o seu pedido {$order['number']}. Assim que o pagamento for confirmado, ele entra na fila de produção.\n\n"
-            . implode("\n", $lines) . "\n\n"
-            . 'Frete (' . $order['shipping_service'] . '): ' . money((int) $order['shipping_cents']) . "\n"
-            . 'Total: ' . money((int) $order['total_cents']) . "\n\n"
-            . "Acompanhe o pedido e conclua o pagamento, se ainda não concluiu:\n{$link}\n\n"
-            . "Guarde este e-mail: o link acima é o acesso ao seu pedido.\n\n"
-            . config('app.name') . ' — ' . config('app.tagline');
-
-        if (!$this->mailer->send((string) $order['customer_email'], "Pedido {$order['number']} recebido", $body)) {
-            $this->logger->warning('E-mail de confirmação não enviado', ['order' => $order['number']]);
-        }
     }
 }

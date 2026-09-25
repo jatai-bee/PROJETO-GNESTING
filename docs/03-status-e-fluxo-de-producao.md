@@ -52,7 +52,8 @@ Cancelamento: de qualquer status até ready_to_ship ──► cancelled
 | `cancelled` | — (final) | |
 
 Regras:
-- A matriz fica **no enum** (`OrderStatus::canTransitionTo()`) e é aplicada **somente** pelo `OrderStatusService`. Nenhum outro código faz `UPDATE orders SET status`.
+- A matriz fica **no enum** (`OrderStatus::canTransitionTo()`) e é aplicada **somente** pelo `OrderStatusService` (implementado na etapa 8 — ver [13 — Pedidos](13-pedidos.md)). Nenhum outro código faz `UPDATE orders SET status`.
+- `paid` nunca é manual no painel: só o provedor de pagamento confirma. Enviar/entregar ficam com a gestão até o módulo de expedição (etapa 9).
 - Toda transição, **na mesma transação**:
   1. atualiza `orders.status`;
   2. insere em `order_status_history` (de, para, origem, usuário, nota);

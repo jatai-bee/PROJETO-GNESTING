@@ -72,6 +72,15 @@ final class MercadoPagoGateway implements PaymentGateway
         return ['reference' => (string) $response['id'], 'url' => (string) $response['init_point']];
     }
 
+    public function refund(string $paymentId): void
+    {
+        if (!preg_match('/^\d{1,20}$/', $paymentId)) {
+            throw new RuntimeException('Pagamento inválido para estorno.');
+        }
+        // Corpo vazio = estorno total. Chave de idempotência: repetir o pedido não estorna duas vezes.
+        $this->call('POST', '/v1/payments/' . $paymentId . '/refunds', null, 'refund-' . $paymentId);
+    }
+
     public function fetchPayment(string $paymentId): ?GatewayPayment
     {
         if (!preg_match('/^\d{1,20}$/', $paymentId)) {

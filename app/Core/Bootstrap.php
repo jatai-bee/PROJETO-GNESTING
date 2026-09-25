@@ -11,6 +11,8 @@ use GNesting\Services\ImageProcessor;
 use GNesting\Services\Mail\LogMailer;
 use GNesting\Services\Mail\Mailer;
 use GNesting\Services\Mail\NativeMailer;
+use GNesting\Services\Mail\SmtpMailer;
+use GNesting\Services\Mail\StreamSmtpTransport;
 use GNesting\Services\Payment\CurlHttpClient;
 use GNesting\Services\Payment\HttpClient;
 use GNesting\Services\Payment\MercadoPagoGateway;
@@ -106,9 +108,22 @@ final class Bootstrap
                 default => throw new RuntimeException('PAYMENT_PROVIDER inválido: use mercadopago.'),
             };
         });
-        $container->set(Mailer::class, fn () => $config->get('mail.driver') === 'mail'
-            ? new NativeMailer((string) $config->get('mail.from_address'), (string) $config->get('mail.from_name'))
-            : new LogMailer($config->get('paths.logs')));
+        $container->set(Mailer::class, fn (Container $c) => match ($config->get('mail.driver')) {
+            'smtp' => new SmtpMailer(
+                new StreamSmtpTransport(),
+                (string) $config->get('mail.smtp.host'),
+                (int) $config->get('mail.smtp.port'),
+                (string) $config->get('mail.smtp.encryption'),
+                (string) $config->get('mail.smtp.username'),
+                (string) $config->get('mail.smtp.password'),
+                (string) $config->get('mail.from_address'),
+                (string) $config->get('mail.from_name'),
+                static fn (string $error) => $c->get(Logger::class)->error('SMTP: ' . $error),
+                (string) (parse_url((string) $config->get('app.url'), PHP_URL_HOST) ?: 'localhost'),
+            ),
+            'mail' => new NativeMailer((string) $config->get('mail.from_address'), (string) $config->get('mail.from_name')),
+            default => new LogMailer($config->get('paths.logs')),
+        });
         $container->set(Router::class, function () use ($basePath): Router {
             $router = new Router();
             foreach (['web', 'admin', 'api'] as $file) {

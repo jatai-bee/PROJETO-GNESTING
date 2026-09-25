@@ -17,13 +17,33 @@ $actionLabels = [
 ];
 $entityLabels = [
     'admin' => 'Usuário do painel', 'user' => 'Usuário', 'category' => 'Categoria',
-    'product' => 'Produto', 'product_image' => 'Imagem de produto',
+    'product' => 'Produto', 'product_image' => 'Imagem de produto', 'product_variant' => 'Variação',
+    'personalization_rule' => 'Campo de personalização', 'production_spec' => 'Ficha de produção',
+    'production_file' => 'Arquivo de produção', 'material' => 'Material', 'order' => 'Pedido',
 ];
 ?>
 <?php
-$canCatalog = \GNesting\Enums\AdminRole::tryFrom($currentAdmin['role'])?->isAllowed(['manager']) ?? false;
+/** @var array<string, int> $kpis */
+$role = \GNesting\Enums\AdminRole::tryFrom($currentAdmin['role']);
+$canCatalog = $role?->isAllowed(['manager']) ?? false;
+$canOrders = $role?->isAllowed(['manager', 'production', 'support']) ?? false;
 ?>
 <h1 class="page-title">Olá, <?= e(explode(' ', $currentAdmin['name'])[0]) ?>.</h1>
+
+<?php if ($canOrders): ?>
+<section class="stats" aria-label="Pedidos">
+    <?php if ($canCatalog): ?>
+        <div class="stat"><span class="stat__label">Vendas hoje</span><span class="stat__value"><?= e(money($kpis['paid_today'])) ?></span></div>
+        <div class="stat"><span class="stat__label">Vendas no mês</span><span class="stat__value"><?= e(money($kpis['paid_month'])) ?></span>
+            <span class="stat__meta"><?= e($kpis['orders_month']) ?> pedido(s) pago(s)</span></div>
+    <?php endif ?>
+    <div class="stat"><span class="stat__label">Em produção</span><span class="stat__value"><?= e($kpis['in_production']) ?></span>
+        <span class="stat__meta"><a href="<?= e(url('/admin/pedidos?status=open')) ?>">ver pedidos</a></span></div>
+    <div class="stat"><span class="stat__label">Prontos para envio</span><span class="stat__value"><?= e($kpis['ready_to_ship']) ?></span>
+        <span class="stat__meta"><a href="<?= e(url('/admin/pedidos?status=ready_to_ship')) ?>">ver</a></span></div>
+    <div class="stat"><span class="stat__label">Aguardando pagamento</span><span class="stat__value"><?= e($kpis['awaiting_payment']) ?></span></div>
+</section>
+<?php endif ?>
 
 <?php if ($canCatalog && $counters['active_without_image'] > 0): ?>
     <p class="alert alert--warn" role="status">

@@ -132,6 +132,15 @@ final class CheckoutHttpTest extends IntegrationTestCase
         ];
     }
 
+    /** Notas internas do pedido (as do sistema incluídas), concatenadas. */
+    private function internalNotes(int $orderId): string
+    {
+        return implode("\n", array_column(
+            $this->db->pdo()->query("SELECT body FROM order_notes WHERE order_id = {$orderId} AND visibility = 'internal'")->fetchAll(),
+            'body'
+        ));
+    }
+
     /** @return array<string, mixed> */
     private function lastOrder(): array
     {
@@ -281,7 +290,7 @@ final class CheckoutHttpTest extends IntegrationTestCase
         $this->container->get(PaymentService::class)->apply(new GatewayPayment('late-1', $order['number'], PaymentStatus::Paid, (int) $order['total_cents'], 'pix'), 'webhook');
         $order = $this->lastOrder();
         self::assertSame('cancelled', $order['status']);
-        self::assertStringContainsString('após o cancelamento', (string) $order['admin_notes']);
+        self::assertStringContainsString('após o cancelamento', $this->internalNotes((int) $order['id']));
     }
 
     public function testRejectedPaymentCanBeRetried(): void
@@ -347,7 +356,7 @@ final class CheckoutHttpTest extends IntegrationTestCase
             'transaction_amount' => 1.00, 'payment_type_id' => 'bank_transfer', 'payment_method_id' => 'pix'])];
         self::assertSame(200, $webhook('555', 'ev-1')->status());
         self::assertSame('awaiting_payment', $this->lastOrder()['status']);
-        self::assertStringContainsString('valor divergente', (string) $this->lastOrder()['admin_notes']);
+        self::assertStringContainsString('valor divergente', $this->internalNotes((int) $this->lastOrder()['id']));
 
         // Pagamento correto: confirmado
         $http->responses[] = ['status' => 200, 'body' => json_encode(['id' => 556, 'status' => 'approved', 'external_reference' => $order['number'],

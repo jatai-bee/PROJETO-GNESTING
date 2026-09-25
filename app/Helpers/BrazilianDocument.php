@@ -35,6 +35,12 @@ final class BrazilianDocument
             : (string) $cpf;
     }
 
+    /** CPF mascarado para quem não precisa do número completo: ***.982.247-** */
+    public static function maskCpf(?string $cpf): string
+    {
+        return $cpf !== null && strlen($cpf) === 11 ? '***.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-**' : '';
+    }
+
     /**
      * Telefone com DDD (10 ou 11 dígitos, aceita +55 na frente) → E.164 sem "+": 5571999998888.
      */

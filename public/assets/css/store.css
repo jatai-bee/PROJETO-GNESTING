@@ -361,3 +361,5 @@
 .order-list__status { font-size: var(--text-sm); color: var(--color-text-muted); }
 .account-orders-head { margin-top: var(--space-6); }
 .simulated-pay { max-width: 640px; padding: var(--space-6) 0; display: grid; gap: var(--space-4); }
+.tracking { margin-bottom: var(--space-5); }
+.message + .message { margin-top: var(--space-3); padding-top: var(--space-3); border-top: var(--border-hairline); }

@@ -7,6 +7,8 @@
  * @var list<array<string, mixed>> $history
  * @var string $accessKey   chave do link privado (repassada ao "Pagar agora")
  * @var string $returnStatus retorno do provedor (só informativo)
+ * @var array<string, mixed>|null $shipment última remessa
+ * @var list<array<string, mixed>> $messages mensagens da loja ao cliente
  */
 use GNesting\Enums\OrderStatus;
 use GNesting\Helpers\ZipCode;
@@ -45,6 +47,31 @@ $lastPayment = $payments === [] ? null : $payments[array_key_last($payments)];
             <p>Pagamento confirmado. Seu pedido entrou na fila de produção: fica pronto em até <?= e($order['production_days']) ?> dias úteis e depois segue para entrega.</p>
         <?php endif ?>
     </section>
+
+    <?php if ($shipment !== null): ?>
+        <section class="panel-box tracking" aria-labelledby="rastreio">
+            <h2 id="rastreio" class="panel-box__title">Envio</h2>
+            <p><?= e($shipment['carrier']) ?><?= $shipment['service'] ? ' · ' . e($shipment['service']) : '' ?>
+                · enviado em <?= e(format_datetime($shipment['shipped_at'], 'd/m/Y')) ?>
+                <?php if ($shipment['delivered_at']): ?>· entregue em <?= e(format_datetime($shipment['delivered_at'], 'd/m/Y')) ?><?php endif ?></p>
+            <?php if ($shipment['tracking_code']): ?>
+                <p>Código de rastreio: <strong class="mono"><?= e($shipment['tracking_code']) ?></strong>
+                    <?php if ($shipment['tracking_url']): ?> · <a href="<?= e($shipment['tracking_url']) ?>" rel="noopener noreferrer" target="_blank">Rastrear</a><?php endif ?></p>
+            <?php endif ?>
+        </section>
+    <?php endif ?>
+
+    <?php if ($messages !== []): ?>
+        <section class="panel-box" aria-labelledby="mensagens">
+            <h2 id="mensagens" class="panel-box__title">Mensagens da G-Nesting</h2>
+            <?php foreach ($messages as $message): ?>
+                <div class="message">
+                    <small class="muted"><?= e(format_datetime($message['created_at'])) ?></small>
+                    <p><?= nl2br(e($message['body']), false) ?></p>
+                </div>
+            <?php endforeach ?>
+        </section>
+    <?php endif ?>
 
     <?php if ($accessKey !== ''): ?>
         <p class="notice">Guarde o link desta página (também enviado para o seu e-mail): é por ele que você acompanha o pedido.</p>

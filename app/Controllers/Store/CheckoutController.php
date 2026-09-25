@@ -20,6 +20,7 @@ use GNesting\Repositories\OrderRepository;
 use GNesting\Services\Auth\TooManyAttemptsException;
 use GNesting\Services\BusinessRuleException;
 use GNesting\Services\CheckoutService;
+use GNesting\Services\OrderLink;
 use GNesting\Services\PaymentService;
 use GNesting\Services\RateLimiter;
 use Throwable;
@@ -52,6 +53,7 @@ final class CheckoutController extends Controller
         private readonly Auth $auth,
         private readonly Session $session,
         private readonly Logger $logger,
+        private readonly OrderLink $links,
     ) {
     }
 
@@ -168,6 +170,8 @@ final class CheckoutController extends Controller
             'items' => $this->orders->items((int) $order['id']),
             'payments' => $this->orders->payments((int) $order['id']),
             'history' => $this->orders->history((int) $order['id']),
+            'shipment' => $this->orders->latestShipment((int) $order['id']),
+            'messages' => $this->orders->notes((int) $order['id'], 'customer'),
             'accessKey' => $request->queryString('chave', 64),
             'returnStatus' => $request->queryString('status', 20),
         ]);
@@ -219,7 +223,7 @@ final class CheckoutController extends Controller
         $customer = $this->auth->customer();
         $recent = $this->session->get(self::SESSION_ORDERS, []);
         $allowed = ($customer !== null && (int) $customer['customer_id'] === (int) $order['customer_id'])
-            || ($key !== '' && $order['access_token_hash'] !== null && hash_equals((string) $order['access_token_hash'], hash('sha256', $key)))
+            || $this->links->matches($order, $key)
             || (is_array($recent) && isset($recent[$order['number']]));
 
         if (!$allowed) {

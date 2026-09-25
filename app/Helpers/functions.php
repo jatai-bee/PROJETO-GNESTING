@@ -166,6 +166,47 @@ if (!function_exists('format_minutes')) {
     }
 }
 
+if (!function_exists('business_days_after')) {
+    /**
+     * Data (fuso da loja, Y-m-d) N dias úteis depois de um DATETIME UTC.
+     * Pula sábados e domingos; feriados não são considerados.
+     */
+    function business_days_after(string $utc, int $days): string
+    {
+        $date = (new DateTimeImmutable($utc, new DateTimeZone('UTC')))
+            ->setTimezone(new DateTimeZone((string) config('app.timezone', 'America/Sao_Paulo')));
+        while ($days > 0) {
+            $date = $date->modify('+1 day');
+            if ((int) $date->format('N') < 6) {
+                $days--;
+            }
+        }
+
+        return $date->format('Y-m-d');
+    }
+}
+
+if (!function_exists('today_local')) {
+    /** Data de hoje no fuso da loja (Y-m-d). */
+    function today_local(): string
+    {
+        return (new DateTimeImmutable('now', new DateTimeZone((string) config('app.timezone', 'America/Sao_Paulo'))))->format('Y-m-d');
+    }
+}
+
+if (!function_exists('whatsapp_url')) {
+    /** Link wa.me com mensagem pronta. $phone em E.164 sem "+" (5571999998888). */
+    function whatsapp_url(?string $phone, string $text = ''): ?string
+    {
+        $digits = (string) preg_replace('/\D/', '', (string) $phone);
+        if (strlen($digits) < 12) {
+            return null;
+        }
+
+        return 'https://wa.me/' . $digits . ($text === '' ? '' : '?text=' . rawurlencode($text));
+    }
+}
+
 if (!function_exists('money_input')) {
     /** Centavos para o campo de formulário: 12990 → "129,90". */
     function money_input(?int $cents): string

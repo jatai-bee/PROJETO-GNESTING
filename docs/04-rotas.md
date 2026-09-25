@@ -50,6 +50,7 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 
 > **Implementadas (etapa 3):** login, painel, categorias, produtos, imagens, usuários e logs. Arquivo: `routes/admin.php`.
 > **Implementadas (etapa 5):** `/admin/produtos/{id}/variantes` (opções, valores, `POST /gerar`, `/{variantId}/editar|padrao|excluir`) e `/admin/produtos/{id}/personalizacao` (`/novo`, `/{ruleId}/editar|excluir`). Guia: [10 — Variações e personalização](10-variacoes-e-personalizacao.md).
+> **Implementadas (etapa 8):** `/admin/pedidos` · `/{id}` · `POST /{id}/status|cancelar|nota|mensagem|reenviar-link` (manager, production, support — ações conforme o papel) e `/admin/clientes` · `/{id}` (manager, support). Guia: [13 — Pedidos](13-pedidos.md).
 > **Implementadas (etapa 6, papéis manager e production):** `/admin/fichas` (visão geral), `/admin/produtos/{id}/ficha-producao[/{variantId}]` (+ `/copiar`, `/arquivos`, `/arquivos/{fileId}/excluir`), `GET /admin/arquivos-producao/{fileId}` e `/admin/materiais` (`/novo`, `/{id}/editar|excluir`). Guia: [11 — Ficha de produção](11-ficha-de-producao.md).
 > Convenção: formulários usam a mesma URL no GET e no POST (`/novo`, `/{id}/editar`). Ações usam POST em subcaminhos (`/{id}/status`, `/{id}/excluir`, `/imagens/{imageId}/capa|mover|texto|excluir`).
 

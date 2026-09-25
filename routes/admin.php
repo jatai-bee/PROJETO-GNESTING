@@ -14,7 +14,9 @@ use GNesting\Controllers\Admin\AdminUserController;
 use GNesting\Controllers\Admin\AuditLogController;
 use GNesting\Controllers\Admin\AuthController;
 use GNesting\Controllers\Admin\CategoryController;
+use GNesting\Controllers\Admin\CustomerController;
 use GNesting\Controllers\Admin\DashboardController;
+use GNesting\Controllers\Admin\OrderController;
 use GNesting\Controllers\Admin\MaterialController;
 use GNesting\Controllers\Admin\PersonalizationController;
 use GNesting\Controllers\Admin\ProductController;
@@ -96,6 +98,23 @@ return static function (Router $r): void {
                 $r->get('/materiais/{id:\d+}/editar', [MaterialController::class, 'edit']);
                 $r->post('/materiais/{id:\d+}/editar', [MaterialController::class, 'update']);
                 $r->post('/materiais/{id:\d+}/excluir', [MaterialController::class, 'destroy']);
+            });
+
+            // Pedidos: gestor, produção (etapas de produção) e atendimento (consulta, notas, mensagens)
+            $r->group(['middleware' => ['role:manager,production,support']], static function (Router $r): void {
+                $r->get('/pedidos', [OrderController::class, 'index']);
+                $r->get('/pedidos/{id:\d+}', [OrderController::class, 'show']);
+                $r->post('/pedidos/{id:\d+}/status', [OrderController::class, 'status']);
+                $r->post('/pedidos/{id:\d+}/cancelar', [OrderController::class, 'cancel']);
+                $r->post('/pedidos/{id:\d+}/nota', [OrderController::class, 'note']);
+                $r->post('/pedidos/{id:\d+}/mensagem', [OrderController::class, 'message']);
+                $r->post('/pedidos/{id:\d+}/reenviar-link', [OrderController::class, 'resendLink']);
+            });
+
+            // Clientes: gestor e atendimento
+            $r->group(['middleware' => ['role:manager,support']], static function (Router $r): void {
+                $r->get('/clientes', [CustomerController::class, 'index']);
+                $r->get('/clientes/{id:\d+}', [CustomerController::class, 'show']);
             });
 
             // Equipe e auditoria: somente proprietário

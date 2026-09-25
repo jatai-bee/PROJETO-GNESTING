@@ -26,6 +26,13 @@ interface PaymentGateway
      */
     public function createCheckout(array $order, array $items, array $urls): array;
 
+    /**
+     * Estorno TOTAL de um pagamento aprovado (cancelamento de pedido pago).
+     *
+     * @throws \RuntimeException provedor recusou ou está indisponível
+     */
+    public function refund(string $paymentId): void;
+
     /** Consulta o pagamento no provedor (fonte da verdade). Null = não encontrado. */
     public function fetchPayment(string $paymentId): ?GatewayPayment;
 

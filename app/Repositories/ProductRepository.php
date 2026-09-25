@@ -125,6 +125,20 @@ final class ProductRepository extends Repository
         );
     }
 
+    /**
+     * "Mais vendidos": soma (+1) ou desfaz (-1, cancelamento de pedido pago) as quantidades do pedido.
+     */
+    public function applyOrderSales(int $orderId, int $direction): void
+    {
+        $this->execute(
+            'UPDATE products p
+               JOIN (SELECT product_id, SUM(quantity) AS qty FROM order_items WHERE order_id = :order_id GROUP BY product_id) s
+                 ON s.product_id = p.id
+                SET p.sales_count = GREATEST(CAST(p.sales_count AS SIGNED) + :direction * s.qty, 0)',
+            ['order_id' => $orderId, 'direction' => $direction]
+        );
+    }
+
     public function setActive(int $id, bool $active): void
     {
         $this->execute(

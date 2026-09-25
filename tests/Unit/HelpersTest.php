@@ -72,6 +72,21 @@ final class HelpersTest extends TestCase
         self::assertSame('', format_decimal(null));
     }
 
+    public function testBusinessDaysSkipWeekendsAndWhatsappLink(): void
+    {
+        // Sexta 25/09/2026 12:00 no horário da loja (15:00 UTC) + 3 dias úteis = quarta 30/09
+        self::assertSame('2026-09-30', business_days_after('2026-09-25 15:00:00', 3));
+        // Sábado + 1 dia útil = segunda
+        self::assertSame('2026-09-28', business_days_after('2026-09-26 15:00:00', 1));
+        self::assertSame('2026-09-25', business_days_after('2026-09-25 15:00:00', 0));
+        // 01:00 UTC de sábado ainda é sexta no horário da loja
+        self::assertSame('2026-09-28', business_days_after('2026-09-26 01:00:00', 1));
+
+        self::assertSame('https://wa.me/5571999998888?text=Ol%C3%A1%20Ana', whatsapp_url('5571999998888', 'Olá Ana'));
+        self::assertNull(whatsapp_url(null));
+        self::assertNull(whatsapp_url('9999'));
+    }
+
     public function testFormatMinutes(): void
     {
         self::assertSame('0 min', format_minutes(0));

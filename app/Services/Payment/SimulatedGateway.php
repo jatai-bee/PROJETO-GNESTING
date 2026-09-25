@@ -25,6 +25,11 @@ final class SimulatedGateway implements PaymentGateway
         return ['reference' => $reference, 'url' => url('/pagamento-simulado/' . $reference)];
     }
 
+    /** Estorno simulado: sempre aceito. */
+    public function refund(string $paymentId): void
+    {
+    }
+
     /** Não há provedor para consultar: a página simulada aplica o resultado diretamente. */
     public function fetchPayment(string $paymentId): ?GatewayPayment
     {

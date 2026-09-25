@@ -73,6 +73,35 @@ final class MaterialRepository extends Repository
         );
     }
 
+    /**
+     * Movimenta o saldo (entrada +, consumo −) e registra no razão. O saldo nunca fica
+     * negativo (para em zero); o razão guarda o consumo real, para conferência.
+     */
+    public function move(int $materialId, string $quantity, string $reason, ?string $refType, ?int $refId, ?int $userId): void
+    {
+        $this->execute(
+            'UPDATE materials SET stock_qty = GREATEST(stock_qty + :qty, 0) WHERE id = :id',
+            ['qty' => $quantity, 'id' => $materialId]
+        );
+        $this->execute(
+            'INSERT INTO material_movements (material_id, quantity, reason, reference_type, reference_id, user_id)
+             VALUES (:material, :qty, :reason, :ref_type, :ref_id, :user)',
+            ['material' => $materialId, 'qty' => $quantity, 'reason' => mb_substr($reason, 0, 200),
+                'ref_type' => $refType, 'ref_id' => $refId, 'user' => $userId]
+        );
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function movements(int $materialId, int $limit = 30): array
+    {
+        return $this->fetchAll(
+            'SELECT m.quantity, m.reason, m.reference_type, m.reference_id, m.created_at, a.name AS user_name
+               FROM material_movements m LEFT JOIN admins a ON a.user_id = m.user_id
+              WHERE m.material_id = :id ORDER BY m.id DESC LIMIT :limit',
+            ['id' => $materialId, 'limit' => $limit]
+        );
+    }
+
     public function delete(int $id): void
     {
         $this->execute('DELETE FROM materials WHERE id = :id', ['id' => $id]);

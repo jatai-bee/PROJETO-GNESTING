@@ -105,6 +105,12 @@ final class OrderManagementTest extends IntegrationTestCase
         $pdo->exec("INSERT INTO product_variants (product_id, sku, price_cents, is_default) VALUES ({$productId}, 'VASO-01', 10000, 1)");
         $variantId = (int) $pdo->lastInsertId();
         $pdo->exec("INSERT INTO inventory (variant_id, stock_mode, quantity_on_hand) VALUES ({$variantId}, 'stock', 5)");
+        // Ficha: CNC 10 min, lixamento 5 min, secagem 30 min (passiva); MDF 6 mm, 4 peças por chapa
+        $pdo->exec("INSERT INTO production_specs (variant_id, material_id, pieces_per_sheet, cnc_program_ref)
+                    SELECT {$variantId}, id, 4, 'CNC-VASO' FROM materials WHERE code = 'MDF-AMD-06'");
+        $specId = (int) $pdo->lastInsertId();
+        $pdo->exec("INSERT INTO production_spec_steps (spec_id, stage, estimated_minutes, is_passive, sort_order) VALUES
+                    ({$specId}, 'cnc', 10, 0, 10), ({$specId}, 'sanding', 5, 0, 20), ({$specId}, 'drying', 30, 1, 30)");
 
         $this->newBrowser();
         $this->post('/carrinho/itens', ['variant_id' => (string) $variantId, 'quantity' => '2']);
@@ -143,10 +149,14 @@ final class OrderManagementTest extends IntegrationTestCase
     {
         $values = static fn (array $list): array => array_map(static fn (OrderStatus $s): string => $s->value, $list);
 
-        self::assertSame(['in_production', 'cancelled'], $values(OrderStatusService::targetsFor(AdminRole::Manager, OrderStatus::ProductionPending)));
-        self::assertSame(['in_production'], $values(OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::ProductionPending)));
-        self::assertSame(['packaging', 'in_production'], $values(OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::QualityControl)), 'Retrabalho');
-        self::assertSame([], OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::ReadyToShip), 'Envio é do gestor nesta etapa');
+        // Etapas de produção não são botões no pedido: seguem a fila (etapa 9)
+        self::assertSame(['cancelled'], $values(OrderStatusService::targetsFor(AdminRole::Manager, OrderStatus::ProductionPending)));
+        self::assertSame([], OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::ProductionPending));
+        self::assertSame([], OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::QualityControl));
+        // Expedição: gestão e produção
+        self::assertSame(['shipped'], $values(OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::ReadyToShip)));
+        self::assertSame(['delivered'], $values(OrderStatusService::targetsFor(AdminRole::Production, OrderStatus::Shipped)));
+        self::assertSame(['shipped', 'cancelled'], $values(OrderStatusService::targetsFor(AdminRole::Manager, OrderStatus::ReadyToShip)));
         self::assertSame([], OrderStatusService::targetsFor(AdminRole::Support, OrderStatus::ProductionPending));
         self::assertSame(['cancelled'], $values(OrderStatusService::targetsFor(AdminRole::Owner, OrderStatus::AwaitingPayment)), '"Pago" nunca é manual');
         self::assertSame([], OrderStatusService::targetsFor(AdminRole::Owner, OrderStatus::Delivered));
@@ -163,23 +173,44 @@ final class OrderManagementTest extends IntegrationTestCase
         self::assertSame(['quantity_on_hand' => 3, 'quantity_reserved' => 0], array_map('intval', $this->stock('VASO-01')));
         self::assertStringContainsString('Pagamento aprovado', $this->lastMail()['subject']);
 
-        // Produção avança as etapas (inclui retrabalho no CQ)
+        // A fila de produção recebeu o job com a rota da ficha (+ CQ e embalagem obrigatórios)
+        $jobId = (int) $this->fetchValue("SELECT id FROM production_jobs WHERE order_id = {$id}");
+        self::assertSame('cnc,sanding,drying,quality,packaging', $this->fetchValue("SELECT route FROM production_jobs WHERE id = {$jobId}"));
+
         $this->loginAs(AdminRole::Production);
-        self::assertStringContainsString('Mover para: Em produção', $this->get("/admin/pedidos/{$id}")->body());
-        foreach (['in_production', 'finishing', 'quality_control', 'in_production', 'finishing', 'quality_control', 'packaging', 'ready_to_ship'] as $step) {
-            $this->post("/admin/pedidos/{$id}/status", ['target' => $step]);
-            self::assertSame($step, $this->order()['status'], $step);
+        self::assertStringNotContainsString('Mover para:', $this->get("/admin/pedidos/{$id}")->body(), 'Etapas pela fila, não pelo pedido');
+        self::assertStringContainsString($order['number'], $this->get('/admin/producao')->body());
+
+        // queued → cnc → sanding → drying → quality; o pedido acompanha
+        foreach (['in_production', 'finishing', 'finishing', 'quality_control'] as $expected) {
+            $this->post("/admin/producao/{$jobId}/avancar");
+            self::assertSame($expected, $this->order()['status']);
         }
-        self::assertSame(403, $this->post("/admin/pedidos/{$id}/status", ['target' => 'shipped'])->status(), 'Produção não despacha');
+        self::assertStringContainsString('está em produção', implode("\n", array_column($this->mailer->sent(), 'subject')), 'Aviso ao cliente quando a produção começa');
+        self::assertSame(1, substr_count(implode("\n", array_column($this->mailer->sent(), 'subject')), 'está em produção'), 'Uma vez só');
+
+        // CQ reprova: motivo obrigatório; volta para o CNC
+        $this->post("/admin/producao/{$jobId}/retrabalho", ['to_stage' => 'cnc', 'note' => '']);
+        self::assertSame('quality', $this->fetchValue("SELECT stage FROM production_jobs WHERE id = {$jobId}"));
+        $this->post("/admin/producao/{$jobId}/retrabalho", ['to_stage' => 'cnc', 'note' => 'Lasca na borda']);
+        self::assertSame('in_production', $this->order()['status']);
+        self::assertSame(1, (int) $this->fetchValue("SELECT rework_count FROM production_jobs WHERE id = {$jobId}"));
+
+        foreach (['finishing', 'finishing', 'quality_control', 'packaging', 'ready_to_ship'] as $expected) {
+            $this->post("/admin/producao/{$jobId}/avancar");
+            self::assertSame($expected, $this->order()['status']);
+        }
+        self::assertSame('done', $this->fetchValue("SELECT stage FROM production_jobs WHERE id = {$jobId}"));
+        // Dois recortes de 2 peças a 4 por chapa = 0,50 + 0,50 chapa
+        self::assertSame('-1.00', (string) $this->fetchValue("SELECT SUM(quantity) FROM material_movements WHERE reference_type = 'production_job' AND reference_id = {$jobId}"));
+
         self::assertSame(403, $this->post("/admin/pedidos/{$id}/cancelar", ['reason' => 'x'])->status());
         self::assertSame(403, $this->post("/admin/pedidos/{$id}/mensagem", ['body' => 'oi'])->status());
-        self::assertStringContainsString('está em produção', implode("\n", array_column($this->mailer->sent(), 'subject')));
 
-        // Gestor despacha com rastreio; link malicioso é recusado
-        $this->loginAs(AdminRole::Manager);
-        $this->post("/admin/pedidos/{$id}/status", ['target' => 'shipped', 'tracking_code' => 'aa123', 'tracking_url' => 'javascript:alert(1)']);
+        // Expedição (a produção também despacha); link malicioso é recusado
+        $this->post("/admin/expedicao/{$id}/enviar", ['tracking_code' => 'aa123', 'tracking_url' => 'javascript:alert(1)']);
         self::assertSame('ready_to_ship', $this->order()['status']);
-        $this->post("/admin/pedidos/{$id}/status", ['target' => 'shipped', 'carrier' => 'Correios', 'tracking_code' => 'aa123456789br',
+        $this->post("/admin/expedicao/{$id}/enviar", ['carrier' => 'Correios', 'tracking_code' => 'aa123456789br',
             'tracking_url' => 'https://rastreamento.correios.com.br/app/index.php']);
         self::assertSame('shipped', $this->order()['status']);
         $shipment = $this->db->pdo()->query("SELECT * FROM shipments WHERE order_id = {$id}")->fetch();
@@ -201,8 +232,10 @@ final class OrderManagementTest extends IntegrationTestCase
         self::assertNotNull($this->fetchValue("SELECT delivered_at FROM shipments WHERE order_id = {$id}"));
         self::assertSame(403, $this->post("/admin/pedidos/{$id}/status", ['target' => 'in_production'])->status(), 'Entregue é final');
 
-        // Histórico completo, com autor e origem
+        // Histórico: 3 do pagamento + 8 da fila (o pedido muda só quando a etapa derivada muda:
+        // cnc, lixamento, CQ, retrabalho, lixamento, CQ, embalagem, pronto) + enviado + entregue
         self::assertSame(13, (int) $this->fetchValue("SELECT COUNT(*) FROM order_status_history WHERE order_id = {$id}"));
+        self::assertSame(1, (int) $this->fetchValue("SELECT COUNT(*) FROM order_status_history WHERE order_id = {$id} AND note LIKE 'Retrabalho%'"));
         self::assertSame(1, (int) $this->fetchValue("SELECT COUNT(*) FROM audit_logs WHERE entity_type = 'order' AND entity_id = {$id} AND new_values LIKE '%delivered%'"));
     }
 

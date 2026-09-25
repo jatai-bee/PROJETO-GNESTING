@@ -10,6 +10,7 @@ use GNesting\Enums\AdminRole;
 use GNesting\Enums\OrderStatus;
 use GNesting\Repositories\InventoryRepository;
 use GNesting\Repositories\OrderRepository;
+use GNesting\Repositories\ProductionJobRepository;
 use GNesting\Repositories\ProductRepository;
 use GNesting\Services\Payment\PaymentGateway;
 use Throwable;
@@ -28,10 +29,13 @@ use Throwable;
  */
 final class OrderStatusService
 {
-    /** Etapas que a equipe de produção move (docs/03 §5). */
-    private const PRODUCTION_FLOW = [
+    /**
+     * Status que acompanham a fila de produção (etapa 9): mudam só pelos jobs,
+     * via syncProduction(), nunca por botão no pedido.
+     */
+    public const PRODUCTION_RANGE = [
         OrderStatus::ProductionPending, OrderStatus::InProduction, OrderStatus::Finishing,
-        OrderStatus::QualityControl, OrderStatus::Packaging,
+        OrderStatus::QualityControl, OrderStatus::Packaging, OrderStatus::ReadyToShip,
     ];
 
     public function __construct(
@@ -39,6 +43,7 @@ final class OrderStatusService
         private readonly OrderRepository $orders,
         private readonly InventoryRepository $inventory,
         private readonly ProductRepository $products,
+        private readonly ProductionJobRepository $jobs,
         private readonly AuditService $audit,
         private readonly OrderNotifier $notifier,
         private readonly Logger $logger,
@@ -46,23 +51,56 @@ final class OrderStatusService
     }
 
     /**
-     * Para onde o papel pode mover o pedido a partir do status atual.
-     * "Pago" nunca é manual: só o provedor de pagamento confirma.
+     * Para onde o papel pode mover o pedido pela página do pedido.
+     * - "Pago" nunca é manual (só o provedor confirma);
+     * - etapas de produção seguem a fila (jobs), não botões no pedido;
+     * - expedição (enviar, entregar): gestão e produção; cancelar: gestão.
      *
      * @return list<OrderStatus>
      */
     public static function targetsFor(AdminRole $role, OrderStatus $from): array
     {
-        $allowed = array_values(array_filter($from->allowedTransitions(), static fn (OrderStatus $s): bool => $s !== OrderStatus::Paid));
+        $allowed = array_values(array_filter(
+            $from->allowedTransitions(),
+            static fn (OrderStatus $s): bool => $s !== OrderStatus::Paid && !in_array($s, self::PRODUCTION_RANGE, true)
+        ));
 
         return match (true) {
             $role->isAllowed(['manager']) => $allowed,
-            $role === AdminRole::Production && in_array($from, self::PRODUCTION_FLOW, true) => array_values(array_filter(
+            $role === AdminRole::Production => array_values(array_filter(
                 $allowed,
-                static fn (OrderStatus $s): bool => $s !== OrderStatus::Cancelled
+                static fn (OrderStatus $s): bool => in_array($s, [OrderStatus::Shipped, OrderStatus::Delivered], true)
             )),
             default => [],
         };
+    }
+
+    /**
+     * Acompanha a fila de produção: leva o pedido ao status derivado dos jobs (pode avançar
+     * várias etapas de uma vez ou voltar em retrabalho) — só dentro das etapas de produção.
+     */
+    public function syncProduction(int $orderId, OrderStatus $target, ?int $userId, ?string $note = null): void
+    {
+        if (!in_array($target, self::PRODUCTION_RANGE, true)) {
+            throw new \LogicException('Status fora da produção.');
+        }
+
+        $from = $this->db->transaction(function () use ($orderId, $target, $userId, $note): ?OrderStatus {
+            $order = $this->orders->find($orderId, true) ?? throw new BusinessRuleException('Pedido não encontrado.');
+            $from = OrderStatus::from((string) $order['status']);
+            if ($from === $target || !in_array($from, self::PRODUCTION_RANGE, true)) {
+                return null; // sem mudança, ou pedido já fora da produção (cancelado/enviado)
+            }
+            $this->orders->updateStatus($orderId, $target->value);
+            $this->record($orderId, $from, $target, 'production', $userId, $note);
+
+            return $from;
+        });
+
+        // Cliente é avisado quando a produção começa (uma vez)
+        if ($from === OrderStatus::ProductionPending && $target !== OrderStatus::ProductionPending) {
+            $this->notify($orderId, OrderStatus::InProduction);
+        }
     }
 
     /**
@@ -73,6 +111,10 @@ final class OrderStatusService
     {
         if ($to === OrderStatus::Cancelled) {
             throw new \LogicException('Use cancel() para cancelar (motivo e estorno são obrigatórios).');
+        }
+        $trackingUrl = (string) ($shipment['tracking_url'] ?? '');
+        if ($trackingUrl !== '' && !preg_match('#^https?://[^\s<>"]{3,250}$#i', $trackingUrl)) {
+            throw new BusinessRuleException('O link de rastreio precisa começar com http:// ou https://.');
         }
 
         $from = $this->db->transaction(function () use ($orderId, $to, $source, $userId, $note, $shipment): OrderStatus {
@@ -164,6 +206,7 @@ final class OrderStatusService
 
             $this->orders->updateStatus($orderId, OrderStatus::Cancelled->value, $paymentStatus);
             $this->orders->setCancelReason($orderId, $reason);
+            $this->jobs->cancelForOrder($orderId); // sai da fila de produção
             $this->record($orderId, $from, OrderStatus::Cancelled, $source, $userId, $reason);
         });
 

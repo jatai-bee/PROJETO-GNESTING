@@ -24,6 +24,13 @@
     }
   });
 
+  // Botão de impressão (romaneio): <button data-print>
+  document.addEventListener('click', function (event) {
+    if (event.target instanceof Element && event.target.closest('[data-print]')) {
+      window.print();
+    }
+  });
+
   // Ao voltar pelo histórico, a página pode vir do cache com botões desabilitados
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {

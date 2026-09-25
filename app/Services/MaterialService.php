@@ -55,6 +55,29 @@ final class MaterialService
         });
     }
 
+    /**
+     * Entrada (compra) ou ajuste de saldo com motivo, registrado no razão.
+     * $quantity: decimal com sinal no formato do banco ("10.00", "-1.50").
+     *
+     * @throws BusinessRuleException
+     */
+    public function move(int $id, string $quantity, string $reason, ?int $userId): void
+    {
+        if (!preg_match('/^-?\d{1,8}\.\d{2}$/', $quantity) || (float) $quantity === 0.0) {
+            throw new BusinessRuleException('Informe uma quantidade diferente de zero.');
+        }
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new BusinessRuleException('Informe o motivo (ex.: "Compra NF 123" ou "Inventário").');
+        }
+        $this->db->transaction(function () use ($id, $quantity, $reason, $userId): void {
+            $current = $this->materials->find($id) ?? throw new BusinessRuleException('Material não encontrado.');
+            $this->materials->move($id, $quantity, $reason, null, null, $userId);
+            $this->audit->record(AuditService::STOCK_CHANGE, 'material', $id,
+                ['stock_qty' => $current['stock_qty']], ['movement' => $quantity, 'reason' => $reason]);
+        });
+    }
+
     /** @throws BusinessRuleException */
     public function delete(int $id): void
     {

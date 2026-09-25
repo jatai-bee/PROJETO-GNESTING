@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace GNesting\Core;
 
 use Dotenv\Dotenv;
+use GNesting\Repositories\ProductionJobRepository;
 use GNesting\Repositories\ProductionSpecRepository;
+use GNesting\Services\Production\ProductionPlanner;
 use GNesting\Services\AuditService;
 use GNesting\Services\ImageProcessor;
 use GNesting\Services\Mail\LogMailer;
@@ -92,6 +94,10 @@ final class Bootstrap
             (int) $config->get('uploads.max_production_file_bytes'),
         ));
         $container->set(ShippingCalculator::class, fn () => new TableShippingCalculator($config));
+        $container->set(ProductionPlanner::class, fn (Container $c) => new ProductionPlanner(
+            $c->get(ProductionJobRepository::class),
+            (int) $config->get('production.daily_capacity_minutes', 420),
+        ));
         $container->set(HttpClient::class, fn () => new CurlHttpClient());
         $container->set(PaymentGateway::class, function (Container $c) use ($config): PaymentGateway {
             return match ($config->get('payment.provider')) {

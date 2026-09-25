@@ -46,7 +46,7 @@ Toda alteração é auditada (`production_spec`: antes/depois, com resumo das et
 Código único (guardado em maiúsculas), nome, espessura, unidade (chapa, m², unidade), medidas da chapa, custo, saldo e estoque mínimo
 (a lista marca **Repor** quando o saldo chega ao mínimo). Material usado por alguma ficha não pode ser excluído — desative-o.
 
-> Movimentação de chapas (entrada, consumo por pedido) fica para a etapa 9, junto com a fila de produção.
+> Movimentação de chapas (entrada manual e consumo automático ao sair do CNC): ver [14 — Produção](14-producao.md) §4.
 
 ## 5. Onde está no código
 

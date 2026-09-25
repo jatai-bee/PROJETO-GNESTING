@@ -7,6 +7,7 @@ namespace GNesting\Services;
 use GNesting\Core\Logger;
 use GNesting\Enums\OrderStatus;
 use GNesting\Repositories\OrderRepository;
+use GNesting\Services\Production\ProductionService;
 
 /**
  * Transições automáticas (pagamento e expiração). As mudanças de status passam
@@ -17,6 +18,7 @@ final class OrderService
     public function __construct(
         private readonly OrderRepository $orders,
         private readonly OrderStatusService $status,
+        private readonly ProductionService $production,
         private readonly Logger $logger,
     ) {
     }
@@ -45,6 +47,7 @@ final class OrderService
 
         $this->status->transition($orderId, OrderStatus::Paid, $source);
         $this->status->transition($orderId, OrderStatus::ProductionPending, 'system', null, 'Liberado para a fila de produção');
+        $this->production->createJobs($orderId);
 
         return true;
     }

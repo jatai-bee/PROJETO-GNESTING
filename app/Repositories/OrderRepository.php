@@ -224,6 +224,16 @@ final class OrderRepository extends Repository
         );
     }
 
+    /** Peso estimado do volume (embalagem da variante, ou produto + 200 g) em gramas. */
+    public function packageWeight(int $orderId): int
+    {
+        return (int) $this->fetchValue(
+            'SELECT COALESCE(SUM(oi.quantity * COALESCE(v.package_weight_g, v.weight_g + 200, 1000)), 0)
+               FROM order_items oi JOIN product_variants v ON v.id = oi.variant_id WHERE oi.order_id = :id',
+            ['id' => $orderId]
+        );
+    }
+
     // ---- Painel ---------------------------------------------------------------
 
     /**

@@ -4,12 +4,12 @@
 
 | Papel | Pedidos | Clientes |
 |---|---|---|
-| **Proprietário / gestor** | tudo: avançar etapas, despachar com rastreio, marcar entregue, **cancelar com estorno**, notas, mensagens, reenviar link | consulta completa (CPF inteiro) |
-| **Produção** | avançar `Produção pendente → Em produção → Acabamento → Controle de qualidade → Embalagem → Pronto para envio` (inclui **retrabalho**: CQ → Em produção) e notas internas | — |
+| **Proprietário / gestor** | tudo: despachar com rastreio, marcar entregue, **cancelar com estorno**, notas, mensagens, reenviar link | consulta completa (CPF inteiro) |
+| **Produção** | etapas de produção **pela fila** ([14 — Produção](14-producao.md)), despachar e marcar entregue (Expedição), notas internas | — |
 | **Atendimento** | consultar, notas internas, **mensagens ao cliente**, reenviar link | consulta com **CPF mascarado** (`***.982.247-**`) |
 
-"Pagamento aprovado" **nunca** é manual: só o provedor de pagamento confirma (docs/12). Despachar e marcar entregue ficam com a
-gestão nesta etapa; a expedição pela equipe de produção vem com o módulo de produção (etapa 9).
+"Pagamento aprovado" **nunca** é manual: só o provedor de pagamento confirma (docs/12). Desde a etapa 9, as etapas de produção
+(Em produção → … → Pronto para envio) seguem a fila de produção e não são mais botões na página do pedido.
 
 ## 2. Telas
 

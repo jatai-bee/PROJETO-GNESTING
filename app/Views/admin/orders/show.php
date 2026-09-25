@@ -152,6 +152,24 @@ $deadline = $order['paid_at'] !== null ? business_days_after((string) $order['pa
     </div>
 
     <aside class="order-admin__side">
+        <?php if ($jobs !== []): ?>
+            <section class="panel">
+                <h2 class="panel__title">Produção</h2>
+                <p class="muted">As etapas de produção andam pela fila: o pedido acompanha o item mais atrasado.</p>
+                <ul class="steps-list">
+                    <?php foreach ($jobs as $job): ?>
+                        <li><?= e($job['quantity']) ?> × <?= e($job['product_name']) ?> —
+                            <?php if ($canSeeProduction): ?>
+                                <a href="<?= e(url('/admin/producao/' . $job['id'])) ?>"><?= e(\GNesting\Services\Production\ProductionFlow::label((string) $job['stage'])) ?></a>
+                            <?php else: ?>
+                                <?= e(\GNesting\Services\Production\ProductionFlow::label((string) $job['stage'])) ?>
+                            <?php endif ?>
+                            <?php if ((int) $job['rework_count'] > 0): ?><span class="status status--warn">retrabalho ×<?= e($job['rework_count']) ?></span><?php endif ?></li>
+                    <?php endforeach ?>
+                </ul>
+            </section>
+        <?php endif ?>
+
         <?php if ($targets !== [] || $canCancel): ?>
             <section class="panel">
                 <h2 class="panel__title">Próximo passo</h2>

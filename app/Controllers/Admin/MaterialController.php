@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GNesting\Controllers\Admin;
 
+use GNesting\Core\Auth;
 use GNesting\Core\Controller;
 use GNesting\Core\HttpException;
 use GNesting\Core\Request;
@@ -24,6 +25,7 @@ final class MaterialController extends Controller
     public function __construct(
         private readonly MaterialRepository $materials,
         private readonly MaterialService $service,
+        private readonly Auth $auth,
     ) {
     }
 
@@ -64,6 +66,28 @@ final class MaterialController extends Controller
         return $this->redirect('/admin/materiais');
     }
 
+    /** Entrada de chapas (compra) ou ajuste de inventário. */
+    public function movement(Request $request): Response
+    {
+        $material = $this->findOrFail($request);
+        $raw = $request->string('quantity');
+        $negative = str_starts_with($raw, '-') || $request->string('direction') === 'out';
+        $amount = parse_decimal(ltrim($raw, '-'));
+
+        try {
+            if ($amount === null) {
+                throw new BusinessRuleException('Informe a quantidade, por exemplo 10 ou 2,5.');
+            }
+            $this->service->move((int) $material['id'], ($negative ? '-' : '') . $amount, $request->string('reason'),
+                isset($this->auth->admin()['user_id']) ? (int) $this->auth->admin()['user_id'] : null);
+            $this->flash('success', 'Movimentação registrada.');
+        } catch (BusinessRuleException $e) {
+            $this->flash('error', $e->getMessage());
+        }
+
+        return $this->redirect("/admin/materiais/{$material['id']}/editar");
+    }
+
     public function destroy(Request $request): Response
     {
         $material = $this->findOrFail($request);
@@ -84,6 +108,7 @@ final class MaterialController extends Controller
             'title' => ($material ? 'Editar material' : 'Novo material') . ' | Painel',
             'material' => $material,
             'units' => MaterialService::UNITS,
+            'movements' => $material === null ? [] : $this->materials->movements((int) $material['id']),
         ], 'admin');
     }
 

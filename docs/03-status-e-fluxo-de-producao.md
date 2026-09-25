@@ -53,7 +53,8 @@ Cancelamento: de qualquer status até ready_to_ship ──► cancelled
 
 Regras:
 - A matriz fica **no enum** (`OrderStatus::canTransitionTo()`) e é aplicada **somente** pelo `OrderStatusService` (implementado na etapa 8 — ver [13 — Pedidos](13-pedidos.md)). Nenhum outro código faz `UPDATE orders SET status`.
-- `paid` nunca é manual no painel: só o provedor de pagamento confirma. Enviar/entregar ficam com a gestão até o módulo de expedição (etapa 9).
+- `paid` nunca é manual no painel: só o provedor de pagamento confirma.
+- De `production_pending` a `ready_to_ship` o status **segue a fila de produção** (job mais atrasado) via `OrderStatusService::syncProduction()` — que pode avançar várias etapas de uma vez ou voltar em retrabalho, sempre dentro dessa faixa. Enviar/entregar: gestão e produção (Expedição).
 - Toda transição, **na mesma transação**:
   1. atualiza `orders.status`;
   2. insere em `order_status_history` (de, para, origem, usuário, nota);
@@ -77,9 +78,10 @@ Pix e boleto vão de `pending` para `paid`. Cartão pode passar por `authorized`
 | `production` | `production_pending` → … → `ready_to_ship` (inclui retrabalho) |
 | `support` | apenas visualizar e adicionar nota |
 
-## 6. Evolução para o módulo de produção (Etapa 9)
+## 6. Módulo de produção (implementado na etapa 9 — ver [14 — Produção](14-producao.md))
 
-Hoje o status é **por pedido**, suficiente para o MVP. Na Etapa 9:
+Decisões tomadas: um job **por item** (as unidades da linha são feitas juntas), rota congelada da ficha + CQ e embalagem
+obrigatórios, capacidade diária única (sem máquinas/feriados por enquanto). O plano original era:
 
 - `production_jobs`: uma ordem de produção por `order_item` (ou por unidade), com a etapa atual, operador e tempos reais;
 - a fila de produção é ordenada por `orders.paid_at` e pelo prazo prometido (`production_days`);

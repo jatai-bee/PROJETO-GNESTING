@@ -21,7 +21,9 @@ use GNesting\Controllers\Admin\MaterialController;
 use GNesting\Controllers\Admin\PersonalizationController;
 use GNesting\Controllers\Admin\ProductController;
 use GNesting\Controllers\Admin\ProductImageController;
+use GNesting\Controllers\Admin\ProductionController;
 use GNesting\Controllers\Admin\ProductionSpecController;
+use GNesting\Controllers\Admin\ShippingDeskController;
 use GNesting\Controllers\Admin\VariantController;
 use GNesting\Core\Router;
 
@@ -98,6 +100,18 @@ return static function (Router $r): void {
                 $r->get('/materiais/{id:\d+}/editar', [MaterialController::class, 'edit']);
                 $r->post('/materiais/{id:\d+}/editar', [MaterialController::class, 'update']);
                 $r->post('/materiais/{id:\d+}/excluir', [MaterialController::class, 'destroy']);
+                $r->post('/materiais/{id:\d+}/movimento', [MaterialController::class, 'movement']);
+
+                // Fila de produção e expedição
+                $r->get('/producao', [ProductionController::class, 'queue']);
+                $r->get('/producao/{id:\d+}', [ProductionController::class, 'show']);
+                $r->post('/producao/{id:\d+}/avancar', [ProductionController::class, 'advance']);
+                $r->post('/producao/{id:\d+}/retrabalho', [ProductionController::class, 'rework']);
+                $r->post('/producao/{id:\d+}/assumir', [ProductionController::class, 'claim']);
+                $r->get('/expedicao', [ShippingDeskController::class, 'index']);
+                $r->get('/expedicao/{id:\d+}/romaneio', [ShippingDeskController::class, 'slip']);
+                $r->post('/expedicao/{id:\d+}/enviar', [ShippingDeskController::class, 'ship']);
+                $r->post('/expedicao/{id:\d+}/entregue', [ShippingDeskController::class, 'delivered']);
             });
 
             // Pedidos: gestor, produção (etapas de produção) e atendimento (consulta, notas, mensagens)

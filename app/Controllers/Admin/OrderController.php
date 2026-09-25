@@ -14,6 +14,7 @@ use GNesting\Enums\AdminRole;
 use GNesting\Enums\OrderStatus;
 use GNesting\Enums\PaymentStatus;
 use GNesting\Repositories\OrderRepository;
+use GNesting\Repositories\ProductionJobRepository;
 use GNesting\Services\BusinessRuleException;
 use GNesting\Services\OrderNotifier;
 use GNesting\Services\OrderStatusService;
@@ -32,6 +33,7 @@ final class OrderController extends Controller
         private readonly OrderRepository $orders,
         private readonly OrderStatusService $status,
         private readonly OrderNotifier $notifier,
+        private readonly ProductionJobRepository $jobs,
         private readonly Auth $auth,
     ) {
     }
@@ -79,6 +81,8 @@ final class OrderController extends Controller
             'canMessage' => $role->isAllowed(['manager', 'support']),
             'fullCpf' => $role->isAllowed(['manager']),
             'isPaid' => $this->orders->paidPayment((int) $order['id']) !== null && $current !== OrderStatus::AwaitingPayment,
+            'jobs' => $this->jobs->forOrder((int) $order['id']),
+            'canSeeProduction' => $role->isAllowed(['manager', 'production']),
         ], 'admin');
     }
 
@@ -93,11 +97,6 @@ final class OrderController extends Controller
         }
 
         $trackingUrl = $request->string('tracking_url');
-        if ($trackingUrl !== '' && !preg_match('#^https?://[^\s<>"]{3,250}$#i', $trackingUrl)) {
-            $this->flash('error', 'O link de rastreio precisa começar com http:// ou https://.');
-
-            return $this->back($order);
-        }
 
         try {
             $this->status->transition((int) $order['id'], $target, 'admin', $this->userId(), mb_substr($request->string('note'), 0, 500), [

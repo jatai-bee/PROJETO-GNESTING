@@ -49,6 +49,39 @@ $action = $material ? "/admin/materiais/{$material['id']}/editar" : '/admin/mate
 </form>
 
 <?php if ($material): ?>
+    <section class="panel">
+        <h2 class="panel__title">Movimentar saldo <small class="muted">(atual: <?= e(format_decimal($material['stock_qty'])) ?>)</small></h2>
+        <form method="post" action="<?= e(url("/admin/materiais/{$material['id']}/movimento")) ?>" class="ship-form">
+            <?= csrf_field() ?>
+            <select name="direction" aria-label="Tipo">
+                <option value="in">Entrada (compra)</option>
+                <option value="out">Saída / ajuste</option>
+            </select>
+            <input name="quantity" inputmode="decimal" placeholder="Quantidade" aria-label="Quantidade" required>
+            <input name="reason" maxlength="200" placeholder="Motivo (ex.: Compra NF 123)" aria-label="Motivo" required>
+            <button type="submit" class="btn btn--secondary btn--sm">Registrar</button>
+        </form>
+        <p class="field__hint">O consumo no CNC é lançado sozinho quando uma ordem sai da etapa CNC (quantidade ÷ peças por chapa da ficha).</p>
+
+        <?php if ($movements !== []): ?>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Quando</th><th class="table__num">Quantidade</th><th>Motivo</th><th>Quem</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($movements as $movement): ?>
+                        <tr>
+                            <td class="nowrap"><?= e(format_datetime($movement['created_at'])) ?></td>
+                            <td class="table__num <?= str_starts_with((string) $movement['quantity'], '-') ? 'text-danger' : '' ?>"><?= e(format_decimal(ltrim((string) $movement['quantity'], '-'))) ?><?= str_starts_with((string) $movement['quantity'], '-') ? ' saída' : ' entrada' ?></td>
+                            <td><?= e($movement['reason']) ?></td>
+                            <td><?= e($movement['user_name'] ?? 'sistema') ?></td>
+                        </tr>
+                    <?php endforeach ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif ?>
+    </section>
+
     <form method="post" action="<?= e(url("/admin/materiais/{$material['id']}/excluir")) ?>" class="danger-zone"
           data-confirm="Excluir o material &quot;<?= e($material['name']) ?>&quot;?">
         <?= csrf_field() ?>

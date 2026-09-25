@@ -25,6 +25,7 @@ PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv
 | [09 — Catálogo e carrinho](docs/09-catalogo-e-carrinho.md) | vitrine, busca, filtros, página de produto, carrinho |
 | [10 — Variações e personalização](docs/10-variacoes-e-personalizacao.md) | opções, SKUs, campos de personalização, acréscimos |
 | [11 — Ficha de produção](docs/11-ficha-de-producao.md) | materiais, etapas e tempos, arquivos CNC, acesso da produção |
+| [12 — Checkout](docs/12-checkout.md) | compra com/sem conta, frete, Mercado Pago, webhook, expiração |
 
 ## Início rápido
 
@@ -52,8 +53,8 @@ Cada etapa segue: analisar → planejar → implementar → testar → corrigir 
 | 4 | Catálogo: home, categorias, busca, filtros, produto, carrinho | ✅ concluída (123 testes no total) |
 | 5 | Produtos e personalização: SKUs, opções, regras, acréscimos | ✅ concluída (138 testes no total) |
 | 6 | Ficha de produção: especificações, materiais, arquivos, tempos | ✅ concluída (150 testes no total) |
-| 7 | Checkout: cadastro, endereço, frete, pagamento, confirmação | ⏭ próxima |
-| 8 | Pedidos: gestão, status, histórico, comunicação | — |
+| 7 | Checkout: cadastro, endereço, frete, pagamento, confirmação | ✅ concluída (167 testes no total) |
+| 8 | Pedidos: gestão, status, histórico, comunicação | ⏭ próxima |
 | 9 | Produção: fila, CNC, acabamento, CQ, embalagem, expedição | — |
 | 10 | Marketing: cupons, SEO, WhatsApp, relacionados | — |
 | 11 | Segurança e testes | — |

@@ -41,14 +41,15 @@ final class AuthServiceTest extends IntegrationTestCase
         $this->auth->registerCustomer('Outra', 'DUP@exemplo.com', 'senha-segura-1', '10.0.0.2');
     }
 
-    public function testRegistrationLinksPreviousGuestPurchases(): void
+    public function testRegistrationDoesNotTakeOverGuestPurchasesWithoutEmailVerification(): void
     {
+        // Sem confirmar o e-mail, cadastrar-se com o e-mail de outra pessoa não pode dar acesso aos pedidos dela
         $guestId = $this->container->get(CustomerRepository::class)->create(null, 'Visitante', 'guest@exemplo.com');
 
         $registered = $this->auth->registerCustomer('Cliente Fiel', 'guest@exemplo.com', 'senha-segura-1', '10.0.0.3');
 
-        self::assertSame($guestId, $registered['customer_id']);
-        self::assertSame(1, (int) $this->fetchValue("SELECT COUNT(*) FROM customers WHERE email = 'guest@exemplo.com'"));
+        self::assertNotSame($guestId, $registered['customer_id']);
+        self::assertNull($this->fetchValue('SELECT user_id FROM customers WHERE id = :id', ['id' => $guestId]) ?: null);
     }
 
     public function testWrongPasswordAndUnknownEmailGiveSameError(): void

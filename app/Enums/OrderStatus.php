@@ -40,6 +40,17 @@ enum OrderStatus: string
         };
     }
 
+    /** Rótulo exibido ao cliente (sem jargão interno de produção). */
+    public function customerLabel(): string
+    {
+        return match ($this) {
+            self::ProductionPending => 'Na fila de produção',
+            self::InProduction, self::Finishing, self::QualityControl => 'Em produção',
+            self::Packaging, self::ReadyToShip => 'Preparando o envio',
+            default => $this->label(),
+        };
+    }
+
     /** @return list<self> */
     public function allowedTransitions(): array
     {

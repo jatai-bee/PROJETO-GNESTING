@@ -30,6 +30,7 @@ final class Request
         private readonly array $cookies = [],
         private readonly array $server = [],
         private readonly array $files = [],
+        private readonly string $rawBody = '',
     ) {
     }
 
@@ -45,7 +46,17 @@ final class Request
             $_COOKIE,
             $_SERVER,
             $_FILES,
+            // Corpo bruto só para JSON (webhooks); formulários usam $_POST. Limite de 1 MB.
+            str_contains((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'json')
+                ? (string) file_get_contents('php://input', false, null, 0, 1024 * 1024)
+                : '',
         );
+    }
+
+    /** Corpo bruto da requisição (JSON de webhooks). */
+    public function rawBody(): string
+    {
+        return $this->rawBody;
     }
 
     /** Remove o caminho base e a barra final: "/gnesting/entrar/" → "/entrar". */

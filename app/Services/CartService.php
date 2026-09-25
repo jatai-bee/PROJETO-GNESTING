@@ -191,6 +191,40 @@ final class CartService
         $this->carts->touch($cartId, null, $this->lifetimeDays());
     }
 
+    /** Pedido criado: o carrinho é encerrado (a próxima compra começa um novo). */
+    public function convert(): void
+    {
+        $cartId = $this->currentCartId();
+        if ($cartId !== null) {
+            $this->carts->markConverted($cartId);
+            $this->cartId = null;
+        }
+    }
+
+    /**
+     * Cliente entrou na conta: o carrinho atual passa a ser dele; se não houver carrinho
+     * neste navegador, retoma o carrinho ativo mais recente da conta (com token novo —
+     * o antigo nunca é conhecido, só o hash).
+     */
+    public function adoptForCustomer(int $customerId): void
+    {
+        $cartId = $this->currentCartId();
+        if ($cartId !== null) {
+            $this->carts->touch($cartId, $customerId, $this->lifetimeDays());
+
+            return;
+        }
+        $saved = $this->carts->latestActiveForCustomer($customerId);
+        if ($saved === null) {
+            return;
+        }
+        $token = bin2hex(random_bytes(32));
+        $this->carts->replaceToken((int) $saved['id'], hash('sha256', $token));
+        $this->cartId = (int) $saved['id'];
+        $this->resolvedFor = $token;
+        $this->context->issue($token);
+    }
+
     public function remove(int $itemId): void
     {
         $cartId = $this->currentCartId();

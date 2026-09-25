@@ -8,7 +8,17 @@ use Dotenv\Dotenv;
 use GNesting\Repositories\ProductionSpecRepository;
 use GNesting\Services\AuditService;
 use GNesting\Services\ImageProcessor;
+use GNesting\Services\Mail\LogMailer;
+use GNesting\Services\Mail\Mailer;
+use GNesting\Services\Mail\NativeMailer;
+use GNesting\Services\Payment\CurlHttpClient;
+use GNesting\Services\Payment\HttpClient;
+use GNesting\Services\Payment\MercadoPagoGateway;
+use GNesting\Services\Payment\PaymentGateway;
+use GNesting\Services\Payment\SimulatedGateway;
 use GNesting\Services\ProductionFileService;
+use GNesting\Services\Shipping\ShippingCalculator;
+use GNesting\Services\Shipping\TableShippingCalculator;
 use RuntimeException;
 
 /**
@@ -79,6 +89,26 @@ final class Bootstrap
             $basePath . '/storage/private/production_files',
             (int) $config->get('uploads.max_production_file_bytes'),
         ));
+        $container->set(ShippingCalculator::class, fn () => new TableShippingCalculator($config));
+        $container->set(HttpClient::class, fn () => new CurlHttpClient());
+        $container->set(PaymentGateway::class, function (Container $c) use ($config): PaymentGateway {
+            return match ($config->get('payment.provider')) {
+                'mercadopago' => new MercadoPagoGateway(
+                    $c->get(HttpClient::class),
+                    (string) $config->get('payment.mercadopago.access_token'),
+                    (string) $config->get('payment.mercadopago.webhook_secret'),
+                    (int) $config->get('payment.mercadopago.max_installments', 12),
+                ),
+                // O simulado aprova pagamentos com um clique: nunca em produção
+                'simulado' => $config->get('app.env') === 'production'
+                    ? throw new RuntimeException('PAYMENT_PROVIDER=simulado não é permitido em produção.')
+                    : new SimulatedGateway(),
+                default => throw new RuntimeException('PAYMENT_PROVIDER inválido: use mercadopago.'),
+            };
+        });
+        $container->set(Mailer::class, fn () => $config->get('mail.driver') === 'mail'
+            ? new NativeMailer((string) $config->get('mail.from_address'), (string) $config->get('mail.from_name'))
+            : new LogMailer($config->get('paths.logs')));
         $container->set(Router::class, function () use ($basePath): Router {
             $router = new Router();
             foreach (['web', 'admin', 'api'] as $file) {

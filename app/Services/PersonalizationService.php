@@ -93,7 +93,11 @@ final class PersonalizationService
     {
         $label = (string) $rule['label'];
         $ruleDelta = (int) $rule['price_delta_cents'];
-        $item = ['rule_id' => (int) $rule['id'], 'value_id' => null, 'value_text' => null, 'label' => $label];
+        // field_key, type e code vão para o snapshot do pedido (order_item_personalizations)
+        $item = [
+            'rule_id' => (int) $rule['id'], 'value_id' => null, 'value_text' => null, 'label' => $label,
+            'field_key' => (string) $rule['field_key'], 'type' => (string) $rule['type'], 'code' => null,
+        ];
 
         switch (PersonalizationType::tryFrom((string) $rule['type'])) {
             case PersonalizationType::Select:
@@ -102,6 +106,7 @@ final class PersonalizationService
                     if ($valueId !== false && (int) $value['id'] === $valueId) {
                         return [
                             'value_id' => $valueId,
+                            'code' => (string) $value['code'],
                             'display' => (string) $value['label'],
                             'price_delta_cents' => $ruleDelta + (int) $value['price_delta_cents'],
                         ] + $item;

@@ -10,6 +10,8 @@ declare(strict_types=1);
  */
 
 use GNesting\Core\Bootstrap;
+use GNesting\Core\Config;
+use GNesting\Services\OrderService;
 use GNesting\Core\Logger;
 use GNesting\Repositories\CartRepository;
 use GNesting\Repositories\RateLimitRepository;
@@ -25,9 +27,12 @@ try {
     $container = Bootstrap::createContainer($basePath);
     $removed = $container->get(RateLimitRepository::class)->purgeExpired();
     $carts = $container->get(CartRepository::class)->purgeExpired();
+    // Pedidos sem pagamento após o prazo: cancelados, estoque reservado volta à venda
+    $expired = $container->get(OrderService::class)->expireUnpaid((int) $container->get(Config::class)->get('payment.expiry_hours', 48));
     $container->get(Logger::class)->info('cron: concluído', [
         'rate_limits_removidos' => $removed,
         'carrinhos_expirados_removidos' => $carts,
+        'pedidos_nao_pagos_cancelados' => $expired,
     ]);
 } catch (Throwable $e) {
     fwrite(STDERR, 'ERRO: ' . $e->getMessage() . PHP_EOL);

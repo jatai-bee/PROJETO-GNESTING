@@ -97,8 +97,12 @@ $issueText = [
             <?php if ($cart['has_issues']): ?>
                 <p class="alert alert--warn">Ajuste os itens destacados para continuar.</p>
             <?php endif ?>
-            <button type="button" class="btn btn--primary btn--block" disabled>Finalizar compra</button>
-            <p class="field__hint">Em breve você poderá finalizar a compra por aqui.</p>
+            <?php if ($cart['has_issues']): ?>
+                <button type="button" class="btn btn--primary btn--block" disabled>Finalizar compra</button>
+            <?php else: ?>
+                <a class="btn btn--primary btn--block" href="<?= e(url('/checkout')) ?>">Finalizar compra</a>
+            <?php endif ?>
+            <p class="field__hint">Frete calculado pelo CEP na próxima etapa. Compre sem precisar criar conta.</p>
             <a class="cart__continue" href="<?= e(url('/produtos')) ?>">Continuar comprando</a>
         </aside>
     </div>

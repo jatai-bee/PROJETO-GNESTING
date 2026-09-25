@@ -13,6 +13,7 @@ use GNesting\Core\ValidationException;
 use GNesting\Services\Auth\AuthenticationException;
 use GNesting\Services\Auth\AuthService;
 use GNesting\Services\Auth\TooManyAttemptsException;
+use GNesting\Services\CartService;
 
 /** Entrar, criar conta e sair (clientes). */
 final class AuthController extends Controller
@@ -28,11 +29,18 @@ final class AuthController extends Controller
         private readonly AuthService $authService,
         private readonly Auth $auth,
         private readonly Session $session,
+        private readonly CartService $cart,
     ) {
     }
 
     public function showLogin(Request $request): Response
     {
+        // ?voltar=/checkout: depois de entrar, volta para onde estava (só caminhos internos)
+        $back = $this->safeRedirectPath($request->queryString('voltar', 200), '');
+        if ($back !== '') {
+            $this->session->set('url.intended', $back);
+        }
+
         return $this->render('store/auth/login', ['title' => 'Entrar | G-Nesting']);
     }
 
@@ -54,6 +62,7 @@ final class AuthController extends Controller
         }
 
         $this->auth->loginCustomer($customer);
+        $this->cart->adoptForCustomer((int) $customer['customer_id']);
 
         return $this->redirect($this->safeRedirectPath($this->session->pull('url.intended'), '/conta'));
     }
@@ -90,9 +99,10 @@ final class AuthController extends Controller
         }
 
         $this->auth->loginCustomer($customer);
+        $this->cart->adoptForCustomer((int) $customer['customer_id']);
         $this->flash('success', 'Conta criada. Boas-vindas à G-Nesting!');
 
-        return $this->redirect('/conta');
+        return $this->redirect($this->safeRedirectPath($this->session->pull('url.intended'), '/conta'));
     }
 
     public function logout(Request $request): Response

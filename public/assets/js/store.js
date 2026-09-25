@@ -45,6 +45,103 @@
     }
   }
 
+  // ---- Checkout ----------------------------------------------------------
+  // Sem JavaScript tudo funciona pelo botão "Calcular frete" (servidor). Com JS:
+  // cotação ao sair do CEP, endereço salvo esconde o formulário, total atualizado.
+  var checkout = document.querySelector('[data-checkout]');
+  if (checkout) {
+    var money = function (cents) {
+      return 'R$ ' + (cents / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+    var updateTotal = function () {
+      var chosen = checkout.querySelector('input[name="shipping_code"]:checked');
+      var total = checkout.querySelector('[data-summary-total]');
+      var shipping = checkout.querySelector('[data-summary-shipping]');
+      if (!chosen || !total || !shipping) {
+        return;
+      }
+      shipping.textContent = chosen.getAttribute('data-price');
+      total.textContent = money(Number(total.getAttribute('data-subtotal')) + Number(chosen.getAttribute('data-price-cents')));
+    };
+    var addressForm = checkout.querySelector('[data-address-form]');
+    var syncAddress = function () {
+      var picked = checkout.querySelector('input[name="address_id"]:checked');
+      if (addressForm && picked) {
+        addressForm.hidden = picked.value !== '';
+      }
+    };
+    var quote = function (zip) {
+      var digits = (zip || '').replace(/\D/g, '');
+      var box = checkout.querySelector('[data-shipping-options]');
+      if (digits.length !== 8 || !box) {
+        return;
+      }
+      var body = new URLSearchParams();
+      body.set('cep', digits);
+      fetch(checkout.getAttribute('action').replace(/\/checkout$/, '/api/frete/cotar'), {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': checkout.querySelector('input[name="_token"]').value, 'Accept': 'application/json' },
+        body: body
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        box.textContent = '';
+        if (!data.options || data.options.length === 0) {
+          var p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = data.message || 'Não entregamos neste CEP pelas opções automáticas.';
+          box.appendChild(p);
+          return;
+        }
+        var list = document.createElement('fieldset');
+        list.className = 'choice-list';
+        data.options.forEach(function (o, i) {
+          var label = document.createElement('label');
+          label.className = 'choice';
+          var input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'shipping_code';
+          input.value = o.code;
+          input.checked = i === 0;
+          input.setAttribute('data-price-cents', o.price_cents);
+          input.setAttribute('data-price', o.price_cents === 0 ? 'Grátis' : o.price);
+          var row = document.createElement('span');
+          row.className = 'choice__row';
+          var name = document.createElement('span');
+          name.innerHTML = '<strong></strong><br><small class="muted"></small>';
+          name.querySelector('strong').textContent = o.service;
+          name.querySelector('small').textContent = o.days > 0 ? 'até ' + o.days + ' dias úteis após a produção' : 'combine a retirada após a produção';
+          var price = document.createElement('strong');
+          price.textContent = o.price_cents === 0 ? 'Grátis' : o.price;
+          row.appendChild(name);
+          row.appendChild(price);
+          label.appendChild(input);
+          label.appendChild(row);
+          list.appendChild(label);
+        });
+        box.appendChild(list);
+        checkout.querySelector('[data-quoted-zip]').value = digits;
+        var uf = checkout.querySelector('#state');
+        if (uf && uf.value === '' && data.state) {
+          uf.value = data.state; // UF do CEP (o servidor confere de novo)
+        }
+        updateTotal();
+      }).catch(function () { /* o botão "Calcular frete" continua disponível */ });
+    };
+
+    checkout.addEventListener('change', function (event) {
+      var t = event.target;
+      if (t.name === 'shipping_code') {
+        updateTotal();
+      } else if (t.name === 'address_id') {
+        syncAddress();
+        quote(t.value !== '' ? t.getAttribute('data-address-zip') : checkout.querySelector('#zip_code').value);
+      } else if (t.id === 'zip_code') {
+        quote(t.value);
+      }
+    });
+    syncAddress();
+    updateTotal();
+  }
+
   document.addEventListener('change', function (event) {
     if (event.target instanceof HTMLSelectElement && event.target.hasAttribute('data-variant-select')) {
       applyVariant(event.target);

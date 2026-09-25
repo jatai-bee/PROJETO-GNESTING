@@ -21,6 +21,7 @@ return [
         'login_ip' => [20, 900],      // por IP (evita tentativa em massa de e-mails)
         'register' => [5, 3600],      // por IP
         'search' => [60, 60],         // buscas por IP por minuto
+        'shipping' => [60, 60],       // cotações de frete por IP por minuto
     ],
 
     'password' => [

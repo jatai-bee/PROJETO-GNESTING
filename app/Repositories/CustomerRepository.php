@@ -40,6 +40,21 @@ final class CustomerRepository extends Repository
         );
     }
 
+    /** @return array{id:int,name:string,email:string,cpf:?string,phone:?string}|null */
+    public function findContact(int $customerId): ?array
+    {
+        return $this->fetchOne('SELECT id, name, email, cpf, phone FROM customers WHERE id = :id', ['id' => $customerId]);
+    }
+
+    /** Dados usados no checkout (CPF e telefone só com dígitos). */
+    public function updateContact(int $customerId, string $name, ?string $cpf, ?string $phone): void
+    {
+        $this->execute(
+            'UPDATE customers SET name = :name, cpf = COALESCE(:cpf, cpf), phone = COALESCE(:phone, phone) WHERE id = :id',
+            ['name' => $name, 'cpf' => $cpf, 'phone' => $phone, 'id' => $customerId]
+        );
+    }
+
     public function attachUser(int $customerId, int $userId, string $name): void
     {
         $this->execute(

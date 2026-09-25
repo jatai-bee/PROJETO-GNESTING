@@ -8,6 +8,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 ## 1. Loja pública (`routes/web.php`)
 
 > **Implementadas (etapa 4):** home, `/produtos`, `/categoria/{slug}`, `/busca`, `/produto/{slug}`, carrinho (ver, adicionar, alterar, remover) e páginas institucionais. Regras em [09 — Catálogo e carrinho](09-catalogo-e-carrinho.md). Middleware global novo: `cart` (lê/grava o cookie do carrinho).
+> **Implementadas (etapa 7):** `GET/POST /checkout`, `GET /pedido/{numero}/confirmacao` (dono, link `?chave=` ou mesmo navegador; senão 404), `POST /pedido/{numero}/pagar`, `GET /conta/pedidos`, `POST /api/frete/cotar`, `POST /webhooks/pagamento/mercadopago` e, só em desenvolvimento, `/pagamento-simulado/{referencia}`. Guia: [12 — Checkout](12-checkout.md).
 
 | Método | URL | Controller@ação | Middleware | Etapa |
 |---|---|---|---|---|

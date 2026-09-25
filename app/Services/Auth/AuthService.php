@@ -102,13 +102,10 @@ final class AuthService
 
             $userId = $this->users->create($email, $this->hasher->hash($password), UserType::Customer);
 
-            $guest = $this->customers->findGuestByEmail($email);
-            if ($guest !== null) {
-                $this->customers->attachUser((int) $guest['id'], $userId, $name);
-                $customerId = (int) $guest['id'];
-            } else {
-                $customerId = $this->customers->create($userId, $name, $email);
-            }
+            // Compras feitas sem conta NÃO são vinculadas aqui: sem confirmação do e-mail,
+            // qualquer pessoa poderia se cadastrar com o e-mail de outra e ver os pedidos dela
+            // (endereço, CPF). Esses pedidos seguem acessíveis pelo link privado de cada um.
+            $customerId = $this->customers->create($userId, $name, $email);
 
             return ['customer_id' => $customerId, 'user_id' => $userId, 'name' => $name, 'email' => $email];
         });

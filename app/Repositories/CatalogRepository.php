@@ -248,6 +248,7 @@ final class CatalogRepository extends Repository
 
         $rows = $this->fetchAll(
             'SELECT v.id AS variant_id, v.sku, v.name AS variant_name, v.price_cents, v.compare_at_price_cents,
+                    v.weight_g, v.package_weight_g,
                     p.id AS product_id, p.name, p.slug, p.production_lead_days,
                     COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode,
                     GREATEST(COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0), 0) AS available,

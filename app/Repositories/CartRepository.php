@@ -146,6 +146,26 @@ final class CartRepository extends Repository
     }
 
     /** Limpeza periódica (cron): carrinhos expirados saem do banco junto com os itens. */
+    public function markConverted(int $cartId): void
+    {
+        $this->execute("UPDATE carts SET status = 'converted' WHERE id = :id", ['id' => $cartId]);
+    }
+
+    /** @return array{id: int}|null carrinho ativo mais recente do cliente */
+    public function latestActiveForCustomer(int $customerId): ?array
+    {
+        return $this->fetchOne(
+            "SELECT id FROM carts WHERE customer_id = :id AND status = 'active' AND expires_at > UTC_TIMESTAMP()
+              ORDER BY updated_at DESC, id DESC LIMIT 1",
+            ['id' => $customerId]
+        );
+    }
+
+    public function replaceToken(int $cartId, string $tokenHash): void
+    {
+        $this->execute('UPDATE carts SET token_hash = :hash WHERE id = :id', ['hash' => $tokenHash, 'id' => $cartId]);
+    }
+
     public function purgeExpired(): int
     {
         return $this->execute("DELETE FROM carts WHERE status = 'active' AND expires_at < UTC_TIMESTAMP()");

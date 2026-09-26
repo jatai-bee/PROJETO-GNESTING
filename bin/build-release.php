@@ -74,6 +74,11 @@ foreach (['.env', 'tests', 'docs', '.github', 'vendor/phpunit', 'vendor/phpstan'
         $fail("o pacote não deveria conter {$forbidden}.");
     }
 }
+// Tudo em public/ fica acessível pela web: sobras de testes (qa-*.html, info.php…) não podem ir junto
+$unexpected = array_diff(scandir($work . '/public') ?: [], ['.', '..', '.htaccess', 'index.php', 'assets', 'uploads']);
+if ($unexpected !== []) {
+    $fail('arquivos inesperados em public/: ' . implode(', ', $unexpected) . '.');
+}
 
 // 5. Zip final
 $zipPath = $build . '/' . $name . '.zip';

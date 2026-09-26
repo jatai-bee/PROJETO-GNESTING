@@ -6,7 +6,7 @@ Política obrigatória para todas as etapas. Cada item indica **onde** é implem
 - PDO com `PDO::ATTR_EMULATE_PREPARES = false`, `PDO::ATTR_ERRMODE = ERRMODE_EXCEPTION`, `charset=utf8mb4`. (`app/Core/Database.php`)
 - **Somente prepared statements com parâmetros.** Proibido concatenar entrada em SQL.
 - Colunas de ordenação e direção (`ORDER BY`) vêm de **lista branca** no Repository, nunca direto da query string.
-- Usuário do banco em produção com privilégios mínimos (`SELECT, INSERT, UPDATE, DELETE`). Migrations rodam com outro usuário.
+- Usuário do banco em produção com privilégios mínimos (`SELECT, INSERT, UPDATE, DELETE`). Migrations e restauração de backup rodam com outro usuário (como fazer: docs/17 §3.3 e §3.5).
 
 ## 2. Saída: XSS
 - Toda variável impressa em view passa por `e()` = `htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')`.

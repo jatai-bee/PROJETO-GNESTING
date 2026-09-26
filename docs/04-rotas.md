@@ -11,6 +11,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 > **Implementadas (etapa 7):** `GET/POST /checkout`, `GET /pedido/{numero}/confirmacao` (dono, link `?chave=` ou mesmo navegador; senão 404), `POST /pedido/{numero}/pagar`, `GET /conta/pedidos`, `POST /api/frete/cotar`, `POST /webhooks/pagamento/mercadopago` e, só em desenvolvimento, `/pagamento-simulado/{referencia}`. Guia: [12 — Checkout](12-checkout.md).
 > **Implementadas (etapa 10):** `POST /carrinho/cupom` (limite de 10 tentativas a cada 10 min por IP), `POST /carrinho/cupom/remover`, `GET /sitemap.xml` e `GET /robots.txt`. Guia: [15 — Marketing](15-marketing.md).
 > **Implementadas (etapa 11):** `/recuperar-senha` e `/redefinir-senha/{token}`. Guia: [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md).
+> **Implementadas (etapa 12):** `GET /saude` (monitoramento). Antes do roteamento, o Kernel redireciona para https no host canônico e aplica o modo manutenção (503). Rotas **sem estado** (`middleware.stateless`: `/saude`, `/sitemap.xml`, `/robots.txt`, `/webhooks/…`) não abrem sessão, CSRF nem carrinho. Guia: [17 — Deploy e operação](17-deploy-e-operacao.md).
 
 | Método | URL | Controller@ação | Middleware | Etapa |
 |---|---|---|---|---|
@@ -31,6 +32,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 | GET | `/sobre` · `/como-fazemos` · `/trocas-e-devolucoes` · `/privacidade` · `/termos` | `Store\PageController@show` | S | 4 |
 | GET | `/sitemap.xml` | `Store\SeoController@sitemap` | — | 10 |
 | GET | `/robots.txt` | `Store\SeoController@robots` | — | 10 |
+| GET | `/saude` | `HealthController@show` (detalhes só com `?token=HEALTH_TOKEN`) | — | 12 |
 
 ## 2. Conta do cliente
 
@@ -84,6 +86,7 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 | `/admin/usuarios` | administradores e papéis | **owner** |
 | `/admin/configuracoes` | WhatsApp, e-mail de contato, faixa de avisos | owner |
 | `/admin/logs` | auditoria | owner |
+| `/admin/sistema` · `POST /backup` · `GET /backups/{nome}/banco\|arquivos` · `POST /manutencao` | saúde, lista de verificação, backups, manutenção (etapa 12, docs/17) | owner |
 
 ## 4. API e webhooks (`routes/api.php`)
 

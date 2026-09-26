@@ -11,6 +11,8 @@ Guia de uso do painel em `/admin` e das regras que ele aplica.
 | Produção | ✔ | — (ficha de produção na etapa 6) | — | — |
 | Atendimento | ✔ | — (pedidos e clientes na etapa 8) | — | — |
 
+O proprietário também vê **Sistema** (`/admin/sistema`): saúde da loja, lista de verificação de produção, backups (fazer e baixar), modo manutenção e último cron. Guia: [17 — Deploy e operação](17-deploy-e-operacao.md).
+
 O menu mostra só o que o papel pode usar. Acessos diretos por URL fora da permissão retornam "Acesso negado" (403).
 
 ## 2. Cadastrar um produto (passo a passo)

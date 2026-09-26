@@ -88,7 +88,7 @@ hospedagem compartilhada). Com arquivos-isca criados só para o teste:
   - `composer.json/lock`, `phpunit.xml`, `README.md`;
   - `/uploads/x.php`, `/x.php` e `/public/.env.x`.
 
-Repita no servidor real depois do deploy (a etapa 12 terá o roteiro).
+Repita no servidor real depois do deploy: roteiro em [17 — Deploy e operação](17-deploy-e-operacao.md) §12.
 
 O cabeçalho `Server:` mostra a versão do Apache e do PHP. Numa hospedagem compartilhada isso é configuração do servidor
 (`ServerTokens Prod`, `expose_php = Off`) e não dá para mudar pelo `.htaccess`. Peça ao suporte, ou desligue `expose_php`
@@ -140,4 +140,4 @@ Base para testes HTTP com vários navegadores e caixa de e-mail compartilhada: `
   feitos sem conta continuam **não** sendo ligados automaticamente a uma conta nova com o mesmo e-mail (etapa 7).
 - **Autenticação em dois fatores** para o painel.
 - **Troca de senha e de dados pelo próprio cliente** em "Minha conta".
-- **Cabeçalhos do servidor** (`Server`, HSTS preload) e **backups:** etapa 12.
+- **Cabeçalhos do servidor** (`Server`, HSTS preload) e **backups:** tratados na etapa 12 ([17 — Deploy e operação](17-deploy-e-operacao.md)).

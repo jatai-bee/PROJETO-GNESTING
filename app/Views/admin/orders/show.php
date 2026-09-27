@@ -28,7 +28,6 @@ $deadline = $order['paid_at'] !== null ? business_days_after((string) $order['pa
 ?>
 <div class="page-header">
     <div>
-        <a class="back-link" href="<?= e(url('/admin/pedidos')) ?>">← Pedidos</a>
         <h1 class="page-title"><?= e($order['number']) ?> <?= $this->partial('admin/orders/status-badge', ['status' => $order['status']]) ?></h1>
         <p class="muted">Feito em <?= e(format_datetime($order['placed_at'])) ?>
             <?php if ($order['paid_at']): ?> · pago em <?= e(format_datetime($order['paid_at'])) ?><?php endif ?>
@@ -37,6 +36,21 @@ $deadline = $order['paid_at'] !== null ? business_days_after((string) $order['pa
             <?php endif ?></p>
     </div>
 </div>
+
+<?php if ($order['status'] !== OrderStatus::Cancelled->value): ?>
+    <?php
+    // Andamento completo (o cliente vê 5 marcos; aqui aparecem todas as etapas)
+    $flow = [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::ProductionPending, OrderStatus::InProduction, OrderStatus::Finishing,
+        OrderStatus::QualityControl, OrderStatus::Packaging, OrderStatus::ReadyToShip, OrderStatus::Shipped, OrderStatus::Delivered];
+    $position = array_search(OrderStatus::from((string) $order['status']), $flow, true);
+    ?>
+    <ol class="route order-route" aria-label="Andamento do pedido">
+        <?php foreach ($flow as $n => $step): ?>
+            <?php $state = $n < $position ? 'done' : ($n === $position ? 'current' : 'todo'); ?>
+            <li class="route__step route__step--<?= e($state) ?>"<?= $state === 'current' ? ' aria-current="step"' : '' ?>><?= e($step->label()) ?></li>
+        <?php endforeach ?>
+    </ol>
+<?php endif ?>
 
 <div class="order-admin">
     <div class="order-admin__main">

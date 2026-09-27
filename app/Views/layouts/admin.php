@@ -23,10 +23,12 @@ $groups = [
         ['label' => 'Pedidos', 'href' => '/admin/pedidos', 'icon' => 'bag', 'roles' => ['manager', 'production', 'support']],
         ['label' => 'Clientes', 'href' => '/admin/clientes', 'icon' => 'users', 'roles' => ['manager', 'support']],
         ['label' => 'Cupons', 'href' => '/admin/cupons', 'icon' => 'ticket', 'roles' => ['manager']],
+        ['label' => 'Relatórios', 'href' => '/admin/relatorios', 'icon' => 'chart', 'roles' => ['manager']],
     ]],
     ['label' => 'Produção', 'items' => [
         ['label' => 'Fila de produção', 'href' => '/admin/producao', 'icon' => 'tool', 'roles' => ['manager', 'production']],
         ['label' => 'Expedição', 'href' => '/admin/expedicao', 'icon' => 'truck', 'roles' => ['manager', 'production']],
+        ['label' => 'Estoque', 'href' => '/admin/estoque', 'icon' => 'box', 'roles' => ['manager', 'production']],
         ['label' => 'Fichas de produção', 'href' => '/admin/fichas', 'icon' => 'file', 'roles' => ['manager', 'production']],
         ['label' => 'Matérias-primas', 'href' => '/admin/materiais', 'icon' => 'layers', 'roles' => ['manager', 'production']],
     ]],

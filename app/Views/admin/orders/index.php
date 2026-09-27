@@ -4,6 +4,7 @@
  * @var \GNesting\Core\Paginator $paginator
  * @var array<string, string> $filters status, payment, q, de, ate
  * @var array<string, int> $counts status => quantidade
+ * @var bool $cards visualização em cartões
  */
 use GNesting\Enums\OrderStatus;
 use GNesting\Enums\PaymentStatus;
@@ -15,10 +16,14 @@ foreach ([OrderStatus::AwaitingPayment, OrderStatus::ProductionPending, OrderSta
              OrderStatus::Delivered, OrderStatus::Cancelled] as $s) {
     $tabs[$s->value] = [$s->label(), $counts[$s->value] ?? 0];
 }
-$params = ['q' => $filters['q'], 'pagamento' => $filters['payment'], 'de' => $filters['de'], 'ate' => $filters['ate']];
+$params = ['q' => $filters['q'], 'pagamento' => $filters['payment'], 'de' => $filters['de'], 'ate' => $filters['ate'], 'visao' => $cards ? 'cartoes' : null];
 ?>
 <div class="page-header">
     <h1 class="page-title">Pedidos</h1>
+    <nav class="segmented" aria-label="Visualização">
+        <a href="<?= e(query_url('/admin/pedidos', ['visao' => null] + $params + ['status' => $filters['status']])) ?>"<?= !$cards ? ' aria-current="page"' : '' ?>>Tabela</a>
+        <a href="<?= e(query_url('/admin/pedidos', ['visao' => 'cartoes'] + $params + ['status' => $filters['status']])) ?>"<?= $cards ? ' aria-current="page"' : '' ?>>Cartões</a>
+    </nav>
 </div>
 
 <nav class="status-tabs" aria-label="Filtrar por situação">
@@ -58,6 +63,26 @@ $params = ['q' => $filters['q'], 'pagamento' => $filters['payment'], 'de' => $fi
         <p class="muted">Nenhum pedido encontrado.</p>
     <?php else: ?>
         <p class="table-summary"><?= e($paginator->total) ?> pedido(s)</p>
+        <?php if ($cards): ?>
+        <div class="order-cards">
+            <?php foreach ($orders as $order): ?>
+                <?php
+                $deadline = $order['paid_at'] !== null && !in_array($order['status'], ['shipped', 'delivered', 'cancelled'], true)
+                    ? business_days_after((string) $order['paid_at'], (int) $order['production_days']) : null;
+                $late = $deadline !== null && $deadline < today_local();
+                ?>
+                <a class="order-card order-card--<?= e($order['status']) ?><?= $late ? ' order-card--late' : '' ?>" href="<?= e(url('/admin/pedidos/' . $order['id'])) ?>">
+                    <span class="order-card__top"><strong class="mono"><?= e($order['number']) ?></strong><?= $this->partial('admin/orders/status-badge', ['status' => $order['status']]) ?></span>
+                    <span class="order-card__customer"><?= e($order['customer_name']) ?> <small class="muted">· <?= e($order['ship_city'] . '/' . $order['ship_state']) ?></small></span>
+                    <span class="order-card__total"><?= e(money((int) $order['total_cents'])) ?> <small class="muted">· <?= e($order['item_count']) ?> <?= (int) $order['item_count'] === 1 ? 'item' : 'itens' ?><?= (int) $order['personalization_count'] > 0 ? ' · personalizado' : '' ?></small></span>
+                    <span class="order-card__foot">
+                        <span><?= e(format_datetime($order['placed_at'], 'd/m H:i')) ?></span>
+                        <?php if ($deadline !== null): ?><span class="<?= $late ? 'text-danger' : '' ?>">produção até <?= e(implode('/', array_reverse(explode('-', substr($deadline, 5))))) ?></span><?php endif ?>
+                    </span>
+                </a>
+            <?php endforeach ?>
+        </div>
+        <?php else: ?>
         <div class="table-wrap">
             <table class="table">
                 <thead>
@@ -89,6 +114,7 @@ $params = ['q' => $filters['q'], 'pagamento' => $filters['payment'], 'de' => $fi
                 </tbody>
             </table>
         </div>
+        <?php endif ?>
         <?= $this->partial('partials/pagination', ['paginator' => $paginator, 'path' => '/admin/pedidos', 'params' => $params + ['status' => $filters['status']]]) ?>
     <?php endif ?>
 </section>

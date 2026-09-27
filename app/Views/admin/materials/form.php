@@ -49,7 +49,7 @@ $action = $material ? "/admin/materiais/{$material['id']}/editar" : '/admin/mate
 </form>
 
 <?php if ($material): ?>
-    <section class="panel">
+    <section class="panel" id="movimento">
         <h2 class="panel__title">Movimentar saldo <small class="muted">(atual: <?= e(format_decimal($material['stock_qty'])) ?>)</small></h2>
         <form method="post" action="<?= e(url("/admin/materiais/{$material['id']}/movimento")) ?>" class="ship-form">
             <?= csrf_field() ?>

@@ -42,6 +42,8 @@ final class ShippingDeskController extends Controller
             'title' => 'Expedição | Painel',
             'ready' => $ready,
             'inTransit' => $this->orders->adminList(['status' => OrderStatus::Shipped->value], 200, 0),
+            'delivered' => $this->orders->adminList(['status' => OrderStatus::Delivered->value], 8, 0),
+            'counts' => $this->orders->statusCounts(),
         ], 'admin');
     }
 

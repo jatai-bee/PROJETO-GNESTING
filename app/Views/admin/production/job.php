@@ -23,12 +23,12 @@ foreach ($steps as $step) {
 ?>
 <div class="page-header">
     <div>
-        <a class="back-link" href="<?= e(url('/admin/producao')) ?>">← Produção</a>
         <h1 class="page-title"><?= e($job['quantity']) ?> × <?= e($job['product_name']) ?></h1>
         <p class="muted"><?php if ($job['variant_name']): ?><?= e($job['variant_name']) ?> · <?php endif ?><code><?= e($job['sku']) ?></code> ·
             <a href="<?= e(url('/admin/pedidos/' . $job['order_id'])) ?>"><?= e($job['order_number']) ?></a> · <?= e($job['customer_name']) ?>
             <?php if ($deadline): ?>· prazo <strong><?= e(implode('/', array_reverse(explode('-', $deadline)))) ?></strong><?php endif ?></p>
     </div>
+    <a class="btn btn--secondary btn--sm" href="<?= e(url($base . '/imprimir')) ?>" target="_blank" rel="noopener">Imprimir ordem</a>
 </div>
 
 <ol class="route" aria-label="Rota de produção">

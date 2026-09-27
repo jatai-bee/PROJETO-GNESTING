@@ -55,6 +55,7 @@ final class OrderController extends Controller
             'orders' => $this->orders->adminList($filters, $paginator->perPage, $paginator->offset()),
             'paginator' => $paginator,
             'filters' => $filters + ['de' => $request->queryString('de', 10), 'ate' => $request->queryString('ate', 10)],
+            'cards' => $request->queryString('visao', 10) === 'cartoes',
             'counts' => $this->orders->statusCounts(),
         ], 'admin');
     }

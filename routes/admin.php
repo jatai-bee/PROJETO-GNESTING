@@ -26,7 +26,9 @@ use GNesting\Controllers\Admin\ProductController;
 use GNesting\Controllers\Admin\ProductImageController;
 use GNesting\Controllers\Admin\ProductionController;
 use GNesting\Controllers\Admin\ProductionSpecController;
+use GNesting\Controllers\Admin\ReportController;
 use GNesting\Controllers\Admin\ShippingDeskController;
+use GNesting\Controllers\Admin\StockController;
 use GNesting\Controllers\Admin\SystemController;
 use GNesting\Controllers\Admin\VariantController;
 use GNesting\Core\Router;
@@ -48,6 +50,7 @@ return static function (Router $r): void {
 
             // Catálogo: gestor
             $r->group(['middleware' => ['role:manager']], static function (Router $r): void {
+                $r->get('/relatorios', [ReportController::class, 'index']);
                 $r->get('/categorias', [CategoryController::class, 'index']);
                 $r->get('/categorias/novo', [CategoryController::class, 'create']);
                 $r->post('/categorias/novo', [CategoryController::class, 'store']);
@@ -121,9 +124,12 @@ return static function (Router $r): void {
                 // Fila de produção e expedição
                 $r->get('/producao', [ProductionController::class, 'queue']);
                 $r->get('/producao/{id:\d+}', [ProductionController::class, 'show']);
+                $r->get('/producao/{id:\d+}/imprimir', [ProductionController::class, 'print']);
                 $r->post('/producao/{id:\d+}/avancar', [ProductionController::class, 'advance']);
                 $r->post('/producao/{id:\d+}/retrabalho', [ProductionController::class, 'rework']);
                 $r->post('/producao/{id:\d+}/assumir', [ProductionController::class, 'claim']);
+                $r->get('/estoque', [StockController::class, 'index']);
+                $r->post('/estoque/{variantId:\d+}/ajuste', [StockController::class, 'adjust']);
                 $r->get('/expedicao', [ShippingDeskController::class, 'index']);
                 $r->get('/expedicao/{id:\d+}/romaneio', [ShippingDeskController::class, 'slip']);
                 $r->post('/expedicao/{id:\d+}/enviar', [ShippingDeskController::class, 'ship']);

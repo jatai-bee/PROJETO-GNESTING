@@ -4,6 +4,7 @@
  * @var array{backlog_minutes: int, backlog_days: float, late: int, at_risk: int} $plan
  * @var string $stage filtro atual ('' = todas)
  * @var bool $mine
+ * @var bool $board  true = quadro com uma coluna por etapa
  * @var array<string, int> $counts
  * @var array<int, list<array<string, mixed>>> $personalizations por order_item_id
  * @var int $capacity
@@ -20,7 +21,13 @@ $back = query_url('/admin/producao', ['etapa' => $stage, 'meus' => $mine ? '1' :
 ?>
 <div class="page-header">
     <h1 class="page-title">Produção</h1>
-    <a class="btn btn--secondary btn--sm" href="<?= e(url('/admin/expedicao')) ?>">Expedição</a>
+    <div class="page-header__actions">
+        <nav class="segmented" aria-label="Visualização">
+            <a href="<?= e(query_url('/admin/producao', ['etapa' => $stage, 'meus' => $mine ? '1' : null])) ?>"<?= !$board ? ' aria-current="page"' : '' ?>>Cartões</a>
+            <a href="<?= e(query_url('/admin/producao', ['visao' => 'quadro', 'meus' => $mine ? '1' : null])) ?>"<?= $board ? ' aria-current="page"' : '' ?>>Quadro por etapa</a>
+        </nav>
+        <a class="btn btn--secondary btn--sm" href="<?= e(url('/admin/expedicao')) ?>">Expedição</a>
+    </div>
 </div>
 
 <section class="stats" aria-label="Carga da produção">
@@ -32,6 +39,34 @@ $back = query_url('/admin/producao', ['etapa' => $stage, 'meus' => $mine ? '1' :
         <span class="stat__meta">previsão depois do prazo</span></div>
 </section>
 
+<?php if ($board): ?>
+    <?php
+    $columns = [ProductionFlow::QUEUED => []];
+    foreach (ProductionFlow::CANONICAL as $s) {
+        $columns[$s] = [];
+    }
+    foreach ($jobs as $job) {
+        $columns[(string) $job['stage']][] = $job;
+    }
+    ?>
+    <p class="muted board-hint"><a href="<?= e(query_url('/admin/producao', ['visao' => 'quadro', 'meus' => $mine ? null : '1'])) ?>"><?= $mine ? 'Mostrar todas as ordens' : 'Só as minhas' ?></a> · clique numa ordem para ver a ficha e avançar.</p>
+    <div class="board" role="list">
+        <?php foreach ($columns as $column => $items): ?>
+            <section class="board__col" role="listitem" aria-label="<?= e(ProductionFlow::label($column)) ?>">
+                <header class="board__head"><?= e(ProductionFlow::label($column)) ?> <span><?= e(count($items)) ?></span></header>
+                <?php foreach ($items as $job): ?>
+                    <a class="board__card<?= $job['late'] ? ' board__card--late' : ($job['at_risk'] ? ' board__card--risk' : '') ?>" href="<?= e(url('/admin/producao/' . $job['id'])) ?>">
+                        <span class="board__order mono"><?= e($job['order_number']) ?></span>
+                        <strong><?= e($job['quantity']) ?> × <?= e($job['product_name']) ?></strong>
+                        <?php if (!empty($personalizations[(int) $job['order_item_id']])): ?><span class="board__tag">personalizado</span><?php endif ?>
+                        <span class="board__meta"><span class="<?= $job['late'] ? 'text-danger' : '' ?>">prazo <?= e($date($job['deadline'])) ?></span> · <?= e($job['operator_name'] ?? 'sem responsável') ?></span>
+                    </a>
+                <?php endforeach ?>
+                <?php if ($items === []): ?><p class="board__empty">—</p><?php endif ?>
+            </section>
+        <?php endforeach ?>
+    </div>
+<?php else: ?>
 <nav class="status-tabs" aria-label="Etapas">
     <?php foreach ($tabs as $value => [$label, $count]): ?>
         <a href="<?= e(query_url('/admin/producao', ['etapa' => $value, 'meus' => $mine ? '1' : null])) ?>"<?= $stage === $value ? ' aria-current="page"' : '' ?>>
@@ -91,4 +126,5 @@ $back = query_url('/admin/producao', ['etapa' => $stage, 'meus' => $mine ? '1' :
             </article>
         <?php endforeach ?>
     </div>
+<?php endif ?>
 <?php endif ?>

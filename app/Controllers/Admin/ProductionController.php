@@ -41,8 +41,9 @@ final class ProductionController extends Controller
 
         // A previsão considera a fila inteira; o filtro só escolhe o que mostrar
         $plan = $this->planner->plan($this->jobs->open(), now_utc(), today_local());
+        $board = $request->queryString('visao', 10) === 'quadro';
         $visible = array_values(array_filter($plan['jobs'], fn (array $j): bool =>
-            ($stage === '' || $j['stage'] === $stage) && (!$mine || (int) $j['operator_user_id'] === $this->userId())));
+            ($board || $stage === '' || $j['stage'] === $stage) && (!$mine || (int) $j['operator_user_id'] === $this->userId())));
 
         return $this->render('admin/production/queue', [
             'title' => 'Produção | Painel',
@@ -50,6 +51,7 @@ final class ProductionController extends Controller
             'plan' => $plan,
             'stage' => $stage,
             'mine' => $mine,
+            'board' => $board,
             'counts' => $this->jobs->stageCounts(),
             'personalizations' => $this->jobs->personalizations(array_map(static fn (array $j): int => (int) $j['order_item_id'], $visible)),
             'capacity' => (int) config('production.daily_capacity_minutes', 420),
@@ -75,6 +77,23 @@ final class ProductionController extends Controller
             'reworkTargets' => $job['stage'] === 'quality' ? ProductionFlow::reworkTargets($route) : [],
             'deadline' => $job['paid_at'] === null ? null : business_days_after((string) $job['paid_at'], (int) $job['production_days']),
         ], 'admin');
+    }
+
+    /** Ordem de produção para imprimir e levar à bancada: ficha, etapas para marcar e personalização em destaque. */
+    public function print(Request $request): Response
+    {
+        $job = $this->job($request);
+        $spec = $this->specs->findByVariant((int) $job['variant_id']);
+
+        return $this->render('admin/production/print', [
+            'title' => 'Ordem de produção ' . $job['order_number'],
+            'job' => $job,
+            'route' => array_values(array_filter(explode(',', (string) $job['route']))),
+            'spec' => $spec,
+            'steps' => $spec === null ? [] : $this->specs->steps((int) $spec['id']),
+            'personalization' => $this->jobs->personalizations([(int) $job['order_item_id']])[(int) $job['order_item_id']] ?? [],
+            'deadline' => $job['paid_at'] === null ? null : business_days_after((string) $job['paid_at'], (int) $job['production_days']),
+        ], 'print');
     }
 
     public function advance(Request $request): Response

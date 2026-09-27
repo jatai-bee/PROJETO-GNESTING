@@ -9,8 +9,8 @@ A reformulação acontece em fases, cada uma revisada com capturas de tela antes
 | 1 | Auditoria, design system v2, loja inteira, dados de demonstração | concluída |
 | 2 | Painel: menu agrupado, trilha de navegação, dashboard com indicadores e gráficos | concluída |
 | 3 | Produtos (abas, custo e margem, SEO), categorias em árvore, clientes | concluída |
-| 4 | Pedidos (tabela, cartões, detalhe), fila e ordens de produção, estoque, expedição, relatórios | próxima |
-| 5 | Revisão final de design e acessibilidade | — |
+| 4 | Pedidos (tabela, cartões, detalhe), fila e ordens de produção, estoque, expedição, relatórios | concluída |
+| 5 | Revisão final de design e acessibilidade | próxima |
 
 ## 1. Auditoria (antes)
 
@@ -94,6 +94,23 @@ Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro
   - ticket médio, preferências de contato e favoritos na loja;
   - observações da equipe (migration 007, `customers.notes`), editadas por gestão e atendimento e registradas na auditoria. Entram na exportação LGPD e são apagadas na anonimização.
 
-## 7. Testes
+## 7. Operação: pedidos, produção, estoque, expedição e relatórios
 
-`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).
+- **Pedidos:**
+  - a lista alterna entre tabela e cartões (a borda colorida indica a fase, e o prazo vencido aparece em vermelho);
+  - o detalhe mostra o andamento completo, com todas as etapas internas; o cliente vê só os cinco marcos.
+- **Produção:**
+  - além dos cartões, um quadro com uma coluna por etapa (fila, CNC, lixamento, pintura, secagem, montagem, controle de qualidade, embalagem);
+  - cada ordem tem a versão para imprimir (`/admin/producao/{id}/imprimir`), com a ficha, as etapas para marcar, espaço para o tempo real e a personalização em destaque para conferir antes de gravar.
+- **Estoque** (`/admin/estoque`, gestão e produção):
+  - produto acabado de pronta entrega e matéria-prima numa tela, com o que está em falta primeiro e o valor em estoque pelo custo;
+  - o acerto de contagem é feito na própria linha (quantidade física, mínimo e motivo). Não aceita ficar abaixo do que está reservado em pedidos e registra movimentação e auditoria.
+- **Expedição:** faixa com o caminho do pedido (ainda na produção → prontos → em trânsito → entregues) e os últimos entregues.
+- **Relatórios** (`/admin/relatorios`, gestão e proprietário):
+  - período por atalho (7, 30 ou 90 dias, este mês, mês anterior, este ano) ou por datas, até 3 anos;
+  - abas: vendas (dia a dia; agrupado por mês acima de 92 dias), produtos (com custo e margem), categorias, clientes e produção (peças concluídas, % no prazo, tempo médio do pagamento ao pronto, retrabalho);
+  - "Baixar CSV" gera o arquivo com `;` e acento correto para o Excel. Texto que começa com `=`, `+`, `-` ou `@` recebe um apóstrofo para não virar fórmula. A exportação fica na auditoria.
+
+## 8. Testes
+
+`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).

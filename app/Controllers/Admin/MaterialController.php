@@ -105,7 +105,7 @@ final class MaterialController extends Controller
     private function form(?array $material): Response
     {
         return $this->render('admin/materials/form', [
-            'title' => ($material ? 'Editar material' : 'Novo material') . ' | Painel',
+            'title' => ($material ? 'Editar matéria-prima' : 'Nova matéria-prima') . ' | Painel',
             'material' => $material,
             'units' => MaterialService::UNITS,
             'movements' => $material === null ? [] : $this->materials->movements((int) $material['id']),

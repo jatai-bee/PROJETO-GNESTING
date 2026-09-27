@@ -5,7 +5,8 @@ estão nos documentos citados entre parênteses; para instalar e usar, este guia
 
 - **Parte 1 — Instalação:** do zero até a primeira venda, **só pelo navegador**: cPanel, Gerenciador de Arquivos e o
   assistente da loja. Não precisa de Terminal, programação nem GitHub.
-- **Parte 2 — Uso:** cadastro, pedidos, produção, expedição e rotinas, com o que cada pessoa da equipe faz.
+- **Parte 2 — Uso:** cadastro, pedidos, produção, estoque, expedição, relatórios e rotinas, com o que cada pessoa da
+  equipe faz.
 
 ---
 
@@ -209,11 +210,17 @@ recarregue a página (F5).
 | Senha / Repita a senha | 12 caracteres ou mais. É a senha do painel: guarde bem |
 | E-mail da loja (opcional) | servidor SMTP, porta, `loja@gnesting.com.br` e a senha do passo 1.2 |
 | Mercado Pago (opcional) | pode deixar em branco agora e preencher no passo 1.12 |
+| Dados de demonstração (opcional) | marque **Instalar dados de demonstração** para ver a loja e o painel funcionando antes de cadastrar os seus produtos (veja o quadro abaixo) |
+
+> **Dados de demonstração.** Com a caixa marcada, o assistente cria 34 produtos com fotos, 31 categorias, 16 clientes e
+> 29 pedidos em todas as etapas (pagamento, produção, envio, entregues e cancelados). Nenhum e-mail é enviado a esses
+> clientes fictícios. Serve para conhecer cada tela com dados de exemplo. Quando for cadastrar os seus produtos, apague
+> tudo em **Sistema → Remover dados de demonstração** (passo 2.1). Pode marcar mesmo instalando direto na hospedagem.
 
 Clique em **Instalar a loja** e espere (menos de um minuto; não feche a página).
 
 ✅ **Deu certo se** aparece **"Pronto! A loja foi instalada"**, com a lista do que foi feito (arquivo `.env` gravado,
-tabelas criadas, proprietário criado, instalação travada). Na mesma tela, **anote na ficha**:
+tabelas criadas, proprietário criado, dados de demonstração se marcou, instalação travada). Na mesma tela, **anote na ficha**:
 - o **comando do Cron Jobs** (algo como `php /home/USUARIO/public_html/bin/cron.php`);
 - o **endereço do cron** (`https://gnesting.com.br/cron.php?token=…`). Ele é secreto, como uma senha.
 
@@ -245,6 +252,8 @@ Corrija e clique de novo em *Instalar*: o que já tinha sido feito é aproveitad
    - Se a hospedagem usa **MySQL 5.7**, aparece o aviso "MySQL 8 ou MariaDB". A loja funciona normalmente; é só uma
      recomendação para pedir à hospedagem a versão 8 quando possível (a 5.7 não recebe mais atualizações de segurança).
 3. Clique em **Fazer backup agora**.
+4. Se instalou os **dados de demonstração**, aparece também o quadro **Dados de demonstração**, com o botão para
+   removê-los. Explore a loja e o painel à vontade antes (passo 2.1).
 
 ✅ **Deu certo se** o backup aparece na lista *Backups* com data, tamanho e os links *banco* / *arquivos*.
 
@@ -417,6 +426,7 @@ alertar quando **não existir** (*Keyword not exists*) → intervalo **5 minutos
 - ☐ E-mails da loja chegando (e fora do spam).
 - ☐ Mercado Pago com credenciais **de produção** e webhook configurado.
 - ☐ Tabela de frete com os valores reais (passo 1.13).
+- ☐ Se instalou os dados de demonstração: **removidos** (Sistema → Remover dados de demonstração, passo 2.1).
 - ☐ Configurações: WhatsApp, e-mail de contato, faixa de avisos (passo 2.1).
 - ☐ Ficha de anotações guardada num lugar seguro, e o `.zip` do pacote guardado (para voltar, se precisar).
 
@@ -433,10 +443,16 @@ aquele papel pode usar.
 
 | Papel | Faz |
 |---|---|
-| **Proprietário** | tudo, e ainda: usuários, configurações da loja (inclusive o arquivo YAML), auditoria, sistema (atualizar banco, backups, restaurar, manutenção), LGPD |
-| **Gestor** | produtos, categorias, variações, personalização, cupons, pedidos (inclusive cancelar e estornar), clientes, produção, expedição |
-| **Produção** | fila de produção, fichas de produção, materiais, expedição (despachar e marcar entregue), notas internas nos pedidos |
-| **Atendimento** | consultar pedidos e clientes (CPF mascarado), mensagens aos clientes, notas internas, reenviar link do pedido |
+| **Proprietário** | tudo, e ainda: usuários, configurações da loja (inclusive o arquivo YAML), auditoria, sistema (atualizar banco, backups, restaurar, manutenção, remover dados de demonstração), LGPD |
+| **Gestor** | produtos, categorias, variações, personalização, cupons, pedidos (inclusive cancelar e estornar), clientes, produção, expedição, estoque, **relatórios** e o faturamento na visão geral |
+| **Produção** | fila de produção, fichas de produção, matérias-primas, **estoque**, expedição (despachar e marcar entregue), notas internas nos pedidos |
+| **Atendimento** | consultar pedidos e clientes (CPF mascarado), mensagens aos clientes, notas internas, observações do cliente, reenviar link do pedido |
+
+O menu do painel é dividido em áreas: **Vendas** (Pedidos, Clientes, Cupons, Relatórios), **Produção** (Fila de produção,
+Expedição, Estoque, Fichas de produção, Matérias-primas), **Catálogo** (Produtos, Categorias) e **Administração**
+(Configurações, Usuários, Auditoria, Sistema). No topo de cada tela, a trilha (ex.: *Painel › Vendas › Pedidos*) mostra
+onde você está, e **Ver loja** abre a vitrine em outra aba. No celular, o menu fica no botão de três linhas. A primeira
+tela, a visão geral, está no passo 2.21.
 
 ## 2.1 Primeiro dia (proprietário)
 
@@ -448,32 +464,52 @@ aquele papel pode usar.
 4. **Usuários → Novo usuário**: crie um acesso para cada pessoa da equipe, com o papel certo e uma senha inicial de 12+
    caracteres. Envie a senha por um canal seguro e peça para a pessoa trocá-la em "Esqueci minha senha".
    Nunca compartilhe o seu login de proprietário.
+5. **Dados de demonstração** (se instalou): quando terminar de explorar e for cadastrar os seus produtos, vá em
+   **Sistema → Dados de demonstração**, digite **REMOVER** e clique em *Remover dados de demonstração*.
+   - Antes de apagar, o sistema faz um backup do banco (aparece na lista *Backups*).
+   - Sai só o que a demonstração criou; o que você cadastrou fica.
+   - Se um produto de demonstração entrou num pedido de verdade, ele fica **desativado** em vez de apagado, para o
+     pedido continuar completo.
 
 ## 2.2 Cadastro: a ordem que funciona
 
 ```
-Categorias → Materiais → Produto (dados + fotos) → Variações → Personalização → Ficha de produção → Ativar
+Categorias → Matérias-primas → Produto (dados + fotos) → Variações → Personalização → Ficha de produção → Ativar
 ```
 
 Os materiais vêm antes porque a ficha de produção os usa. Um produto só vai para a loja quando é **ativado**.
 
 ## 2.3 Categorias (gestor)
 
-**Categorias → Nova categoria**. Até dois níveis (ex.: *Relógios* → *Relógios de parede*). Uma categoria inativa esconde os
+**Categorias → Nova categoria**. Até dois níveis (ex.: *Relógios* → *Relógios de parede*). A lista mostra a árvore: cada
+categoria principal num bloco, com as subcategorias dentro e o total de produtos. **+ Subcategoria** já abre o cadastro
+com a categoria principal escolhida. A **Ordem de exibição** é a ordem do menu da loja. Uma categoria inativa esconde os
 produtos dela. Para excluir uma categoria, mova antes os produtos e subcategorias.
 
 ## 2.4 Produto (gestor)
 
-1. **Produtos → Novo produto**: nome, categoria, **SKU** (código único, permanente), preço (ex.: `129,90`), preço "de"
-   (opcional, para promoção), prazo de produção em dias úteis, material, medidas, peso e medidas da embalagem (usados no
-   frete), e o tipo de estoque:
-   - **Produzido sob pedido** (padrão): vende sem limite de quantidade;
-   - **Pronta entrega**: controla a quantidade em estoque.
+1. **Produtos → Novo produto**. O cadastro é dividido em abas. **Geral, Comercial, Estoque e envio e SEO** são uma
+   ficha só: troque de aba à vontade e clique **uma vez** em *Salvar*.
+   - **Geral**: nome, categoria, resumo (aparece no cartão da vitrine), descrição, características (uma por linha),
+     destaque na página inicial, selo "Novo", material, medidas, **montagem** e **cuidados** (os dois aparecem na página
+     do produto na loja).
+   - **Comercial**: preço (ex.: `129,90`), preço "de" (opcional, promoção: aparece riscado com o selo de desconto),
+     **custo unitário** (material, mão de obra e embalagem; nunca aparece na loja) e o **SKU** (código único e
+     permanente). A **margem** é calculada enquanto você digita e fica em alerta abaixo de 20%.
+   - **Estoque e envio**: tipo de estoque (**Produzido sob pedido**, o padrão, vende sem limite; **Pronta entrega**
+     controla a quantidade), prazo de produção, **prazo de postagem** (da peça pronta até a transportadora) e medidas da
+     embalagem (usadas no frete).
+   - **SEO**: prévia de como o produto aparece no Google, título e descrição para buscadores, endereço (slug) e
+     **palavras-chave**, que a busca da loja também usa (ex.: "relógio de parede, sala, presente").
 2. **Salvar** → o produto nasce **inativo** e abre a aba **Imagens**.
 3. **Fotos**: JPG, PNG ou WebP, até 5 MB, lado menor com pelo menos 500 px (ideal 1600 px+). Até 12 fotos. A primeira é
    a capa. Preencha a **descrição** de cada foto (ajuda na acessibilidade e no Google).
 4. **Ativar produto**: exige foto, preço e categoria ativa.
 
+- **Duplicar** (no topo do produto) cria uma cópia **inativa** com as variações, a personalização e as fichas de
+  produção, para cadastrar um produto parecido sem começar do zero. A cópia vem sem fotos e sem estoque, com SKU
+  terminado em `-C`: ajuste o nome e o SKU e envie as fotos antes de ativar.
+- A lista de produtos mostra a **margem** de cada um e o preço "de", quando houver.
 - **Desativar** tira da loja temporariamente. **Excluir** é definitivo para a loja, mas o histórico dos pedidos fica.
 - Mudar o **endereço (slug)** quebra links já divulgados.
 
@@ -487,7 +523,7 @@ Para vender o mesmo produto em acabamentos ou tamanhos diferentes. Aba **Variaç
 2. Repita para outra opção, se houver: *Tamanho* → `30 cm, 45 cm` (até 3 opções).
 3. **Gerar variações**: o sistema cria todas as combinações (Natural/30 cm, Natural/45 cm, Preto/30 cm…), cada uma com SKU
    próprio e o preço da variação padrão.
-4. **Editar** cada variação para ajustar preço, medidas, peso e estoque. Desative as combinações que você não vende.
+4. **Editar** cada variação para ajustar preço, **custo**, medidas, peso e estoque. Desative as combinações que você não vende.
 
 Na loja, o cliente escolhe numa lista e o preço muda na hora.
 Detalhes: [10 — Variações e personalização](10-variacoes-e-personalizacao.md) §1.
@@ -513,7 +549,7 @@ Detalhes: [10 — Variações e personalização](10-variacoes-e-personalizacao.
 
 A ficha diz **como fabricar** cada variação. Nada dela aparece na loja.
 
-1. **Materiais → Novo material**: código, nome, espessura, unidade (chapa, m², unidade), medidas da chapa, custo, saldo e
+1. **Matérias-primas → Nova matéria-prima**: código, nome, espessura, unidade (chapa, m², unidade), medidas da chapa, custo, saldo e
    estoque mínimo (a lista avisa **Repor** quando o saldo chega ao mínimo).
 2. No produto, aba **Ficha de produção** (ou menu **Fichas de produção**), escolha a variação e preencha:
    - material, medidas de corte, **peças por chapa**, referência do programa CNC;
@@ -566,13 +602,26 @@ Menu **Produção**. Funciona no celular, com botões grandes para usar na ofici
 7. Ao sair do CNC, o material da ficha é **descontado do estoque de chapas** automaticamente.
 8. Quando todos os itens de um pedido ficam prontos, o pedido vai para **Pronto para envio**.
 
-**Chegou chapa?** Materiais → material → **Movimentar saldo** → Entrada, com o motivo (ex.: "NF 1234").
+**Chegou chapa?** Matérias-primas → material → **Movimentar saldo** → Entrada, com o motivo (ex.: "NF 1234"). Em
+**Estoque → Matéria-prima**, o botão *Entrada ou saída* leva direto a esse formulário.
+
+**Duas formas de ver a fila:**
+- **Cartões** (padrão): um por item, com o botão de avançar. É a vista da bancada.
+- **Quadro por etapa**: uma coluna por etapa (fila, CNC, lixamento, pintura, secagem, montagem, controle de qualidade,
+  embalagem). Serve para enxergar o dia inteiro; clique numa ordem para abri-la.
+
+**Imprimir a ordem de produção:** na ordem, **Imprimir ordem** abre uma folha A4 para acompanhar a peça na bancada, com
+a ficha, as etapas para marcar, espaço para o tempo real e quem fez, e a personalização em destaque para conferir antes
+de gravar.
 
 Detalhes: [14 — Produção](14-producao.md).
 
 ## 2.11 Expedição (produção ou gestor)
 
 Menu **Expedição**:
+
+No topo, uma faixa mostra o caminho: **ainda na produção → prontos → em trânsito → entregues**. No fim da página ficam
+os últimos entregues.
 
 1. Pedidos **prontos** aparecem com endereço, itens e peso estimado.
 2. **Romaneio**: imprima e coloque na caixa (destinatário em destaque, itens com personalização e caixa de conferência).
@@ -582,13 +631,16 @@ Menu **Expedição**:
 ## 2.12 Atendimento (atendimento, gestor)
 
 - **Pedidos**: busque por número (`GN-2026-000123`), nome, e-mail, CPF ou telefone. A coluna *Prazo de produção* fica
-  vermelha quando atrasada.
+  vermelha quando atrasada. Alterne entre **Tabela** e **Cartões**; nos cartões, a cor da borda mostra a fase.
+- No topo do pedido, o **andamento** mostra todas as etapas, com a atual destacada.
 - No pedido:
   - **Mensagem ao cliente**: vai por e-mail **e** aparece na página do pedido do cliente;
   - **Nota interna**: só a equipe vê;
   - **Reenviar link**: o cliente perdeu o e-mail do pedido;
   - **WhatsApp**: abre a conversa com o número do pedido já na mensagem.
-- **Clientes**: histórico de pedidos, total gasto e endereços.
+- **Clientes**: histórico de pedidos, total gasto, ticket médio, endereços, preferências de contato e os favoritos que o
+  cliente guardou na loja. **Observações da equipe** guarda anotações internas (ex.: "prefere contato pelo WhatsApp");
+  o cliente não vê, e cada alteração fica na auditoria.
 
 ## 2.13 Cancelar um pedido e estornar (gestor)
 
@@ -628,7 +680,7 @@ Detalhes: [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md) §2.
 | **Todo dia** | atendimento | **Pedidos**: responder mensagens, conferir atrasados |
 | **Toda semana** | proprietário | **Sistema → Backups → Baixar** o último `banco` (e `arquivos` se houve fotos ou arquivos CNC novos) e guardar fora do servidor |
 | **Toda semana** | proprietário | **Configurações → Exportar configuração (.yaml)** e guardar junto com o backup |
-| **Toda semana** | gestor | **Materiais**: repor o que está marcado **Repor** |
+| **Toda semana** | gestor | **Estoque** (ou a visão geral): repor o que está marcado **Repor** ou **Sem estoque** |
 | **Todo mês** | proprietário | testar a restauração de um backup numa instalação no computador ([17](17-deploy-e-operacao.md) §7) |
 | **Todo mês** | proprietário | **Auditoria**: olhar acessos e mudanças de preço fora do comum |
 | **A cada atualização** | quem instala | seguir o roteiro 2.17 |
@@ -681,7 +733,7 @@ faixa de avisos), **tabela de frete**, **categorias** e **materiais**.
 - Importar **nunca apaga**: categorias são encontradas pelo `slug` e materiais pelo `codigo`, e o que não estiver no
   arquivo fica como está. Para tirar algo da loja, use `ativa: false`.
 - O arquivo é conferido inteiro antes; se houver erro, **nada** é gravado e a mensagem diz onde.
-- O saldo dos materiais não muda pelo arquivo (use Materiais → Movimentar saldo). Produtos, pedidos e clientes não entram:
+- O saldo dos materiais não muda pelo arquivo (use Matérias-primas → Movimentar saldo). Produtos, pedidos e clientes não entram:
   estão no backup do banco.
 
 Detalhes e exemplo: [15 — Marketing](15-marketing.md) §7.
@@ -702,6 +754,56 @@ Para voltar a loja a um ponto anterior (algo apagado por engano, atualização q
 Atenção: pedidos pagos depois da data do backup somem da loja, mas continuam no Mercado Pago. Confira por lá. Os usuários
 e senhas do painel também voltam a ser os do backup. Detalhes: [17](17-deploy-e-operacao.md) §7.
 
+## 2.21 Visão geral do painel
+
+É a primeira tela do painel. O que aparece depende do papel:
+
+- **Gestor e proprietário**: faturamento, pedidos pagos, ticket médio e clientes novos do período, comparados com o
+  período anterior (seta verde para cima, vermelha para baixo). Escolha o período no alto: 7, 30 ou 90 dias ou o mês
+  corrente. Abaixo, o gráfico de vendas por dia (passe o mouse numa coluna para ver o valor), as vendas por categoria e
+  os mais vendidos.
+- **Todos que cuidam de pedidos**: **Pedidos por etapa** (clique numa etapa para abrir a lista já filtrada) e os últimos
+  pedidos.
+- **Gestor e produção**: **Precisa de atenção**, com matéria-prima abaixo do mínimo, produto de pronta entrega zerado,
+  pagamento parado há mais de um dia e produto sem foto.
+- **Proprietário**: a atividade recente da equipe.
+
+A venda conta no dia em que foi **paga**; pedido cancelado não entra.
+
+## 2.22 Estoque (gestor ou produção)
+
+Menu **Estoque**. No alto, o resumo: unidades de pronta entrega, o que está em falta e o valor da matéria-prima pelo
+custo.
+
+- **Produto acabado**: as variações de *pronta entrega*, com as **sem estoque** e **abaixo do mínimo** primeiro. *Só em
+  falta* mostra apenas essas.
+  - **Acertar a contagem:** na própria linha, digite a quantidade física, o **mínimo** (abaixo dele aparece o alerta) e
+    o motivo (ex.: "Contagem de sexta", "Lote produzido") e clique em *Salvar*.
+  - O acerto não deixa a quantidade ficar abaixo do que está **reservado** em pedidos. Fica registrado no histórico de
+    movimentações e na auditoria.
+- **Matéria-prima**: cada material com a barra de nível, a marca do mínimo e a situação (*Em estoque*, *Repor*,
+  *Sem estoque*). *Entrada ou saída* registra compra ou consumo.
+
+Produtos *sob encomenda* não controlam quantidade; para vê-los também, use *Todos os produtos*.
+
+## 2.23 Relatórios (gestor ou proprietário)
+
+Menu **Relatórios**. Escolha o período no alto: um atalho (7, 30 ou 90 dias, este mês, mês anterior, este ano) ou as
+datas **De** e **até** (até 3 anos).
+
+| Aba | Mostra |
+|---|---|
+| **Vendas** | faturamento (com o frete), pedidos pagos, peças, ticket médio, clientes novos, descontos e cancelamentos; gráfico e tabela dia a dia |
+| **Produtos** | unidades, faturamento, participação, custo e margem de cada produto |
+| **Categorias** | unidades, faturamento e participação de cada categoria principal |
+| **Clientes** | quem mais comprou no período, com pedidos e total pago |
+| **Produção** | peças concluídas, porcentagem pronta no prazo prometido, tempo médio do pagamento ao pronto e retrabalho |
+
+**Baixar CSV** gera um arquivo da aba aberta, pronto para abrir no Excel ou no Google Planilhas (datas e valores no
+formato brasileiro). Cada download fica registrado na auditoria.
+
+Custo e margem usam o custo cadastrado **hoje** em cada variação (aba Comercial do produto).
+
 ---
 
-Referência técnica completa: [README](../README.md) e documentos 00 a 17.
+Referência técnica completa: [README](../README.md) e documentos 00 a 19.

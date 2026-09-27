@@ -135,6 +135,8 @@ function readme(string $commit): string
            suporte para ativar o mod_rewrite.
         6. Instalação: abra https://SEU-DOMINIO/instalar.php e preencha o assistente.
            Guarde o comando do Cron Jobs e o endereço do cron que aparecem no final.
+           Opcional: marque "Instalar dados de demonstração" para ver a loja com produtos e pedidos
+           de exemplo. Remova depois em Painel > Sistema > Remover dados de demonstração.
         7. Depois (recomendado): cPanel > Domínios > Gerenciar > Raiz do documento = public_html/public.
            A loja continua igual, com uma camada extra de segurança.
 

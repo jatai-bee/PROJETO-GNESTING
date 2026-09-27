@@ -5,8 +5,8 @@ use GNesting\Services\MaterialService;
 $units = MaterialService::UNITS;
 ?>
 <div class="page-header">
-    <h1 class="page-title">Materiais</h1>
-    <a class="btn btn--primary" href="<?= e(url('/admin/materiais/novo')) ?>">Novo material</a>
+    <h1 class="page-title">Matérias-primas</h1>
+    <a class="btn btn--primary" href="<?= e(url('/admin/materiais/novo')) ?>">Nova matéria-prima</a>
 </div>
 
 <section class="panel">

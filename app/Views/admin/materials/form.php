@@ -12,7 +12,7 @@ $action = $material ? "/admin/materiais/{$material['id']}/editar" : '/admin/mate
 <div class="page-header">
     <div>
         <a class="back-link" href="<?= e(url('/admin/materiais')) ?>">← Materiais</a>
-        <h1 class="page-title"><?= $material ? e($material['name'] . ' ' . format_decimal($material['thickness_mm']) . ' mm') : 'Novo material' ?></h1>
+        <h1 class="page-title"><?= $material ? e($material['name'] . ' ' . format_decimal($material['thickness_mm']) . ' mm') : 'Nova matéria-prima' ?></h1>
     </div>
 </div>
 

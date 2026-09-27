@@ -46,13 +46,18 @@ final class BackupService
     public function create(?bool $includeFiles = null, ?DateTimeImmutable $now = null): array
     {
         $includeFiles ??= (bool) $this->config->get('operations.backup.include_files', true);
-        $now ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
-        $name = $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d_His');
+        $now = ($now ?? new DateTimeImmutable('now', new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('UTC'));
+        // O nome é o segundo em UTC. Dois backups no mesmo segundo (ex.: a cópia de segurança logo antes
+        // de uma restauração pelo painel) ganham o segundo seguinte, em vez de falhar.
+        for ($attempt = 0; is_dir($this->directory() . '/' . $now->format('Y-m-d_His')) || is_dir($this->directory() . '/' . $now->format('Y-m-d_His') . '.parcial'); $attempt++) {
+            if ($attempt >= 60) {
+                throw new RuntimeException('Já existem backups demais neste minuto. Tente de novo em instantes.');
+            }
+            $now = $now->modify('+1 second');
+        }
+        $name = $now->format('Y-m-d_His');
         $final = $this->directory() . '/' . $name;
         $partial = $final . '.parcial';
-        if (is_dir($final)) {
-            throw new RuntimeException("Já existe um backup {$name}.");
-        }
         $this->ensureDirectory($partial);
 
         try {

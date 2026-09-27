@@ -6,7 +6,10 @@
  * @var array<string, mixed>|null $cron
  * @var array<string, string>|null $maintenance
  * @var array<string, string>|null $release
+ * @var list<string> $pending migrations não aplicadas
+ * @var string|null $cronUrl
  */
+use GNesting\Controllers\Admin\SystemController;
 use GNesting\Services\Operations\HealthCheck;
 
 $healthLabels = ['banco' => 'Banco de dados', 'gravacao' => 'Gravação em disco', 'migrations' => 'Migrations', 'cron' => 'Cron',
@@ -29,6 +32,18 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
     <span class="muted">Monitor externo: <code>/saude</code> (detalhes com <code>?token=HEALTH_TOKEN</code>)</span>
 </div>
 
+<?php if ($pending !== []): ?>
+    <section class="panel panel--attention">
+        <h2 class="panel__title">Atualização do banco de dados pendente</h2>
+        <p class="panel__intro">A versão instalada precisa de <?= count($pending) ?> alteração(ões) no banco: <?= e(implode(', ', $pending)) ?>.
+            Antes de aplicar, o sistema faz um backup do banco automaticamente. Se a loja estiver aberta, ligue a manutenção antes.</p>
+        <form method="post" action="<?= e(url('/admin/sistema/atualizar-banco')) ?>" data-confirm="Aplicar a atualização do banco de dados agora?">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn btn--primary btn--sm">Atualizar banco de dados</button>
+        </form>
+    </section>
+<?php endif ?>
+
 <div class="order-admin">
     <div class="order-admin__main">
         <section class="panel">
@@ -50,7 +65,7 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
 
         <section class="panel">
             <h2 class="panel__title">Lista de verificação de produção</h2>
-            <p class="muted panel__intro"><?= $problems === [] ? 'Tudo pronto para produção.' : count($problems) . ' item(ns) a resolver. No servidor: <code>php bin/check-production.php</code>.' ?></p>
+            <p class="muted panel__intro"><?= $problems === [] ? 'Tudo pronto para produção.' : count($problems) . ' item(ns) a resolver. A maioria se resolve no arquivo .env (cPanel → Gerenciador de Arquivos → Editar).' ?></p>
             <div class="table-wrap">
                 <table class="table">
                     <tbody>
@@ -80,7 +95,7 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
             <?php else: ?>
                 <div class="table-wrap">
                     <table class="table">
-                        <thead><tr><th>Backup (UTC)</th><th class="table__num">Tamanho</th><th class="table__num">Linhas</th><th>Baixar</th></tr></thead>
+                        <thead><tr><th>Backup (UTC)</th><th class="table__num">Tamanho</th><th class="table__num">Linhas</th><th>Baixar</th><th>Restaurar</th></tr></thead>
                         <tbody>
                         <?php foreach ($backups as $backup): ?>
                             <tr>
@@ -90,6 +105,21 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
                                 <td class="nowrap">
                                     <a href="<?= e(url('/admin/sistema/backups/' . $backup['name'] . '/banco')) ?>">banco</a>
                                     <?php if (isset($backup['files']['files.tar.gz'])): ?> · <a href="<?= e(url('/admin/sistema/backups/' . $backup['name'] . '/arquivos')) ?>">arquivos</a><?php endif ?>
+                                </td>
+                                <td>
+                                    <details class="restore">
+                                        <summary>Restaurar…</summary>
+                                        <form method="post" action="<?= e(url('/admin/sistema/backups/' . $backup['name'] . '/restaurar')) ?>" class="restore__form">
+                                            <?= csrf_field() ?>
+                                            <p class="muted">Substitui <strong>todo o banco atual</strong> por este backup. A loja entra em manutenção e uma cópia do estado atual é guardada antes.</p>
+                                            <?php if (isset($backup['files']['files.tar.gz'])): ?>
+                                                <label class="checkbox"><input type="checkbox" name="arquivos" value="1"> Restaurar também fotos e arquivos de produção</label>
+                                            <?php endif ?>
+                                            <label for="conf-<?= e($backup['name']) ?>">Digite <strong><?= SystemController::RESTORE_CONFIRMATION ?></strong> para confirmar</label>
+                                            <input id="conf-<?= e($backup['name']) ?>" name="confirmacao" autocomplete="off" required>
+                                            <button type="submit" class="btn btn--secondary btn--sm">Restaurar este backup</button>
+                                        </form>
+                                    </details>
                                 </td>
                             </tr>
                         <?php endforeach ?>
@@ -125,7 +155,7 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
         <section class="panel">
             <h2 class="panel__title">Último cron</h2>
             <?php if ($cron === null): ?>
-                <p class="muted">Nunca rodou. Configure no cPanel → Cron Jobs, a cada 15 minutos: <code>php …/bin/cron.php</code></p>
+                <p class="muted">Nunca rodou. Configure no cPanel → Cron Jobs, a cada 15 minutos: <code>php <?= e((string) config('paths.base')) ?>/bin/cron.php</code></p>
             <?php else: ?>
                 <p class="muted panel__intro"><?= e(format_datetime($cron['finished_at_utc'])) ?> · <?= e((string) $cron['seconds']) ?> s</p>
                 <ul class="system-tasks">
@@ -134,6 +164,8 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
                     <?php endforeach ?>
                 </ul>
             <?php endif ?>
+            <p class="muted panel__intro">Hospedagem sem Cron Jobs: cadastre num serviço de ping (cron-job.org e afins), a cada 15 minutos,
+                <?= $cronUrl !== null ? '<code class="break">' . e($cronUrl) . '</code>' : 'o endereço /cron.php?token=… (preencha CRON_TOKEN no .env para ligar)' ?>.</p>
         </section>
     </aside>
 </div>

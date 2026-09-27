@@ -97,7 +97,7 @@ final class HealthCheck
 
             return $pending === []
                 ? $this->result(true, false, 'todas aplicadas')
-                : $this->result(false, false, 'pendentes: ' . implode(', ', $pending) . ' (rode composer migrate)');
+                : $this->result(false, false, 'pendentes: ' . implode(', ', $pending) . ' (Sistema → Atualizar banco de dados)');
         } catch (Throwable) {
             return $this->result(false, false, 'não foi possível conferir');
         }
@@ -108,7 +108,7 @@ final class HealthCheck
     {
         $age = $this->heartbeat->ageMinutes();
         if ($age === null) {
-            return $this->result(false, false, 'nunca rodou (configure o Cron Job no cPanel)');
+            return $this->result(false, false, 'nunca rodou (configure o Cron Jobs do cPanel ou o cron por URL)');
         }
         $failed = array_keys(array_filter($this->heartbeat->last()['tasks'] ?? [], fn (array $t) => !$t['ok']));
         if ($age > (int) $this->config->get('operations.cron_stale_minutes', 45)) {

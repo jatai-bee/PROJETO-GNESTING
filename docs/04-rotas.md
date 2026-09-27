@@ -11,6 +11,7 @@ Legenda de middleware: **S** = SecurityHeaders + Session (todas as rotas HTML) �
 > **Implementadas (etapa 7):** `GET/POST /checkout`, `GET /pedido/{numero}/confirmacao` (dono, link `?chave=` ou mesmo navegador; senão 404), `POST /pedido/{numero}/pagar`, `GET /conta/pedidos`, `POST /api/frete/cotar`, `POST /webhooks/pagamento/mercadopago` e, só em desenvolvimento, `/pagamento-simulado/{referencia}`. Guia: [12 — Checkout](12-checkout.md).
 > **Implementadas (etapa 10):** `POST /carrinho/cupom` (limite de 10 tentativas a cada 10 min por IP), `POST /carrinho/cupom/remover`, `GET /sitemap.xml` e `GET /robots.txt`. Guia: [15 — Marketing](15-marketing.md).
 > **Implementadas (etapa 11):** `/recuperar-senha` e `/redefinir-senha/{token}`. Guia: [16 — Segurança, LGPD e testes](16-seguranca-e-testes.md).
+> **Implementadas (etapa 13, fora do front controller):** `public/instalar.php` (assistente de instalação; 403 depois de instalada) e `public/cron.php?token=CRON_TOKEN` (tarefas periódicas por URL; 404 sem o token). São os únicos PHP, além do `index.php`, que o `public/.htaccess` executa. Guia: [17 — Deploy e operação](17-deploy-e-operacao.md) §3 e §9.
 > **Implementadas (etapa 12):** `GET /saude` (monitoramento). Antes do roteamento, o Kernel redireciona para https no host canônico e aplica o modo manutenção (503). Rotas **sem estado** (`middleware.stateless`: `/saude`, `/sitemap.xml`, `/robots.txt`, `/webhooks/…`) não abrem sessão, CSRF nem carrinho. Guia: [17 — Deploy e operação](17-deploy-e-operacao.md).
 
 | Método | URL | Controller@ação | Middleware | Etapa |
@@ -86,7 +87,8 @@ Todas as rotas exigem **S + C + admin autenticado**, exceto o login. A coluna "P
 | `/admin/usuarios` | administradores e papéis | **owner** |
 | `/admin/configuracoes` | WhatsApp, e-mail de contato, faixa de avisos | owner |
 | `/admin/logs` | auditoria | owner |
-| `/admin/sistema` · `POST /backup` · `GET /backups/{nome}/banco\|arquivos` · `POST /manutencao` | saúde, lista de verificação, backups, manutenção (etapa 12, docs/17) | owner |
+| `/admin/sistema` · `POST /backup` · `GET /backups/{nome}/banco\|arquivos` · `POST /backups/{nome}/restaurar` · `POST /manutencao` · `POST /atualizar-banco` | saúde, lista de verificação, backups (fazer, baixar, restaurar), manutenção, atualização do banco (etapas 12 e 13, docs/17) | owner |
+| `GET /admin/configuracoes/exportar` · `POST /admin/configuracoes/importar` | configuração em YAML: loja, frete, categorias, materiais (etapa 13, docs/15 §7) | owner |
 
 ## 4. API e webhooks (`routes/api.php`)
 

@@ -36,6 +36,8 @@ com dois serviços (Econômico/PAC e Expresso/SEDEX): **preço = base até 1 kg 
 Opcionais: frete grátis a partir de um valor e **Retirada no ateliê** (`SHIPPING_PICKUP=true`).
 
 > **Os valores da tabela são exemplos.** Ajuste preços e prazos à sua realidade antes de vender.
+> Desde a etapa 13 a tabela se ajusta **pelo painel, sem editar código**: Configurações → Exportar/Importar YAML,
+> seção `frete` (docs/15 §7). `config/shipping.php` vira o padrão de instalações novas.
 > Trocar por uma API de transportadora = nova implementação de `ShippingCalculator`, sem mexer no checkout.
 
 A UF é obtida pelas faixas de CEP dos Correios (`app/Helpers/ZipCode.php`). Cotação JSON: `POST /api/frete/cotar` (CSRF por cabeçalho, 60/min por IP).

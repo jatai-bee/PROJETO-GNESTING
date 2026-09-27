@@ -108,7 +108,7 @@ no "Select PHP Version" do cPanel.
 Na primeira passada, o PHPStan achou 23 pontos. Nenhum era falha de segurança; eram tipos mal declarados, checagens
 redundantes e um `match` sem `default`. Todos foram corrigidos.
 
-**CI:** `.github/workflows/ci.yml` roda `composer check` num Ubuntu com PHP 8.3 e MySQL 8.4 a cada push na `main` e em pull
+**CI:** `.github/workflows/ci.yml` roda `composer check` num Ubuntu com PHP 8.3, em MySQL 8.4 **e** 5.7 (etapa 13), a cada push na `main` e em pull
 requests.
 
 ### Checklist de segurança (docs/05 §15) → testes

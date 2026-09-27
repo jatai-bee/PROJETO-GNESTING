@@ -20,6 +20,13 @@ final class SettingsRepository extends Repository
         return $settings;
     }
 
+    public function get(string $key): ?string
+    {
+        $value = $this->fetchValue('SELECT setting_value FROM settings WHERE setting_key = :key', ['key' => $key]);
+
+        return $value === false || $value === null ? null : (string) $value;
+    }
+
     public function set(string $key, string $value): void
     {
         $this->execute(

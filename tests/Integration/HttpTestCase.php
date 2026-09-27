@@ -81,16 +81,26 @@ abstract class HttpTestCase extends IntegrationTestCase
         return $this->send(new Request('GET', $path, $query, [], $this->cookies(), ['REMOTE_ADDR' => $this->ip]));
     }
 
-    /** POST com o token CSRF da sessão atual. @param array<string, mixed> $body */
-    protected function post(string $path, array $body = []): Response
+    /**
+     * POST com o token CSRF da sessão atual.
+     *
+     * @param array<string, mixed> $body
+     * @param array<string, mixed> $files campo => lista de UploadedFile
+     */
+    protected function post(string $path, array $body = [], array $files = []): Response
     {
-        return $this->postRaw($path, $body + ['_token' => $this->container->get(Csrf::class)->token()]);
+        return $this->postRaw($path, $body + ['_token' => $this->container->get(Csrf::class)->token()], $files);
     }
 
-    /** POST sem acrescentar nada (ex.: sem token). @param array<string, mixed> $body */
-    protected function postRaw(string $path, array $body = []): Response
+    /**
+     * POST sem acrescentar nada (ex.: sem token).
+     *
+     * @param array<string, mixed> $body
+     * @param array<string, mixed> $files
+     */
+    protected function postRaw(string $path, array $body = [], array $files = []): Response
     {
-        return $this->send(new Request('POST', $path, [], $body, $this->cookies(), ['REMOTE_ADDR' => $this->ip]));
+        return $this->send(new Request('POST', $path, [], $body, $this->cookies(), ['REMOTE_ADDR' => $this->ip], $files));
     }
 
     protected function send(Request $request): Response

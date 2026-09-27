@@ -14,12 +14,17 @@ use GNesting\Services\Operations\BackupService;
 use GNesting\Services\Operations\CronHeartbeat;
 use GNesting\Services\Operations\HealthCheck;
 use GNesting\Services\Operations\ProductionCheck;
+use GNesting\Services\Operations\SchemaUpdater;
 use Throwable;
 
-/** Sistema (somente proprietário): saúde, lista de verificação, backups, cron e manutenção. */
+/**
+ * Sistema (somente proprietário): saúde, lista de verificação, backups (fazer, baixar, restaurar),
+ * atualização do banco, cron e manutenção. Tudo o que antes exigia Terminal (docs/17).
+ */
 final class SystemController extends Controller
 {
     private const FILES = ['banco' => 'database.sql.gz', 'arquivos' => 'files.tar.gz'];
+    public const RESTORE_CONFIRMATION = 'RESTAURAR';
 
     public function __construct(
         private readonly HealthCheck $health,
@@ -28,11 +33,18 @@ final class SystemController extends Controller
         private readonly CronHeartbeat $heartbeat,
         private readonly Maintenance $maintenance,
         private readonly AuditService $audit,
+        private readonly SchemaUpdater $schema,
     ) {
     }
 
     public function index(Request $request): Response
     {
+        try {
+            $pending = $this->schema->pending();
+        } catch (Throwable) {
+            $pending = []; // sem banco: a Saúde já mostra a falha
+        }
+
         return $this->render('admin/system/index', [
             'title' => 'Sistema | Painel',
             'health' => $this->health->run(),
@@ -41,7 +53,92 @@ final class SystemController extends Controller
             'cron' => $this->heartbeat->last(),
             'maintenance' => $this->maintenance->status(),
             'release' => $this->release(),
+            'pending' => $pending,
+            'cronUrl' => $this->cronUrl(),
         ], 'admin');
+    }
+
+    /**
+     * Aplica as migrations pendentes de uma versão nova. Antes, um backup do banco: se algo der
+     * errado no meio (DDL não tem rollback no MySQL), é para ele que se volta.
+     */
+    public function migrate(Request $request): Response
+    {
+        @set_time_limit(300);
+        ignore_user_abort(true);
+        if ($this->schema->pending() === []) {
+            $this->flash('success', 'O banco de dados já está atualizado.');
+
+            return $this->redirect('/admin/sistema');
+        }
+
+        $safety = null;
+        try {
+            $safety = $this->backups->create(false)['name'];
+            $applied = $this->schema->apply();
+            $this->audit->record(AuditService::UPDATE, 'database_schema', null, null, ['aplicadas' => $applied, 'backup' => $safety]);
+            $this->flash('success', 'Banco atualizado: ' . implode(', ', $applied) . ". Backup de antes da atualização: {$safety}.");
+        } catch (Throwable $e) {
+            $this->flash('error', 'A atualização do banco falhou: ' . $e->getMessage()
+                . ($safety !== null ? " Para voltar ao estado anterior, restaure o backup {$safety}." : ''));
+        }
+
+        return $this->redirect('/admin/sistema');
+    }
+
+    /**
+     * Restaura um backup pelo painel. Liga a manutenção (clientes não compram durante a troca),
+     * guarda uma cópia do estado atual e só então substitui o banco (e os arquivos, se pedido).
+     * A loja fica em manutenção para o proprietário conferir antes de reabrir.
+     */
+    public function restore(Request $request): Response
+    {
+        $name = (string) $request->param('nome');
+        if (mb_strtoupper(trim($request->string('confirmacao'))) !== self::RESTORE_CONFIRMATION) {
+            $this->flash('error', 'Para restaurar, digite ' . self::RESTORE_CONFIRMATION . ' no campo de confirmação. Nada foi alterado.');
+
+            return $this->redirect('/admin/sistema');
+        }
+        if (!in_array($name, array_column($this->backups->list(), 'name'), true)) {
+            throw HttpException::notFound();
+        }
+
+        @set_time_limit(600);
+        ignore_user_abort(true);
+        $secret = $this->maintenance->status() === null
+            ? $this->maintenance->enable('Estamos restaurando a loja. Voltamos em alguns minutos.')
+            : null;
+
+        $safety = null;
+        try {
+            $safety = $this->backups->create(false)['name'];
+            $this->backups->restore($name, $request->boolean('arquivos'), static function (string $line): void {
+            });
+            try {
+                // O banco agora é o do backup: o usuário desta sessão pode nem existir nele
+                $this->audit->record(AuditService::UPDATE, 'backup_restore', null, null, ['nome' => $name, 'copia_anterior' => $safety]);
+            } catch (Throwable) {
+            }
+            $this->flash('success', "Backup {$name} restaurado. A loja está em manutenção: confira e depois clique em \"Desligar e voltar ao ar\". "
+                . "Cópia do estado anterior: {$safety}.");
+        } catch (Throwable $e) {
+            $this->flash('error', 'A restauração falhou: ' . $e->getMessage() . ' A loja continua em manutenção.'
+                . ($safety !== null ? " Cópia do estado anterior: {$safety}." : ''));
+        }
+
+        $response = $this->redirect('/admin/sistema');
+
+        return $secret === null ? $response : $response->withCookie(Maintenance::BYPASS_COOKIE, hash('sha256', $secret), [
+            'httponly' => true, 'samesite' => 'Lax', 'secure' => $request->isSecure(),
+        ]);
+    }
+
+    /** Endereço do cron por URL (null quando CRON_TOKEN está vazio). */
+    private function cronUrl(): ?string
+    {
+        $token = (string) config('operations.cron_token', '');
+
+        return $token === '' ? null : absolute_url('/cron.php') . '?token=' . $token;
     }
 
     /**

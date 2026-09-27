@@ -34,8 +34,37 @@ final class CronRunner
     ) {
     }
 
-    /** @return array<string, array{ok: bool, detail: string}> */
+    /**
+     * Uma execução por vez: o Cron Jobs e o cron por URL (ou um serviço de ping apressado) podem
+     * coincidir, e duas execuções simultâneas fariam dois backups ao mesmo tempo.
+     *
+     * @return array<string, array{ok: bool, detail: string}>
+     */
     public function run(?DateTimeImmutable $now = null): array
+    {
+        $lockFile = $this->config->get('paths.storage') . '/cache/cron.lock';
+        if (!is_dir(dirname($lockFile))) {
+            @mkdir(dirname($lockFile), 0770, true);
+        }
+        $lock = @fopen($lockFile, 'c');
+        if ($lock !== false && !flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+
+            return ['execucao' => ['ok' => true, 'detail' => 'outra execução do cron ainda está em andamento']];
+        }
+
+        try {
+            return $this->runTasks($now);
+        } finally {
+            if ($lock !== false) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+        }
+    }
+
+    /** @return array<string, array{ok: bool, detail: string}> */
+    private function runTasks(?DateTimeImmutable $now): array
     {
         $startedAt = gmdate('Y-m-d H:i:s');
         $start = microtime(true);

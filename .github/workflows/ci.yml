@@ -1,5 +1,7 @@
 # Verificação automática a cada push e pull request (docs/16-seguranca-e-testes.md).
-# Mesmos passos de `composer check`, num MySQL 8.4 igual ao de produção.
+# Mesmos passos de `composer check`, em MySQL 8.4 e em MySQL 5.7 (ainda comum em hospedagem compartilhada).
+# Em push na main, com tudo verde, monta também o pacote de produção (.zip para enviar à hospedagem):
+# aba Actions → execução → Artifacts (docs/17 §2). Assim ninguém precisa de PHP no computador.
 name: CI
 
 on:
@@ -12,11 +14,17 @@ permissions:
 
 jobs:
   check:
+    name: check (MySQL ${{ matrix.mysql }})
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql: ["8.4", "5.7"]
 
     services:
       mysql:
-        image: mysql:8.4
+        image: mysql:${{ matrix.mysql }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
         ports:
@@ -31,7 +39,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo_mysql, mbstring, fileinfo, gd
+          extensions: pdo_mysql, mbstring, fileinfo, gd, zip
           coverage: none
 
       - name: Dependências
@@ -53,3 +61,16 @@ jobs:
 
       - name: Testes (PHPUnit)
         run: composer test
+
+      - name: Pacote de produção
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mysql == '8.4'
+        run: php bin/build-release.php
+
+      - name: Publicar o pacote (Artifacts)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mysql == '8.4'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote-gnesting-${{ github.sha }}
+          path: build/*.zip
+          retention-days: 90
+          if-no-files-found: error

@@ -16,7 +16,7 @@ use GNesting\Services\MaterialService;
 /** Matéria-prima (gestor e produção). */
 final class MaterialController extends Controller
 {
-    private const LABELS = [
+    public const LABELS = [
         'code' => 'Código', 'name' => 'Nome', 'thickness_mm' => 'Espessura', 'sheet_width_mm' => 'Largura da chapa',
         'sheet_length_mm' => 'Comprimento da chapa', 'unit' => 'Unidade', 'cost' => 'Custo', 'stock_qty' => 'Saldo',
         'reorder_level' => 'Estoque mínimo',
@@ -44,7 +44,7 @@ final class MaterialController extends Controller
 
     public function store(Request $request): Response
     {
-        $this->validate($request, $this->rules(), self::LABELS);
+        $this->validate($request, self::rules(), self::LABELS);
         $this->service->create($this->input($request));
         $this->flash('success', 'Material cadastrado.');
 
@@ -59,7 +59,7 @@ final class MaterialController extends Controller
     public function update(Request $request): Response
     {
         $material = $this->findOrFail($request);
-        $this->validate($request, $this->rules(), self::LABELS);
+        $this->validate($request, self::rules(), self::LABELS);
         $this->service->update((int) $material['id'], $this->input($request));
         $this->flash('success', 'Material atualizado.');
 
@@ -112,8 +112,8 @@ final class MaterialController extends Controller
         ], 'admin');
     }
 
-    /** @return array<string, string> */
-    private function rules(): array
+    /** @return array<string, string> também usadas na importação de configuração (YAML) */
+    public static function rules(): array
     {
         return [
             'code' => 'required|max:40|sku',

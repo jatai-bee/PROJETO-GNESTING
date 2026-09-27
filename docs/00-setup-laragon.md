@@ -12,6 +12,10 @@
 
 ## 2. Configurar o projeto
 
+> **Atalho pelo navegador (etapa 13):** depois do `composer install`, crie o banco vazio no HeidiSQL/phpMyAdmin do Laragon,
+> rode `composer serve` e abra http://localhost:8000: sem `.env`, a loja leva ao assistente `instalar.php`, o mesmo da
+> hospedagem, com a opção de instalar produtos de exemplo. Os passos abaixo fazem o mesmo pelo terminal.
+
 ```bash
 cd "D:\agnaldo.orrico\Documents\PROJETO GNESTING"
 composer install

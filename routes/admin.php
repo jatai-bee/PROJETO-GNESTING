@@ -152,6 +152,9 @@ return static function (Router $r): void {
                 $r->post('/clientes/{id:\d+}/exportar', [CustomerController::class, 'export']);
                 $r->post('/clientes/{id:\d+}/anonimizar', [CustomerController::class, 'anonymize']);
                 $r->post('/configuracoes', [SettingsController::class, 'update']);
+                // Configuração completa em YAML: loja, frete, categorias, materiais (docs/15 §7)
+                $r->get('/configuracoes/exportar', [SettingsController::class, 'export']);
+                $r->post('/configuracoes/importar', [SettingsController::class, 'import']);
                 $r->get('/usuarios', [AdminUserController::class, 'index']);
                 $r->get('/usuarios/novo', [AdminUserController::class, 'create']);
                 $r->post('/usuarios/novo', [AdminUserController::class, 'store']);
@@ -165,7 +168,9 @@ return static function (Router $r): void {
                 $r->get('/sistema', [SystemController::class, 'index']);
                 $r->post('/sistema/backup', [SystemController::class, 'backup']);
                 $r->get('/sistema/backups/{nome:\d{4}-\d{2}-\d{2}_\d{6}}/{arquivo:banco|arquivos}', [SystemController::class, 'download']);
+                $r->post('/sistema/backups/{nome:\d{4}-\d{2}-\d{2}_\d{6}}/restaurar', [SystemController::class, 'restore']);
                 $r->post('/sistema/manutencao', [SystemController::class, 'maintenance']);
+                $r->post('/sistema/atualizar-banco', [SystemController::class, 'migrate']);
             });
         });
     });

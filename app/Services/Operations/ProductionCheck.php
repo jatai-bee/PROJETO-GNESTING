@@ -56,7 +56,8 @@ final class ProductionCheck
             $this->check('Alertas por e-mail', (string) $c->get('operations.alert_email') !== '', self::WARNING, 'ALERT_EMAIL'),
             $this->check('Token do /saude', strlen((string) $c->get('operations.health_token')) >= 20, self::WARNING, 'HEALTH_TOKEN (20+ caracteres) para ver os detalhes'),
             $this->check('expose_php desligado', !filter_var(ini_get('expose_php'), FILTER_VALIDATE_BOOLEAN), self::WARNING, 'esconde a versão do PHP (cPanel → Select PHP Version → Options)'),
-            $this->check('Proprietário cadastrado', $this->ownerExists(), self::ERROR, 'php bin/create-admin.php --role=owner'),
+            $this->check('Proprietário cadastrado', $this->ownerExists(), self::ERROR, 'criado pelo instalador (instalar.php)'),
+            $this->databaseVersionCheck(),
         ];
 
         foreach ($this->health->run()['checks'] as $name => $result) {
@@ -79,6 +80,28 @@ final class ProductionCheck
         }
 
         return false;
+    }
+
+    /**
+     * MySQL 5.7 funciona (CI testa), mas está sem atualizações de segurança desde outubro de 2023 e não aplica as
+     * restrições CHECK do esquema, que ficam só como documentação. Aviso, não erro: a troca depende da hospedagem.
+     *
+     * @return array{label: string, ok: bool, level: string, detail: string}
+     */
+    private function databaseVersionCheck(): array
+    {
+        try {
+            $version = (string) $this->db->pdo()->query('SELECT VERSION()')->fetchColumn();
+        } catch (Throwable) {
+            return $this->check('Versão do banco', true, self::WARNING, 'não foi possível conferir');
+        }
+        $isMaria = stripos($version, 'mariadb') !== false;
+        $number = (string) preg_replace('/^(\d+\.\d+\.\d+).*$/', '$1', $version);
+        $current = $isMaria || version_compare($number, '8.0.16', '>=');
+
+        return $this->check('MySQL 8 ou MariaDB', $current, self::WARNING, $current
+            ? ($isMaria ? 'MariaDB ' : 'MySQL ') . $number
+            : "MySQL {$number}: a loja funciona, mas esta versão está sem atualizações de segurança desde 10/2023. Peça MySQL 8 à hospedagem quando possível");
     }
 
     private function ownerExists(): bool

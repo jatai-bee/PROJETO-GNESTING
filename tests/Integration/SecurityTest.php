@@ -269,17 +269,20 @@ final class SecurityTest extends HttpTestCase
         self::assertStringContainsString('RewriteRule ^uploads/.*\.(php\d?|phtml|phar)$ - [F,L]', $public);
         self::assertMatchesRegularExpression('/<FilesMatch "\\\\\.\(php\\\\d\?\|phtml\|phar\)\$">\s*Require all denied/', $public);
 
-        // O único PHP em public/ é o front controller; nada de .env ou backups ali
+        // PHP em public/: só o front controller, o instalador e o cron por URL (liberados um a um no .htaccess)
+        self::assertStringContainsString('<FilesMatch "^(index|instalar|cron)\.php$">', $public);
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/public', \FilesystemIterator::SKIP_DOTS));
         foreach ($files as $file) {
             $name = $file->getFilename();
             if (preg_match('/\.(php\d?|phtml|phar)$/', $name) === 1) {
-                self::assertSame('index.php', $name, (string) $file);
+                self::assertContains($name, ['index.php', 'instalar.php', 'cron.php'], (string) $file);
+                self::assertSame($root . '/public', $file->getPath(), 'Nenhum PHP em subpastas de public/');
             }
             self::assertDoesNotMatchRegularExpression('/^\.env|\.(sql|bak|log|zip)$/', $name, (string) $file);
         }
 
         // .env fora do Git
-        self::assertMatchesRegularExpression('/^\/?\.env$/m', (string) file_get_contents($root . '/.gitignore'));
+        // \R: o checkout no Windows (core.autocrlf) traz o arquivo com CRLF
+        self::assertMatchesRegularExpression('/^\/?\.env\R/m', (string) file_get_contents($root . '/.gitignore'));
     }
 }

@@ -22,7 +22,7 @@ Pergunta de corte para qualquer funcionalidade:
 | Linguagem | PHP 8.2+ com `declare(strict_types=1)` | Enums nativos, readonly, tipagem; disponível em hospedagem compartilhada |
 | Base | MVC próprio e enxuto | Estrutura do briefing, controle total, sem dependência de framework pesado |
 | Dependências | `vlucas/phpdotenv`, `nikic/fast-route`, `phpunit/phpunit` (dev) | Cada pacote resolve um problema claro; nada além disso sem justificativa |
-| Banco | MySQL 8.0.16+ / MariaDB 10.6+ via PDO | Suportado pelas hospedagens; `CHECK` e `JSON` disponíveis |
+| Banco | MySQL 5.7.8+ / 8.x ou MariaDB 10.6+ via PDO | Suportado pelas hospedagens; `JSON` disponível. `CHECK` só é aplicado a partir do MySQL 8.0.16 (docs/02) |
 | Views | PHP nativo com escape obrigatório `e()` | Sem template engine extra; regra de escape documentada em [05-seguranca.md](05-seguranca.md) |
 | Front-end | HTML5 + CSS com tokens + JS puro (progressive enhancement) | Leve, rápido no mobile, sem build step |
 | Hospedagem | Compartilhada (cPanel) | Tudo síncrono; cron do cPanel; sem workers/filas persistentes |

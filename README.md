@@ -7,7 +7,7 @@ Modelo de negócio: **produtos padronizados + produção repetível + personaliz
 
 ## Stack
 
-PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv, FastRoute, PHPUnit) · HTML/CSS/JS sem build · hospedagem compartilhada (cPanel).
+PHP 8.2+ · MVC próprio · MySQL 5.7.8+ / 8.x ou MariaDB 10.6+ (PDO) · Composer (phpdotenv, FastRoute, Symfony YAML, PHPUnit) · HTML/CSS/JS sem build · hospedagem compartilhada (cPanel) · **instalação e operação pelo navegador, sem Terminal/SSH**.
 
 ## Documentação
 
@@ -28,11 +28,19 @@ PHP 8.2+ · MVC próprio · MySQL 8 / MariaDB 10.6+ (PDO) · Composer (phpdotenv
 | [12 — Checkout](docs/12-checkout.md) | compra com/sem conta, frete, Mercado Pago, webhook, expiração |
 | [13 — Pedidos](docs/13-pedidos.md) | gestão no painel, papéis, cancelamento e estorno, e-mails, SMTP, clientes |
 | [14 — Produção](docs/14-producao.md) | fila por etapa, retrabalho, previsão de carga, consumo de chapas, expedição e romaneio |
-| [15 — Marketing](docs/15-marketing.md) | cupons, WhatsApp e configurações da loja, sitemap, robots, Open Graph, JSON-LD, relacionados |
+| [15 — Marketing](docs/15-marketing.md) | cupons, WhatsApp e configurações da loja, sitemap, robots, Open Graph, JSON-LD, relacionados, **configuração em YAML** (loja, frete, categorias, materiais) |
 | [16 — Segurança, LGPD e testes](docs/16-seguranca-e-testes.md) | recuperação de senha, sessões, exportação/anonimização (LGPD), checklist de segurança → testes, `composer check`, CI |
-| [17 — Deploy e operação](docs/17-deploy-e-operacao.md) | pacote, instalação no cPanel, HTTPS, backups e restauração, manutenção, cron, `/saude` e alertas |
+| [17 — Deploy e operação](docs/17-deploy-e-operacao.md) | pacote (`gerar-pacote.cmd`), instalação pelo navegador, HTTPS, backups e restauração pelo painel, atualização do banco, manutenção, cron (Cron Jobs ou URL), `/saude` e alertas |
+| [18 — Guia de instalação e uso](docs/18-guia-de-instalacao-e-uso.md) | **passo a passo** para colocar a loja no ar e usá-la no dia a dia (por papel), rotinas e problemas comuns |
 
 ## Início rápido
+
+**Na hospedagem (sem Terminal):** gere o pacote com dois cliques em `gerar-pacote.cmd` (vai para a pasta
+`../PACOTE-CPANEL`), envie pelo Gerenciador de Arquivos para o `public_html`, extraia e abra
+`https://SEU-DOMINIO/instalar.php`. Depois, aponte a raiz do domínio para `public_html/public`. Passo a passo em
+[docs/18](docs/18-guia-de-instalacao-e-uso.md).
+
+**No computador (desenvolvimento):**
 
 ```bash
 composer install
@@ -44,7 +52,7 @@ composer serve        # http://localhost:8000  ·  painel em /admin
 composer check        # sintaxe + PHPStan + vulnerabilidades + testes (o mesmo que o CI roda)
 ```
 
-Detalhes em [docs/00-setup-laragon.md](docs/00-setup-laragon.md). Publicar em produção: [docs/17-deploy-e-operacao.md](docs/17-deploy-e-operacao.md).
+Detalhes em [docs/00-setup-laragon.md](docs/00-setup-laragon.md). Publicar e usar: [docs/18-guia-de-instalacao-e-uso.md](docs/18-guia-de-instalacao-e-uso.md) (passo a passo) e [docs/17-deploy-e-operacao.md](docs/17-deploy-e-operacao.md) (referência técnica).
 
 ## Roadmap
 
@@ -64,3 +72,4 @@ Cada etapa segue: analisar → planejar → implementar → testar → corrigir 
 | 10 | Marketing: cupons, SEO, WhatsApp, relacionados | ✅ concluída (195 testes no total) |
 | 11 | Segurança e testes | ✅ concluída (215 testes no total + PHPStan nível 6 + CI) |
 | 12 | Produção: servidor, HTTPS, backups, monitoramento | ✅ concluída (230 testes no total) |
+| 13 | Sem Terminal: instalador web, cron por URL, banco e restauração pelo painel, configuração em YAML, pacote pronto para o cPanel (`gerar-pacote.cmd`), compatível com MySQL 5.7 | ✅ concluída (255 testes no total) |

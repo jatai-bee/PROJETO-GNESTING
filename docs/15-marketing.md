@@ -1,4 +1,4 @@
-# 15 — Marketing: cupons, SEO, WhatsApp e relacionados (etapa 10)
+# 15 — Marketing: cupons, SEO, WhatsApp, relacionados e configuração em YAML (etapas 10 e 13)
 
 Sem migration nova: as tabelas `coupons`, `coupon_redemptions`, `settings` e as colunas `orders.discount_cents`,
 `coupon_id` e `coupon_code` já vinham do esquema da etapa 1 (docs/02).
@@ -118,3 +118,58 @@ Testes: `tests/Integration/MarketingTest.php`, e o caso do Mercado Pago com desc
 - Integração com a API oficial do WhatsApp Business (mensagens automáticas). Hoje é só link.
 - Feed de produtos (Google Merchant / Meta Catálogo) e pixels de anúncio. Esses dependem de consentimento de cookies
   (LGPD), que será tratado na etapa 11.
+
+## 7. Configuração da loja em YAML (etapa 13)
+
+Painel → **Configurações** (proprietário) → **Exportar configuração (.yaml)** / **Importar configuração**. Mesma ideia do
+backup de configuração do Delivery Premium BR: um arquivo de texto que se lê, se edita e se leva de uma instalação para
+outra, **sem Terminal**.
+
+### O que vai no arquivo
+
+| Seção | Conteúdo | Casado por |
+|---|---|---|
+| `loja` | WhatsApp (número, mensagem, botão flutuante), e-mail de contato, faixa de avisos | chave |
+| `frete` | UF de origem, frete grátis acima de, serviço do frete grátis, retirada no ateliê, **tabela por faixa e serviço** | faixa + serviço |
+| `categorias` | nome, slug, descrição, ordem, ativa, título e descrição para buscadores, `subcategorias` (um nível) | `slug` |
+| `materiais` | código, nome, espessura, unidade (`chapa`, `m2`, `unidade`), medidas da chapa, custo, estoque mínimo, ativo | `codigo` |
+
+Produtos, pedidos, clientes e cupons **não** entram: são dados de operação e estão no backup do banco (docs/17 §6).
+Segredos (senhas, tokens) também não: ficam no `.env`.
+
+```yaml
+frete:
+  uf_origem: BA
+  frete_gratis_acima: 300.0        # reais; null = sem frete grátis
+  servico_frete_gratis: economico
+  retirada: { ativa: true, rotulo: Retirada no ateliê, dias: 1 }
+  tabela:                          # local = mesma UF; N, NE, CO, SE, S = região de destino
+    SE:
+      economico: { ate_1kg: 29.9, por_kg_adicional: 6.0, prazo_dias: 8 }
+categorias:
+  - { nome: Luminárias, slug: luminarias, ordem: 80, ativa: true }
+materiais:
+  - { codigo: ACR-CRI-03, nome: Acrílico cristal, espessura_mm: 3, unidade: chapa, custo: 249.0 }
+```
+
+### Regras da importação
+
+- **Importar nunca apaga.** O que não está no arquivo fica como está: categorias, materiais, faixas e serviços de frete
+  ausentes, e até campos ausentes dentro de um item. Para tirar algo da loja, desative (`ativa: false`).
+- **Tudo ou nada.** O arquivo inteiro é conferido antes de gravar. Qualquer erro recusa a importação, e a mensagem diz
+  onde está: `categorias[2].slug`, `frete.tabela.SE.economico.ate_1kg`, `materiais[0].unidade`.
+- **Mesmas regras das telas:** categorias e materiais passam pelas regras dos formulários e pelos mesmos services (dois
+  níveis, slug único, código de material único), com auditoria.
+- **Chave desconhecida é erro** (um `whatsap_numero` digitado errado não some em silêncio).
+- Valores em reais aceitam `19.9`, `19` ou `"19,90"`.
+- **Saldo de material nunca muda pelo arquivo:** tem razão próprio (Materiais → Movimentar saldo). Material novo entra com saldo 0.
+- Arquivo de até 512 KB, extensão `.yaml`/`.yml`. Exportar e importar vão para a auditoria.
+
+### Tabela de frete sem editar código
+
+A tabela importada fica na tabela `settings` (`shipping.override`) e **prevalece** sobre `config/shipping.php`, que passa
+a ser só o valor padrão de instalações novas. Para ajustar o frete: exporte, edite `frete.tabela` num editor de texto,
+importe. Os serviços oferecidos (econômico, expresso) continuam definidos em `config/shipping.php`.
+
+Código: `app/Services/StoreConfig/ConfigExporter.php`, `ConfigImporter.php`, `app/Services/Shipping/ShippingSettings.php`.
+Testes: `tests/Integration/StoreConfigYamlTest.php`.

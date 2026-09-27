@@ -285,3 +285,10 @@ body.admin { flex-direction: column; background: var(--gn-cinza-100); }
   .no-print { display: none; }
   .slip { padding: 0; }
 }
+
+/* Sistema (etapa 13): atualização do banco pendente e restauração de backup pelo painel */
+.panel--attention { border-left: 4px solid var(--gn-alerta); background: #FBF3E3; }
+.restore summary { cursor: pointer; color: var(--color-accent-text); }
+.restore__form { display: grid; gap: var(--space-2); margin-top: var(--space-2); max-width: 22rem; white-space: normal; }
+.restore__form input[name="confirmacao"] { font: inherit; padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+code.break { word-break: break-all; }

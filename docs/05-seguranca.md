@@ -6,7 +6,8 @@ Política obrigatória para todas as etapas. Cada item indica **onde** é implem
 - PDO com `PDO::ATTR_EMULATE_PREPARES = false`, `PDO::ATTR_ERRMODE = ERRMODE_EXCEPTION`, `charset=utf8mb4`. (`app/Core/Database.php`)
 - **Somente prepared statements com parâmetros.** Proibido concatenar entrada em SQL.
 - Colunas de ordenação e direção (`ORDER BY`) vêm de **lista branca** no Repository, nunca direto da query string.
-- Usuário do banco em produção com privilégios mínimos (`SELECT, INSERT, UPDATE, DELETE`). Migrations e restauração de backup rodam com outro usuário (como fazer: docs/17 §3.3 e §3.5).
+- Usuário do banco em produção com privilégios mínimos (`SELECT, INSERT, UPDATE, DELETE`), e migrations/restauração com outro usuário, **quando há Terminal** (docs/17 §15).
+  Sem Terminal (etapa 13), o mesmo usuário instala, atualiza o banco e restaura backups pelo navegador, então precisa de todos os privilégios naquele banco (e só nele). A troca foi consciente: a alternativa era não conseguir instalar nem atualizar em planos sem SSH.
 
 ## 2. Saída: XSS
 - Toda variável impressa em view passa por `e()` = `htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')`.

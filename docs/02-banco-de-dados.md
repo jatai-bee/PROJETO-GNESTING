@@ -4,7 +4,14 @@ Arquivos:
 - Esquema: [`database/migrations/001_initial_schema.sql`](../database/migrations/001_initial_schema.sql)
 - Seed de desenvolvimento: [`database/seeds/001_seed.sql`](../database/seeds/001_seed.sql)
 
-Compatibilidade: **MySQL 8.0.16+** ou **MariaDB 10.6+**, InnoDB, `utf8mb4_unicode_ci`.
+Compatibilidade: **MySQL 5.7.8+ ou 8.x**, ou **MariaDB 10.6+**, InnoDB, `utf8mb4_unicode_ci`. O CI roda a suíte inteira em
+MySQL 8.4 e 5.7.
+
+> **MySQL 5.7 (comum em hospedagem compartilhada):** as restrições `CHECK` do esquema são aceitas mas **não aplicadas**
+> (só a partir do 8.0.16). Nenhuma regra depende delas: status vêm dos enums do PHP, totais são calculados pela aplicação
+> e a reserva de estoque usa `UPDATE` condicional. Elas são uma segunda barreira que o 5.7 não tem. O MySQL 5.7 está sem
+> atualizações de segurança desde outubro de 2023, e a lista de verificação de produção avisa para pedir MySQL 8 à
+> hospedagem.
 
 ## 1. Mapa das entidades
 

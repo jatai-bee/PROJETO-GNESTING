@@ -22,6 +22,7 @@ use GNesting\Services\Payment\PaymentGateway;
 use GNesting\Services\Payment\SimulatedGateway;
 use GNesting\Services\ProductionFileService;
 use GNesting\Services\Shipping\ShippingCalculator;
+use GNesting\Services\Shipping\ShippingSettings;
 use GNesting\Services\Shipping\TableShippingCalculator;
 use RuntimeException;
 
@@ -95,7 +96,7 @@ final class Bootstrap
             $basePath . '/storage/private/production_files',
             (int) $config->get('uploads.max_production_file_bytes'),
         ));
-        $container->set(ShippingCalculator::class, fn () => new TableShippingCalculator($config));
+        $container->set(ShippingCalculator::class, fn (Container $c) => new TableShippingCalculator($config, $c->get(ShippingSettings::class)));
         $container->set(ProductionPlanner::class, fn (Container $c) => new ProductionPlanner(
             $c->get(ProductionJobRepository::class),
             (int) $config->get('production.daily_capacity_minutes', 420),

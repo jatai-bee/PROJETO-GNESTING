@@ -6,3 +6,7 @@
 /.gitignore         export-ignore
 /phpstan.neon.dist  export-ignore
 /phpunit.xml        export-ignore
+/gerar-pacote.cmd   export-ignore
+
+# Scripts do Windows: sempre CRLF
+*.cmd text eol=crlf

@@ -19,6 +19,9 @@ return [
     // /saude?token=… mostra os detalhes (sem token: só "ok"/"falha"). Vazio = sem detalhes.
     'health_token' => (string) env('HEALTH_TOKEN', ''),
 
+    // Cron por URL (public/cron.php?token=…) para hospedagem sem Cron Jobs. Vazio = porta fechada (404).
+    'cron_token' => (string) env('CRON_TOKEN', ''),
+
     // Alertas por e-mail (erro 500, falha do cron ou do backup). Vazio = sem alertas.
     'alert_email' => (string) env('ALERT_EMAIL', ''),
     'alert_throttle_minutes' => 60,   // o mesmo alerta no máximo 1× por hora

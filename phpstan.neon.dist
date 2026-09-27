@@ -6,6 +6,8 @@ parameters:
         - config
         - database
         - public/index.php
+        - public/instalar.php
+        - public/cron.php
         - routes
     excludePaths:
         - app/Views

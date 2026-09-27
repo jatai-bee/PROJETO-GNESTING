@@ -47,6 +47,11 @@ final class DatabaseSchemaTest extends IntegrationTestCase
 
     public function testCheckConstraintRejectsInconsistentOrderTotal(): void
     {
+        // MySQL 5.7 aceita as restrições CHECK mas não as aplica (o CI roda também em 5.7)
+        $version = (string) $this->db->pdo()->query('SELECT VERSION()')->fetchColumn();
+        if (stripos($version, 'mariadb') === false && version_compare((string) preg_replace('/^(\d+\.\d+\.\d+).*$/', '$1', $version), '8.0.16', '<')) {
+            self::markTestSkipped("MySQL {$version} não aplica restrições CHECK.");
+        }
         $this->expectException(PDOException::class);
         $this->db->pdo()->exec(
             "INSERT INTO customers (name, email) VALUES ('Teste', 't@t.com')"

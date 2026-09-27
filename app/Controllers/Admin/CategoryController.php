@@ -14,7 +14,8 @@ use GNesting\Services\CategoryService;
 
 final class CategoryController extends Controller
 {
-    private const RULES = [
+    /** Também usadas na importação de configuração (YAML). */
+    public const RULES = [
         'name' => 'required|max:100',
         'slug' => 'max:120|slug',
         'parent_id' => 'integer',
@@ -24,7 +25,7 @@ final class CategoryController extends Controller
         'meta_description' => 'max:160',
     ];
 
-    private const LABELS = [
+    public const LABELS = [
         'name' => 'Nome', 'slug' => 'Endereço (slug)', 'parent_id' => 'Categoria principal',
         'description' => 'Descrição', 'sort_order' => 'Ordem', 'meta_title' => 'Título para buscadores',
         'meta_description' => 'Descrição para buscadores',

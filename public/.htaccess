@@ -18,14 +18,15 @@ Options -Indexes -MultiViews
     RewriteRule ^uploads/.*\.(php\d?|phtml|phar)$ - [F,L]
 </IfModule>
 
-# O único PHP executável pela web é o front controller. Qualquer outro script que vá
-# parar em public/ (upload, arquivo esquecido de manutenção) responde 403.
+# Só três PHP executam pela web: o front controller, o instalador (que se tranca depois de
+# usado) e o cron por URL (fechado sem CRON_TOKEN). Qualquer outro script que vá parar em
+# public/ (upload, arquivo esquecido de manutenção) responde 403.
 <FilesMatch "\.(php\d?|phtml|phar)$">
     Require all denied
 </FilesMatch>
-<Files "index.php">
+<FilesMatch "^(index|instalar|cron)\.php$">
     Require all granted
-</Files>
+</FilesMatch>
 
 # Arquivos ocultos (.git, .env copiado por engano...), exceto /.well-known (certificados)
 <IfModule mod_rewrite.c>

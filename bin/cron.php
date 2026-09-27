@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * Tarefas periódicas. No cPanel (Cron Jobs), a cada 15 minutos:
- *   php /home/USUARIO/gnesting/bin/cron.php
+ *   php /home/USUARIO/public_html/bin/cron.php
  *
  * As tarefas estão em app/Services/Operations/CronRunner.php (limpezas, pedidos não pagos,
  * backup diário). Silencioso quando tudo dá certo (o cPanel manda por e-mail qualquer saída do cron);

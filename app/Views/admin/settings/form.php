@@ -45,3 +45,21 @@ $f = fn (string $partial, array $vars): string => $this->partial($partial, $vars
         <button type="submit" class="btn btn--primary">Salvar</button>
     </div>
 </form>
+
+<section class="panel">
+    <h2 class="panel__title">Configuração em arquivo (YAML)</h2>
+    <p class="muted panel__intro">Um arquivo de texto com as configurações acima, a <strong>tabela de frete</strong>, as <strong>categorias</strong> e os
+        <strong>materiais</strong>. Serve para guardar uma cópia, levar a configuração do computador para a hospedagem e ajustar o frete
+        num editor de texto. Produtos, pedidos e clientes não entram: estão no backup do banco (Sistema).</p>
+    <p><a class="btn btn--secondary btn--sm" href="<?= e(url('/admin/configuracoes/exportar')) ?>">Exportar configuração (.yaml)</a></p>
+
+    <form method="post" action="<?= e(url('/admin/configuracoes/importar')) ?>" enctype="multipart/form-data" class="upload-form"
+          data-confirm="Importar este arquivo? Os valores dele substituem os atuais (nada é apagado).">
+        <?= csrf_field() ?>
+        <label for="arquivo-config"><strong>Importar configuração</strong></label>
+        <input id="arquivo-config" type="file" name="arquivo" accept=".yaml,.yml" required>
+        <p class="muted">Importar nunca apaga: categorias são encontradas pelo slug e materiais pelo código, e o que não estiver no arquivo fica
+            como está. O arquivo é conferido inteiro antes; se houver erro, nada é gravado e a mensagem diz onde. O saldo dos materiais não muda.</p>
+        <button type="submit" class="btn btn--secondary btn--sm">Importar</button>
+    </form>
+</section>

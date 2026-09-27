@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use GNesting\Core\Config;
 use GNesting\Core\Database;
+use GNesting\Core\Maintenance;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Core\Router;
@@ -17,10 +18,15 @@ use GNesting\Services\Operations\CronRunner;
 use GNesting\Services\Operations\DatabaseDumper;
 use GNesting\Services\Operations\Housekeeping;
 use GNesting\Services\Operations\ProductionCheck;
+use GNesting\Services\Operations\SchemaUpdater;
+use GNesting\Services\Operations\WebCron;
 use GNesting\Tests\Support\TestController;
 use GNesting\Tests\Support\TestFiles;
 
-/** Etapa 12: HTTPS/host canônico, proxies, manutenção, /saude, cron, backups, alertas e lista de verificação. */
+/**
+ * Etapa 12: HTTPS/host canônico, proxies, manutenção, /saude, cron, backups, alertas e lista de verificação.
+ * Etapa 13: cron por URL, uma execução por vez, atualização do banco e restauração pelo painel.
+ */
 final class OperationsTest extends HttpTestCase
 {
     private string $storage;
@@ -340,5 +346,118 @@ final class OperationsTest extends HttpTestCase
             fn ($c) => $c['label'] . ': ' . $c['detail'],
             array_filter($ready, fn ($c) => !$c['ok'] && $c['level'] === ProductionCheck::ERROR),
         )));
+    }
+
+    // ---- Etapa 13: operação sem Terminal -----------------------------------------------------
+
+    public function testCronByUrlNeedsTheTokenAndRunsTheSameTasks(): void
+    {
+        self::assertSame(404, $this->container->get(WebCron::class)->handle('qualquer')[0], 'Sem CRON_TOKEN a porta fica fechada');
+
+        $this->configOverrides['operations.cron_token'] = str_repeat('c', 40);
+        $this->newBrowser();
+        $cron = $this->container->get(WebCron::class);
+        self::assertSame([404, "não encontrado\n"], $cron->handle('errado'), 'Token errado responde igual à porta fechada');
+        self::assertSame(404, $cron->handle('')[0]);
+        self::assertFileDoesNotExist($this->storage . '/cache/cron.json');
+
+        self::assertSame([200, "ok\n"], $cron->handle(str_repeat('c', 40)));
+        $heartbeat = json_decode((string) file_get_contents($this->storage . '/cache/cron.json'), true);
+        self::assertArrayHasKey('pedidos_nao_pagos', $heartbeat['tasks']);
+    }
+
+    public function testOnlyOneCronRunsAtATime(): void
+    {
+        $lock = fopen($this->storage . '/cache/cron.lock', 'c');
+        self::assertNotFalse($lock);
+        flock($lock, LOCK_EX);
+        try {
+            $results = $this->container->get(CronRunner::class)->run();
+            self::assertSame(['execucao'], array_keys($results));
+            self::assertStringContainsString('em andamento', $results['execucao']['detail']);
+            self::assertFileDoesNotExist($this->storage . '/cache/cron.json', 'A segunda execução não roda nenhuma tarefa');
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+        self::assertArrayHasKey('backup', $this->container->get(CronRunner::class)->run(), 'Liberado, volta a rodar');
+    }
+
+    /** Banco vazio e separado (o de teste roda dentro de uma transação, e DDL faria commit). */
+    private function scratchDatabase(string $suffix): Database
+    {
+        $config = $this->container->get(Config::class)->get('database');
+        $name = $config['database'] . '_' . $suffix;
+        $this->db->serverConnection()->exec("DROP DATABASE IF EXISTS `{$name}`");
+        $this->db->serverConnection()->exec("CREATE DATABASE `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+        return new Database(['database' => $name] + $config);
+    }
+
+    private function dropScratch(Database $scratch): void
+    {
+        $this->db->serverConnection()->exec("DROP DATABASE IF EXISTS `{$scratch->databaseName()}`");
+    }
+
+    public function testOwnerAppliesPendingMigrationsFromThePanelAfterABackup(): void
+    {
+        $migrations = TestFiles::tempDir('gn-migrations');
+        file_put_contents($migrations . '/001_teste_painel.sql', "CREATE TABLE teste_painel (id INT PRIMARY KEY);\nINSERT INTO teste_painel VALUES (7);\n");
+        $this->configOverrides['paths.migrations'] = $migrations;
+        $this->configOverrides['paths.seeds'] = $migrations . '/sem-seeds';
+        $this->loginAdmin(AdminRole::Owner);
+        $scratch = $this->scratchDatabase('painel');
+        try {
+            $this->container->instance(SchemaUpdater::class, new SchemaUpdater($scratch, $this->container->get(Config::class)));
+
+            $page = $this->get('/admin/sistema')->body();
+            self::assertStringContainsString('Atualização do banco de dados pendente', $page);
+            self::assertStringContainsString('001_teste_painel', $page);
+
+            $this->post('/admin/sistema/atualizar-banco');
+            $page = $this->get('/admin/sistema')->body();
+            self::assertStringContainsString('Banco atualizado: 001_teste_painel.', $page);
+            self::assertStringNotContainsString('Atualização do banco de dados pendente', $page);
+            self::assertSame(7, (int) $scratch->pdo()->query('SELECT id FROM teste_painel')->fetchColumn());
+            self::assertCount(1, $this->container->get(BackupService::class)->list(), 'Backup antes de alterar o banco');
+            self::assertSame(1, (int) $this->fetchValue("SELECT COUNT(*) FROM audit_logs WHERE entity_type = 'database_schema'"));
+
+            $this->post('/admin/sistema/atualizar-banco');
+            self::assertStringContainsString('já está atualizado', $this->get('/admin/sistema')->body());
+        } finally {
+            $this->dropScratch($scratch);
+        }
+    }
+
+    public function testOwnerRestoresABackupFromThePanelOnlyWithConfirmation(): void
+    {
+        $this->loginAdmin(AdminRole::Owner);
+        $this->db->pdo()->exec("UPDATE products SET name = 'Nome no backup' WHERE slug = 'relogio-geometrico-g-nesting'");
+        $name = $this->container->get(BackupService::class)->create(false)['name'];
+        $scratch = $this->scratchDatabase('restauracao_painel');
+        try {
+            // A restauração vai para o banco separado; o backup é o do banco de teste
+            $this->container->instance(BackupService::class, new BackupService(new DatabaseDumper($scratch), $this->container->get(Config::class)));
+            $tables = fn (): int => (int) $scratch->pdo()->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()')->fetchColumn();
+
+            $this->post("/admin/sistema/backups/{$name}/restaurar", ['confirmacao' => 'sim']);
+            self::assertStringContainsString('digite RESTAURAR', $this->get('/admin/sistema')->body());
+            self::assertSame(0, $tables(), 'Sem a confirmação nada muda');
+            self::assertNull($this->container->get(Maintenance::class)->status());
+            self::assertSame(404, $this->post('/admin/sistema/backups/2020-01-01_000000/restaurar', ['confirmacao' => 'RESTAURAR'])->status());
+
+            $this->post("/admin/sistema/backups/{$name}/restaurar", ['confirmacao' => ' restaurar ']);
+            self::assertSame('Nome no backup', $scratch->pdo()->query("SELECT name FROM products WHERE slug = 'relogio-geometrico-g-nesting'")->fetchColumn());
+            self::assertNotNull($this->container->get(Maintenance::class)->status(), 'A loja fica em manutenção para conferir');
+            $page = $this->get('/admin/sistema');
+            self::assertSame(200, $page->status(), 'Quem restaurou continua com acesso');
+            self::assertStringContainsString("Backup {$name} restaurado", $page->body());
+            self::assertCount(2, $this->container->get(BackupService::class)->list(), 'Cópia do estado anterior guardada');
+
+            $this->newBrowser();
+            self::assertSame(503, $this->get('/')->status(), 'Clientes veem "Voltamos já"');
+        } finally {
+            $this->dropScratch($scratch);
+        }
     }
 }

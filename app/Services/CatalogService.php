@@ -74,8 +74,8 @@ final class CatalogService
     /**
      * Normaliza os filtros vindos da URL.
      *
-     * @param array{q?: string, min?: string, max?: string, ordem?: string} $input
-     * @return array{q: string, terms: list<string>, min_cents: ?int, max_cents: ?int, sort: string}
+     * @param array<string, string> $input q, min, max, ordem e os filtros rápidos (CatalogRepository::FLAGS, valor "1")
+     * @return array{q: string, terms: list<string>, min_cents: ?int, max_cents: ?int, sort: string, flags: list<string>}
      */
     public function normalizeFilters(array $input): array
     {
@@ -109,7 +109,7 @@ final class CatalogService
     }
 
     /**
-     * @param array{terms: list<string>, min_cents: ?int, max_cents: ?int, sort: string} $filters
+     * @param array{terms: list<string>, min_cents: ?int, max_cents: ?int, sort: string, flags?: list<string>} $filters
      * @param list<int> $categoryIds vazio = todas
      * @return array{products: list<array<string, mixed>>, paginator: Paginator}
      */

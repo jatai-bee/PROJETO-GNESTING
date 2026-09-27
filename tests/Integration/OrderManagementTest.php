@@ -225,10 +225,17 @@ final class OrderManagementTest extends IntegrationTestCase
         $page = $this->get("/pedido/{$link[1]}/confirmacao", ['chave' => $link[2]])->body();
         self::assertStringContainsString('AA123456789BR', $page);
         self::assertStringContainsString('https://rastreamento.correios.com.br/app/index.php', $page);
+        // O texto da situação acompanha o pedido (antes dizia "entrou na fila de produção" até na entrega)
+        self::assertStringContainsString('Seu pedido foi enviado. Acompanhe a entrega pelo código de rastreio abaixo.', $page);
+        self::assertStringNotContainsString('entrou na fila de produção', $page);
 
         $this->loginAs(AdminRole::Manager);
         $this->post("/admin/pedidos/{$id}/status", ['target' => 'delivered']);
         self::assertSame('delivered', $this->order()['status']);
+        $this->newBrowser();
+        self::assertStringContainsString('Pedido entregue. Obrigado por comprar na G-Nesting!',
+            $this->get("/pedido/{$link[1]}/confirmacao", ['chave' => $link[2]])->body());
+        $this->loginAs(AdminRole::Manager);
         self::assertNotNull($this->fetchValue("SELECT delivered_at FROM shipments WHERE order_id = {$id}"));
         self::assertSame(403, $this->post("/admin/pedidos/{$id}/status", ['target' => 'in_production'])->status(), 'Entregue é final');
 

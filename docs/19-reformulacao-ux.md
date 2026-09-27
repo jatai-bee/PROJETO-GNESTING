@@ -146,7 +146,23 @@ Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro
 - O endereço atual (item de menu marcado) vem do Kernel (`currentPath`, `currentQuery`), não de `$_SERVER` nos
   templates.
 
-## 10. Testes
+## 10. Correções encontradas ao produzir o manual do usuário (27/09/2026)
+
+As telas do [manual do usuário](20-manual-do-usuario.md) foram fotografadas uma a uma, e a revisão encontrou:
+
+- **Menu ☰ cortado no celular (loja e painel):** `backdrop-filter` no `.site-header` e na `.admin-topbar` faz o
+  cabeçalho virar o bloco de referência dos filhos `position: fixed` (Chrome e Safari). A gaveta ficava presa à
+  altura do cabeçalho. O desfoque passou para um `::before` atrás do conteúdo.
+- **Texto da página do pedido:** a situação vinha sempre com "Pagamento confirmado. Seu pedido entrou na fila de
+  produção…", mesmo para pedidos enviados ou entregues. Agora o texto acompanha a situação (produção, preparando o
+  envio, enviado com ou sem rastreio, entregue). Teste em `OrderManagementTest`.
+- **Usuários → "O que cada papel pode fazer":** ainda dizia "nas próximas etapas". Reescrito com as permissões reais.
+- **Configurações → Importar configuração:** o campo de arquivo estava sem o estilo dos formulários.
+- **Variações:** o aviso citava uma "aba Dados" que não existe (agora: abas Comercial e Estoque e envio).
+- **Dados de demonstração:** a produção terminava semanas depois do pagamento (relatório de produção com "No
+  prazo 0%" e "Tempo médio 27 dias"). Agora leva de 1 a 2,2 vezes o prazo prometido, sem passar do envio.
+
+## 11. Testes
 
 `StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos), `AccessibilityTest` (regras de acessibilidade em 30 telas), `PwaTest` (manifestos, ícones, service worker, página
 offline, faixa de categorias) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).

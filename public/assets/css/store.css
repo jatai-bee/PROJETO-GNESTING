@@ -11,7 +11,9 @@
 }
 
 /* ---- Cabeçalho ------------------------------------------------------------ */
-.site-header { position: sticky; top: 0; z-index: var(--z-header); background: rgb(255 255 255 / 0.96); backdrop-filter: saturate(1.4) blur(8px); border-bottom: var(--border-hairline); }
+.site-header { position: sticky; top: 0; z-index: var(--z-header); border-bottom: var(--border-hairline); }
+/* O desfoque fica numa camada à parte: backdrop-filter no próprio cabeçalho prenderia o menu ☰ (position: fixed) à altura dele */
+.site-header::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgb(255 255 255 / 0.96); backdrop-filter: saturate(1.4) blur(8px); }
 .header-main {
   display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "menu brand actions" "search search search";
   align-items: center; gap: var(--space-3) var(--space-3); padding-block: var(--space-3);

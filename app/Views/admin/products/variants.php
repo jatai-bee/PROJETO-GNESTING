@@ -92,7 +92,7 @@ $canAddOption = count($options) < \GNesting\Services\VariantService::MAX_OPTIONS
             </form>
         <?php endif ?>
     </div>
-    <p class="muted">Cada variação tem SKU, preço, medidas e estoque próprios. A padrão aparece selecionada na loja e é editada na aba Dados.</p>
+    <p class="muted">Cada variação tem SKU, preço, medidas e estoque próprios. A padrão aparece selecionada na loja; o preço e o estoque dela também ficam nas abas Comercial e Estoque e envio.</p>
 
     <div class="table-wrap">
         <table class="table">

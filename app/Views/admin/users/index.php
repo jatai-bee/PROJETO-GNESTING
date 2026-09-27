@@ -30,9 +30,9 @@ use GNesting\Enums\AdminRole;
 <section class="panel">
     <h2 class="panel__title">O que cada papel pode fazer</h2>
     <dl class="role-list">
-        <div><dt>Proprietário</dt><dd>Tudo, inclusive usuários do painel e auditoria.</dd></div>
-        <div><dt>Gestor</dt><dd>Catálogo (categorias, produtos, imagens) e, nas próximas etapas, pedidos, cupons e expedição.</dd></div>
-        <div><dt>Produção</dt><dd>Nas próximas etapas: ficha de produção, fila de produção e expedição.</dd></div>
-        <div><dt>Atendimento</dt><dd>Nas próximas etapas: consulta de pedidos e clientes.</dd></div>
+        <div><dt>Proprietário</dt><dd>Tudo: também configurações, usuários do painel, auditoria e sistema (backups e manutenção).</dd></div>
+        <div><dt>Gestor</dt><dd>Catálogo, cupons, relatórios, pedidos (inclusive cancelar), clientes, produção, estoque e expedição.</dd></div>
+        <div><dt>Produção</dt><dd>Fichas de produção, matérias-primas, fila de produção, estoque e expedição. Consulta pedidos e registra notas internas.</dd></div>
+        <div><dt>Atendimento</dt><dd>Consulta pedidos e clientes (CPF parcial), envia mensagens ao cliente, reenvia o link do pedido e registra notas.</dd></div>
     </dl>
 </section>

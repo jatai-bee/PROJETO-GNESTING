@@ -601,18 +601,26 @@ final class DemoDataService
             $this->pdo->prepare('UPDATE orders SET paid_at = ? WHERE id = ?')->execute([$paid, $orderId]);
             $this->pdo->prepare('UPDATE payments SET created_at = ?, paid_at = ?, updated_at = ? WHERE order_id = ?')->execute([$at(0), $paid, $paid, $orderId]);
             $this->pdo->prepare('UPDATE coupon_redemptions SET created_at = ? WHERE order_id = ?')->execute([$at(0), $orderId]);
-            // produção começa depois do pagamento
+            // produção começa depois do pagamento e leva perto do prazo prometido (de 1 a 2,2 vezes, em dias corridos):
+            // quase tudo no prazo, alguns atrasados. Sem passar do envio nem de agora.
+            $days = $this->pdo->prepare('SELECT production_days FROM orders WHERE id = ?');
+            $days->execute([$orderId]);
+            $paidTs = (int) strtotime($paid . ' UTC');
+            $lead = (int) (max(1, (int) $days->fetchColumn()) * 86400 * (1 + (($n * 13) % 7) / 5));
+            $limit = (isset($dates['shipped']) ? (int) strtotime($dates['shipped'] . ' UTC') : time()) - 3600;
+            $lead = max(3600, min($lead, $limit - $paidTs));
+            $job = static fn (float $share): string => gmdate('Y-m-d H:i:s', $paidTs + (int) ($lead * $share));
             $this->pdo->prepare(
                 'UPDATE production_jobs SET created_at = ?, started_at = IF(started_at IS NULL, NULL, ?), stage_started_at = ?,
                         finished_at = IF(finished_at IS NULL, NULL, ?) WHERE order_id = ?'
-            )->execute([$paid, $at((int) ($span * 0.2)), $at((int) ($span * 0.6)), $at((int) ($span * 0.7)), $orderId]);
+            )->execute([$paid, $job(0.2), $job(0.6), $job(1.0), $orderId]);
             $this->pdo->prepare(
                 'UPDATE production_job_events e JOIN production_jobs j ON j.id = e.job_id SET e.created_at = ? WHERE j.order_id = ?'
-            )->execute([$at((int) ($span * 0.5)), $orderId]);
+            )->execute([$job(0.5), $orderId]);
             $this->pdo->prepare(
                 "UPDATE material_movements m JOIN production_jobs j ON m.reference_type = 'production_job' AND m.reference_id = j.id
                     SET m.created_at = ? WHERE j.order_id = ?"
-            )->execute([$at((int) ($span * 0.3)), $orderId]);
+            )->execute([$job(0.3), $orderId]);
         }
         $this->pdo->prepare("UPDATE inventory_movements SET created_at = ? WHERE reference_type = 'order' AND reference_id = ?")->execute([$at(0), $orderId]);
         $shipped = $dates['shipped'] ?? null;

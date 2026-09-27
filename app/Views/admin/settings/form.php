@@ -56,10 +56,12 @@ $f = fn (string $partial, array $vars): string => $this->partial($partial, $vars
     <form method="post" action="<?= e(url('/admin/configuracoes/importar')) ?>" enctype="multipart/form-data" class="upload-form"
           data-confirm="Importar este arquivo? Os valores dele substituem os atuais (nada é apagado).">
         <?= csrf_field() ?>
-        <label for="arquivo-config"><strong>Importar configuração</strong></label>
-        <input id="arquivo-config" type="file" name="arquivo" accept=".yaml,.yml" required>
-        <p class="muted">Importar nunca apaga: categorias são encontradas pelo slug e materiais pelo código, e o que não estiver no arquivo fica
-            como está. O arquivo é conferido inteiro antes; se houver erro, nada é gravado e a mensagem diz onde. O saldo dos materiais não muda.</p>
-        <button type="submit" class="btn btn--secondary btn--sm">Importar</button>
+        <div class="field">
+            <label for="arquivo-config">Importar configuração</label>
+            <input id="arquivo-config" type="file" name="arquivo" accept=".yaml,.yml" required>
+            <small class="field__hint">Importar nunca apaga: categorias são encontradas pelo slug e materiais pelo código, e o que não estiver no arquivo fica
+                como está. O arquivo é conferido inteiro antes; se houver erro, nada é gravado e a mensagem diz onde. O saldo dos materiais não muda.</small>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn btn--secondary btn--sm">Importar</button></div>
     </form>
 </section>

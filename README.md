@@ -33,6 +33,7 @@ PHP 8.2+ · MVC próprio · MySQL 5.7.8+ / 8.x ou MariaDB 10.6+ (PDO) · Compose
 | [17 — Deploy e operação](docs/17-deploy-e-operacao.md) | pacote (`gerar-pacote.cmd`), instalação pelo navegador, HTTPS, backups e restauração pelo painel, atualização do banco, manutenção, cron (Cron Jobs ou URL), `/saude` e alertas |
 | [18 — Guia de instalação e uso](docs/18-guia-de-instalacao-e-uso.md) | **passo a passo** para colocar a loja no ar e usá-la no dia a dia (por papel), rotinas e problemas comuns |
 | [19 — Reformulação de UX](docs/19-reformulacao-ux.md) | auditoria, design system v2, nova loja (menu de categorias, filtros rápidos, favoritos, etapas da compra) e dados de demonstração removíveis |
+| [20 — Manual do usuário](docs/20-manual-do-usuario.md) | manual completo para clientes e equipe, com as telas reais numeradas: loja, compra, pedidos, painel, produção, expedição, relatórios, glossário, perguntas frequentes e fluxos (também em `.docx`) |
 
 ## Início rápido
 

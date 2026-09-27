@@ -63,7 +63,15 @@ $milestones = ['Pedido feito', 'Pagamento', 'Produção', 'Enviado', 'Entregue']
         <?php elseif ($status === OrderStatus::Cancelled): ?>
             <p><?= e($order['cancel_reason'] ?: 'Este pedido foi cancelado.') ?></p>
         <?php else: ?>
-            <p>Pagamento confirmado. Seu pedido entrou na fila de produção: fica pronto em até <?= e($order['production_days']) ?> dias úteis e depois segue para entrega.</p>
+            <p><?= e(match ($status) {
+                OrderStatus::InProduction, OrderStatus::Finishing, OrderStatus::QualityControl => 'Seu pedido está sendo produzido no nosso ateliê. Assim que ficar pronto, preparamos o envio.',
+                OrderStatus::Packaging, OrderStatus::ReadyToShip => 'Seu pedido está pronto e sendo preparado para o envio.',
+                OrderStatus::Shipped => $shipment !== null && !empty($shipment['tracking_code'])
+                    ? 'Seu pedido foi enviado. Acompanhe a entrega pelo código de rastreio abaixo.'
+                    : 'Seu pedido foi enviado e está a caminho.',
+                OrderStatus::Delivered => 'Pedido entregue. Obrigado por comprar na G-Nesting!',
+                default => "Pagamento confirmado. Seu pedido entrou na fila de produção: fica pronto em até {$order['production_days']} dias úteis e depois segue para entrega.",
+            }) ?></p>
         <?php endif ?>
     </section>
 

@@ -212,7 +212,7 @@ recarregue a página (F5).
 | Mercado Pago (opcional) | pode deixar em branco agora e preencher no passo 1.12 |
 | Dados de demonstração (opcional) | marque **Instalar dados de demonstração** para ver a loja e o painel funcionando antes de cadastrar os seus produtos (veja o quadro abaixo) |
 
-> **Dados de demonstração.** Com a caixa marcada, o assistente cria 34 produtos com fotos, 31 categorias, 16 clientes e
+> **Dados de demonstração.** Com a caixa marcada, o assistente cria 34 produtos com fotos, 32 categorias (7 principais e 25 subcategorias), 16 clientes e
 > 29 pedidos em todas as etapas (pagamento, produção, envio, entregues e cancelados). Nenhum e-mail é enviado a esses
 > clientes fictícios. Serve para conhecer cada tela com dados de exemplo. Quando for cadastrar os seus produtos, apague
 > tudo em **Sistema → Remover dados de demonstração** (passo 2.1). Pode marcar mesmo instalando direto na hospedagem.

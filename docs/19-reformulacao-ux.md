@@ -52,7 +52,7 @@ Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro
 
 | | Quantidade |
 |---|---|
-| Categorias | 7 principais, 24 subcategorias |
+| Categorias | 7 principais, 25 subcategorias |
 | Produtos | 34 com duas ilustrações cada (geradas por `ProductIllustrator`), variações, estoque, ficha de produção e personalização; 1 inativo e 2 esgotados de propósito |
 | Matérias-primas | 12 (uma abaixo do mínimo e uma zerada, para os alertas) |
 | Clientes | 16 (11 com conta; senha `cliente-demo-123`) |

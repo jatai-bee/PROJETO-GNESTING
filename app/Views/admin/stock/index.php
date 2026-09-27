@@ -56,7 +56,7 @@ $back = $currentPath . ($_SERVER['QUERY_STRING'] ?? '' ? '?' . $_SERVER['QUERY_S
             <p class="muted"><?= $filter === 'alerta' ? 'Nada em falta: todo produto de pronta entrega está acima do mínimo.' : 'Nenhum produto de pronta entrega. Produtos sob encomenda não controlam quantidade.' ?></p>
         <?php else: ?>
             <div class="table-wrap">
-                <table class="table stock-table">
+                <table class="table table--stack stock-table">
                     <thead><tr><th><span class="visually-hidden">Foto</span></th><th>Produto</th><th>Situação</th><th class="table__num">Disponível</th><th class="table__num">Reservado</th><th>Acerto de contagem</th></tr></thead>
                     <tbody>
                     <?php foreach ($goods as $g): ?>
@@ -67,10 +67,10 @@ $back = $currentPath . ($_SERVER['QUERY_STRING'] ?? '' ? '?' . $_SERVER['QUERY_S
                                 <a href="<?= e(url("/admin/produtos/{$g['product_id']}/editar#estoque")) ?>"><strong><?= e($g['name']) ?></strong></a><?php if ($g['variant_name']): ?> <span class="muted">· <?= e($g['variant_name']) ?></span><?php endif ?>
                                 <br><code><?= e($g['sku']) ?></code><?php if (!$g['is_active']): ?> <span class="badge">inativo</span><?php endif ?>
                             </td>
-                            <td><span class="status status--<?= e($tone) ?>"><?= e($label) ?></span></td>
-                            <td class="table__num"><?= $g['stock_mode'] === 'stock' ? '<strong>' . e($g['available']) . '</strong>' . ($g['reorder_level'] !== null ? '<br><small class="muted">mín. ' . e($g['reorder_level']) . '</small>' : '') : '—' ?></td>
-                            <td class="table__num"><?= $g['stock_mode'] === 'stock' ? e($g['quantity_reserved']) : '—' ?></td>
-                            <td>
+                            <td data-label="Situação"><span class="status status--<?= e($tone) ?>"><?= e($label) ?></span></td>
+                            <td class="table__num" data-label="Disponível"><?= $g['stock_mode'] === 'stock' ? '<strong>' . e($g['available']) . '</strong>' . ($g['reorder_level'] !== null ? '<br><small class="muted">mín. ' . e($g['reorder_level']) . '</small>' : '') : '—' ?></td>
+                            <td class="table__num" data-label="Reservado"><?= $g['stock_mode'] === 'stock' ? e($g['quantity_reserved']) : '—' ?></td>
+                            <td class="table__actions">
                                 <?php if ($g['stock_mode'] === 'stock'): ?>
                                     <form method="post" action="<?= e(url('/admin/estoque/' . $g['variant_id'] . '/ajuste')) ?>" class="stock-adjust">
                                         <?= csrf_field() ?>

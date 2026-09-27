@@ -182,6 +182,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .choice:has(input:checked) { border-color: var(--color-accent-text); box-shadow: 0 0 0 3px rgb(196 83 45 / 0.12); }
 .choice input { margin-top: 3px; accent-color: var(--gn-kerf); width: 18px; height: 18px; flex-shrink: 0; }
 .choice__row { display: flex; justify-content: space-between; gap: var(--space-3); flex: 1; }
+.choice__row > strong { white-space: nowrap; }
 
 /* ---- Alertas -------------------------------------------------------------- */
 .flash-area { padding-top: var(--space-4); }
@@ -208,7 +209,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .breadcrumbs { padding: var(--space-4) 0 var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
 .breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; list-style: none; padding: 0; margin: 0; }
 .breadcrumbs li { display: inline-flex; align-items: center; gap: 6px; }
-.breadcrumbs li + li::before { content: "›"; color: var(--color-text-subtle); }
+.breadcrumbs li + li::before { content: "›"; color: var(--gn-cinza-400); }
 .breadcrumbs a { color: var(--color-text-muted); text-decoration: none; }
 .breadcrumbs a:hover { color: var(--color-text); text-decoration: underline; }
 .breadcrumbs [aria-current] { color: var(--color-text); font-weight: var(--weight-semibold); }
@@ -243,7 +244,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---- Etapas (checkout, pedido, produção) ------------------------------------ */
 .steps { display: flex; gap: var(--space-2); counter-reset: step; list-style: none; padding: 0; margin: 0; overflow-x: auto; }
-.steps li { flex: 1; min-width: 88px; display: flex; flex-direction: column; gap: 6px; font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--color-text-subtle); }
+.steps li { flex: 1; min-width: 64px; display: flex; flex-direction: column; gap: 6px; font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--color-text-subtle); }
 .steps li::before {
   counter-increment: step; content: counter(step);
   display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;

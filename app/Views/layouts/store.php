@@ -122,7 +122,7 @@ $icon = fn (string $name, int $size = 20): string => $this->partial('partials/ic
 
         <form class="site-search" method="get" action="<?= e(url('/busca')) ?>" role="search">
             <label class="visually-hidden" for="busca-q">Buscar produtos</label>
-            <input id="busca-q" type="search" name="q" value="<?= e($searchQuery) ?>" placeholder="O que você procura? Ex.: relógio, organizador, nicho" maxlength="80" autocomplete="off">
+            <input id="busca-q" type="search" name="q" value="<?= e($searchQuery) ?>" placeholder="Buscar: relógio, nicho, presente…" maxlength="80" autocomplete="off">
             <button type="submit" class="site-search__button">
                 <?= $icon('search', 18) ?>
                 <span class="visually-hidden">Buscar</span>

@@ -12,6 +12,20 @@
 
   document.documentElement.classList.add('js');
 
+  // Gavetas do menu (<details>): Esc fecha e devolve o foco ao botão que abriu
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    document.querySelectorAll('details.nav-drawer[open], details.admin-drawer[open]').forEach(function (drawer) {
+      drawer.open = false;
+      var summary = drawer.querySelector('summary');
+      if (summary) {
+        summary.focus();
+      }
+    });
+  });
+
   // Troca de variação: preço, SKU, medidas e disponibilidade vêm do data-variant da opção
   // (o servidor continua sendo a fonte do preço: o carrinho recalcula tudo).
   function applyVariant(select) {

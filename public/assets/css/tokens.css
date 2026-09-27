@@ -66,7 +66,7 @@
   --color-surface-warm:  var(--gn-carvalho-claro);
   --color-text:          var(--gn-grafite);
   --color-text-muted:    var(--gn-cinza-600);
-  --color-text-subtle:   var(--gn-cinza-400);
+  --color-text-subtle:   var(--gn-cinza-600);  /* texto informativo sempre ≥ 4.5:1 (etapa 14); cinza-400 só em bordas e separadores */
   --color-border:        var(--gn-cinza-300);
   --color-line:          var(--gn-cinza-200);
   --color-accent:        var(--gn-kerf);

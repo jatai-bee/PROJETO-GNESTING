@@ -17,6 +17,7 @@
                     <a class="btn btn--primary" href="<?= e(url('/produtos')) ?>">Ver produtos</a>
                 </div>
             <?php else: ?>
+                <h2 class="visually-hidden">Produtos favoritos</h2>
                 <div class="product-grid product-grid--3">
                     <?php foreach ($products as $product): ?>
                         <?= $this->partial('partials/product-card', ['product' => $product]) ?>

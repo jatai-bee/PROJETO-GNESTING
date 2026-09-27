@@ -5,6 +5,20 @@
 (function () {
   'use strict';
 
+  // Gavetas do menu (<details>): Esc fecha e devolve o foco ao botão que abriu
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    document.querySelectorAll('details.nav-drawer[open], details.admin-drawer[open]').forEach(function (drawer) {
+      drawer.open = false;
+      var summary = drawer.querySelector('summary');
+      if (summary) {
+        summary.focus();
+      }
+    });
+  });
+
   // Confirmação antes de ações destrutivas: <form data-confirm="Mensagem">
   document.addEventListener('submit', function (event) {
     var form = event.target;

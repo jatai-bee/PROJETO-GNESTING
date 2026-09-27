@@ -10,7 +10,7 @@ A reformulação acontece em fases, cada uma revisada com capturas de tela antes
 | 2 | Painel: menu agrupado, trilha de navegação, dashboard com indicadores e gráficos | concluída |
 | 3 | Produtos (abas, custo e margem, SEO), categorias em árvore, clientes | concluída |
 | 4 | Pedidos (tabela, cartões, detalhe), fila e ordens de produção, estoque, expedição, relatórios | concluída |
-| 5 | Revisão final de design e acessibilidade | próxima |
+| 5 | Revisão final de design e acessibilidade | concluída |
 
 ## 1. Auditoria (antes)
 
@@ -111,6 +111,21 @@ Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro
   - abas: vendas (dia a dia; agrupado por mês acima de 92 dias), produtos (com custo e margem), categorias, clientes e produção (peças concluídas, % no prazo, tempo médio do pagamento ao pronto, retrabalho);
   - "Baixar CSV" gera o arquivo com `;` e acento correto para o Excel. Texto que começa com `=`, `+`, `-` ou `@` recebe um apóstrofo para não virar fórmula. A exportação fica na auditoria.
 
-## 8. Testes
+## 8. Revisão final: acessibilidade e celular
 
-`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).
+- **Auditoria automática** do HTML de 50 telas (loja, conta do cliente e painel). Verifica:
+  - idioma e `<main>`;
+  - um único h1 e títulos sem pular nível;
+  - imagem com `alt`, campo com rótulo, botão e link com nome;
+  - id único e nenhum `style=""`.
+
+  Ficou como teste permanente: `AccessibilityTest`, com 30 telas.
+- **Contraste (WCAG AA, 4,5:1 para texto):**
+  - o tom "sutil" (`--color-text-subtle`) passava só 2,4:1 sobre o fundo papel. Agora usa o mesmo cinza do texto secundário (5,15:1); o cinza claro ficou só para bordas e separadores;
+  - o terracota `#C4532D` (4,1:1) não é usado como texto, só em botões (texto branco, 4,54:1), ícones e bordas (mínimo 3:1). Texto de destaque usa o `kerf-escuro` (5,44:1).
+- **Teclado:** foco visível em tudo; menu de categorias abre pelo teclado; Esc fecha as gavetas da loja e do painel e devolve o foco ao botão.
+- **Celular (390 px):** estoque vira cartões, preço do frete não quebra, as quatro etapas da compra cabem na tela e o exemplo da busca ficou curto.
+
+## 9. Testes
+
+`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos), `AccessibilityTest` (regras de acessibilidade em 30 telas) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).

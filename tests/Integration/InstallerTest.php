@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace GNesting\Tests\Integration;
 
 use Dotenv\Dotenv;
+use GNesting\Core\Bootstrap;
 use GNesting\Core\Config;
+use GNesting\Core\Database;
 use GNesting\Install\InstallForm;
 use GNesting\Install\Installer;
+use GNesting\Services\Demo\DemoDataService;
 use GNesting\Tests\Support\TestFiles;
 use PDO;
 use RuntimeException;
@@ -123,15 +126,44 @@ final class InstallerTest extends IntegrationTestCase
         self::assertTrue($installer->isInstalled());
     }
 
-    public function testLocalInstallCanBringSampleDataAndUsesSimulatedPayment(): void
+    public function testLocalInstallCanBringDemoDataThatIsRemovedWithoutLeftovers(): void
     {
         $installer = $this->installer();
-        $installer->run($this->form('http://localhost:8000', ['sample_data' => '1']));
+        $log = $installer->run($this->form('http://localhost:8000', ['sample_data' => '1']));
 
         $env = Dotenv::parse((string) file_get_contents($this->dir . '/.env'));
         self::assertSame(['local', 'true', 'simulado', 'log', 'false'],
             [$env['APP_ENV'], $env['APP_DEBUG'], $env['PAYMENT_PROVIDER'], $env['MAIL_DRIVER'], $env['SESSION_SECURE_COOKIE']]);
-        self::assertGreaterThan(0, (int) $this->scratchPdo()->query('SELECT COUNT(*) FROM products')->fetchColumn());
+        self::assertStringContainsString('Dados de demonstração instalados', implode("
+", $log));
+
+        // Volume mínimo pedido na reformulação (docs/19): 5 categorias, 15 subcategorias, 30 produtos, 15 clientes, 25 pedidos
+        $pdo = $this->scratchPdo();
+        $count = static fn (string $sql): int => (int) $pdo->query($sql)->fetchColumn();
+        self::assertGreaterThanOrEqual(5, $count('SELECT COUNT(*) FROM categories WHERE parent_id IS NULL'));
+        self::assertGreaterThanOrEqual(15, $count('SELECT COUNT(*) FROM categories WHERE parent_id IS NOT NULL'));
+        self::assertGreaterThanOrEqual(30, $count('SELECT COUNT(*) FROM products'));
+        self::assertGreaterThanOrEqual(15, $count('SELECT COUNT(*) FROM customers'));
+        self::assertGreaterThanOrEqual(25, $count('SELECT COUNT(*) FROM orders'));
+        self::assertGreaterThanOrEqual(10, $count('SELECT COUNT(DISTINCT status) FROM orders'), 'Pedidos em todas as etapas');
+        self::assertGreaterThan(0, $count('SELECT COUNT(*) FROM product_images'));
+        self::assertSame(['GANCHO-MET', 'MDF-BRA-06', 'VERNIZ-PU'], $pdo->query(
+            'SELECT code FROM materials WHERE stock_qty <= reorder_level ORDER BY code'
+        )->fetchAll(PDO::FETCH_COLUMN), 'Consumo dos pedidos acertado: só os alertas planejados');
+        $files = $pdo->query('SELECT path FROM product_images LIMIT 3')->fetchAll(PDO::FETCH_COLUMN);
+
+        // Remoção: só o que a demonstração criou (o proprietário fica)
+        $container = Bootstrap::createContainer(dirname(__DIR__, 2));
+        $container->instance(Database::class, new Database(['database' => $this->scratch] + $this->dbConfig));
+        $removed = $container->get(DemoDataService::class)->remove();
+        self::assertGreaterThanOrEqual(30, $removed['produtos']);
+        foreach (['products', 'orders', 'customers', 'demo_records', 'product_images'] as $table) {
+            self::assertSame(0, $count("SELECT COUNT(*) FROM {$table}"), $table);
+        }
+        self::assertSame(1, $count("SELECT COUNT(*) FROM users WHERE email = 'dona@gnesting.test'"));
+        foreach ($files as $path) {
+            self::assertFileDoesNotExist(dirname(__DIR__, 2) . '/public/uploads/' . $path);
+        }
     }
 
     public function testWrongCredentialsOrMissingDatabaseAreExplainedWithoutTouchingAnything(): void

@@ -8,6 +8,7 @@ use GNesting\Core\Controller;
 use GNesting\Core\HttpException;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
+use GNesting\Repositories\CatalogRepository;
 use GNesting\Services\Auth\TooManyAttemptsException;
 use GNesting\Services\CatalogService;
 use GNesting\Services\RateLimiter;
@@ -90,7 +91,9 @@ final class CatalogController extends Controller
             'min' => $request->queryString('min', 15),
             'max' => $request->queryString('max', 15),
             'ordem' => $request->queryString('ordem', 20),
-        ]);
+        ] + array_map(static fn (string $flag): string => $request->queryString($flag, 1), array_combine(
+            array_keys(CatalogRepository::FLAGS), array_keys(CatalogRepository::FLAGS)
+        )));
         $isSearch = $page['isSearch'] ?? false;
         if (!$isSearch) {
             $filters['q'] = '';
@@ -108,6 +111,9 @@ final class CatalogController extends Controller
             'max' => $filters['max_cents'] === null ? null : money_input($filters['max_cents']),
             'ordem' => $filters['sort'] === 'relevancia' ? null : $filters['sort'],
         ];
+        foreach (array_keys(CatalogRepository::FLAGS) as $flag) {
+            $params[$flag] = in_array($flag, $filters['flags'], true) ? '1' : null;
+        }
 
         return $this->render('store/catalog/index', $page + [
             'products' => $result['products'] ?? [],
@@ -121,7 +127,7 @@ final class CatalogController extends Controller
             'isSearch' => false,
             'noindex' => false,
             // Com filtros aplicados a página não deve ser indexada (canônica = URL limpa)
-            'hasFilters' => $params['min'] !== null || $params['max'] !== null || $params['ordem'] !== null,
+            'hasFilters' => $params['min'] !== null || $params['max'] !== null || $params['ordem'] !== null || $filters['flags'] !== [],
         ]);
     }
 }

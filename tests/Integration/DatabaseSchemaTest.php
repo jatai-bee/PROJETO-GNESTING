@@ -14,7 +14,7 @@ final class DatabaseSchemaTest extends IntegrationTestCase
             "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'"
         );
 
-        self::assertSame(42, (int) $count); // 38 (001) + order_notes (003) + production_jobs, production_job_events, material_movements (004)
+        self::assertSame(43, (int) $count); // 38 (001) + order_notes (003) + production_jobs, production_job_events, material_movements (004) + demo_records (006)
     }
 
     public function testConnectionUsesUtcAndStrictMode(): void

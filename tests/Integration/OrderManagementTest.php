@@ -343,11 +343,11 @@ final class OrderManagementTest extends IntegrationTestCase
         self::assertStringContainsString(money((int) $order['total_cents']), $detail, 'Total pago = total do pedido (itens + frete)');
 
         $dashboard = $this->get('/admin')->body();
-        self::assertStringContainsString('Vendas no mês', $dashboard);
+        self::assertStringContainsString('Faturamento', $dashboard);
         self::assertStringContainsString(money((int) $order['total_cents']), $dashboard);
 
         $this->loginAs(AdminRole::Support);
-        self::assertStringNotContainsString('Vendas no mês', $this->get('/admin')->body(), 'Faturamento só para gestão');
+        self::assertStringNotContainsString('Faturamento', $this->get('/admin')->body(), 'Faturamento só para gestão');
         self::assertStringContainsString('***.982.247-**', $this->get('/admin/clientes')->body());
 
         $this->loginAs(AdminRole::Production);

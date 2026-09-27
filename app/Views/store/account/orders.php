@@ -3,8 +3,11 @@
 ?>
 <div class="container">
     <header class="page-head">
-        <a class="eyebrow" href="<?= e(url('/conta')) ?>">← Minha conta</a>
+        <span class="eyebrow">Minha conta</span>
         <h1 class="page-head__title">Meus pedidos</h1>
     </header>
-    <?= $this->partial('store/account/order-list', ['orders' => $orders]) ?>
+    <div class="account">
+        <?= $this->partial('store/account/nav', ['active' => 'pedidos']) ?>
+        <div><?= $this->partial('store/account/order-list', ['orders' => $orders]) ?></div>
+    </div>
 </div>

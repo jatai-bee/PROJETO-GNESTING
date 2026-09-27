@@ -117,10 +117,6 @@ final class InstallForm
             $errors['mp_webhook_secret'] = 'Informe o Access Token e a assinatura secreta do webhook juntos (ou deixe os dois para depois).';
         }
 
-        if ($data['sample_data'] === '1' && Installer::isProductionUrl($url)) {
-            $errors['sample_data'] = 'Produtos de exemplo são só para testar no computador.';
-        }
-
         return $errors;
     }
 }

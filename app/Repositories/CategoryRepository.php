@@ -19,6 +19,12 @@ final class CategoryRepository extends Repository
     {
         return $this->fetchAll(
             'SELECT c.id, c.parent_id, c.name, c.slug, c.sort_order, c.is_active, p.name AS parent_name,
+                    -- sem foto própria: a capa do produto mais vendido da categoria (ou de uma filha), como na loja
+                    COALESCE(c.image_path, (SELECT ci.path FROM products cp
+                        JOIN categories cc ON cc.id = cp.category_id
+                        JOIN product_images ci ON ci.product_id = cp.id
+                       WHERE (cc.id = c.id OR cc.parent_id = c.id) AND cp.deleted_at IS NULL
+                       ORDER BY cp.sales_count DESC, ci.is_cover DESC, ci.sort_order, ci.id LIMIT 1)) AS image_path,
                     (SELECT COUNT(*) FROM products pr WHERE pr.category_id = c.id AND pr.deleted_at IS NULL) AS product_count
                FROM categories c
                LEFT JOIN categories p ON p.id = c.parent_id

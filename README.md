@@ -32,6 +32,7 @@ PHP 8.2+ · MVC próprio · MySQL 5.7.8+ / 8.x ou MariaDB 10.6+ (PDO) · Compose
 | [16 — Segurança, LGPD e testes](docs/16-seguranca-e-testes.md) | recuperação de senha, sessões, exportação/anonimização (LGPD), checklist de segurança → testes, `composer check`, CI |
 | [17 — Deploy e operação](docs/17-deploy-e-operacao.md) | pacote (`gerar-pacote.cmd`), instalação pelo navegador, HTTPS, backups e restauração pelo painel, atualização do banco, manutenção, cron (Cron Jobs ou URL), `/saude` e alertas |
 | [18 — Guia de instalação e uso](docs/18-guia-de-instalacao-e-uso.md) | **passo a passo** para colocar a loja no ar e usá-la no dia a dia (por papel), rotinas e problemas comuns |
+| [19 — Reformulação de UX](docs/19-reformulacao-ux.md) | auditoria, design system v2, nova loja (menu de categorias, filtros rápidos, favoritos, etapas da compra) e dados de demonstração removíveis |
 
 ## Início rápido
 

@@ -60,7 +60,7 @@ final class ProductRepository extends Repository
 
         return $this->fetchAll(
             'SELECT p.id, p.name, p.slug, p.is_active, p.is_featured, p.is_new, p.updated_at,
-                    c.name AS category_name, v.sku, v.price_cents,
+                    c.name AS category_name, v.sku, v.price_cents, v.compare_at_price_cents, v.cost_cents,
                     (SELECT pi.path FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.is_cover DESC, pi.sort_order, pi.id LIMIT 1) AS cover_path,
                     (SELECT COUNT(*) FROM product_images pi WHERE pi.product_id = p.id) AS image_count'
             . self::LIST_FROM . $where
@@ -78,9 +78,10 @@ final class ProductRepository extends Repository
     {
         return $this->fetchOne(
             'SELECT p.id, p.category_id, p.name, p.slug, p.short_description, p.description, p.highlights,
+                    p.keywords, p.care_instructions, p.assembly_info, p.dispatch_days,
                     p.production_lead_days, p.is_active, p.is_featured, p.is_new, p.meta_title, p.meta_description,
                     p.published_at, p.created_at, p.updated_at,
-                    v.id AS variant_id, v.sku, v.price_cents, v.compare_at_price_cents, v.material_label, v.finish_label,
+                    v.id AS variant_id, v.sku, v.price_cents, v.compare_at_price_cents, v.cost_cents, v.material_label, v.finish_label,
                     v.width_mm, v.height_mm, v.depth_mm, v.weight_g,
                     v.package_width_mm, v.package_height_mm, v.package_length_mm, v.package_weight_g,
                     i.stock_mode, i.quantity_on_hand, i.quantity_reserved
@@ -105,9 +106,11 @@ final class ProductRepository extends Repository
     {
         return $this->insert(
             'INSERT INTO products (category_id, name, slug, short_description, description, highlights,
-                                   production_lead_days, is_featured, is_new, meta_title, meta_description)
+                                   keywords, care_instructions, assembly_info,
+                                   production_lead_days, dispatch_days, is_featured, is_new, meta_title, meta_description)
              VALUES (:category_id, :name, :slug, :short_description, :description, :highlights,
-                     :production_lead_days, :is_featured, :is_new, :meta_title, :meta_description)',
+                     :keywords, :care_instructions, :assembly_info,
+                     :production_lead_days, :dispatch_days, :is_featured, :is_new, :meta_title, :meta_description)',
             $data
         );
     }
@@ -119,6 +122,7 @@ final class ProductRepository extends Repository
             'UPDATE products
                 SET category_id = :category_id, name = :name, slug = :slug, short_description = :short_description,
                     description = :description, highlights = :highlights, production_lead_days = :production_lead_days,
+                    keywords = :keywords, care_instructions = :care_instructions, assembly_info = :assembly_info, dispatch_days = :dispatch_days,
                     is_featured = :is_featured, is_new = :is_new, meta_title = :meta_title, meta_description = :meta_description
               WHERE id = :id AND deleted_at IS NULL',
             $data + ['id' => $id]

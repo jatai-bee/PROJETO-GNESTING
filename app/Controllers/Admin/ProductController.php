@@ -11,9 +11,12 @@ use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Core\ValidationException;
 use GNesting\Repositories\CategoryRepository;
+use GNesting\Repositories\PersonalizationRepository;
 use GNesting\Repositories\ProductImageRepository;
 use GNesting\Repositories\ProductRepository;
+use GNesting\Repositories\ProductVariantRepository;
 use GNesting\Services\BusinessRuleException;
+use GNesting\Services\ProductDuplicator;
 use GNesting\Services\ProductService;
 
 final class ProductController extends Controller
@@ -35,6 +38,8 @@ final class ProductController extends Controller
         'package_length_mm' => 'Comprimento da embalagem', 'package_weight_g' => 'Peso com embalagem',
         'stock_mode' => 'Modo de estoque', 'quantity_on_hand' => 'Quantidade em estoque',
         'meta_title' => 'Título para buscadores', 'meta_description' => 'Descrição para buscadores',
+        'keywords' => 'Palavras-chave', 'care_instructions' => 'Cuidados', 'assembly_info' => 'Montagem',
+        'dispatch_days' => 'Prazo de postagem', 'cost' => 'Custo',
     ];
 
     public function __construct(
@@ -42,6 +47,9 @@ final class ProductController extends Controller
         private readonly CategoryRepository $categories,
         private readonly ProductImageRepository $images,
         private readonly ProductService $service,
+        private readonly ProductVariantRepository $variants,
+        private readonly PersonalizationRepository $personalization,
+        private readonly ProductDuplicator $duplicator,
     ) {
     }
 
@@ -107,6 +115,16 @@ final class ProductController extends Controller
         return $this->redirect($this->safeRedirectPath($request->string('back'), "/admin/produtos/{$product['id']}/editar"));
     }
 
+    /** Cópia inativa, sem fotos, para cadastrar um produto parecido sem começar do zero. */
+    public function duplicate(Request $request): Response
+    {
+        $product = $this->findOrFail($request);
+        $id = $this->duplicator->duplicate((int) $product['id']);
+        $this->flash('success', "Cópia de \"{$product['name']}\" criada (inativa). Revise nome, SKU e envie as fotos antes de ativar.");
+
+        return $this->redirect("/admin/produtos/{$id}/editar");
+    }
+
     public function destroy(Request $request): Response
     {
         $product = $this->findOrFail($request);
@@ -119,11 +137,17 @@ final class ProductController extends Controller
     /** @param array<string, mixed>|null $product */
     private function form(?array $product): Response
     {
+        $id = $product !== null ? (int) $product['id'] : null;
+        $images = $id !== null ? $this->images->listByProduct($id) : [];
+
         return $this->render('admin/products/form', [
-            'title' => ($product ? 'Editar produto' : 'Novo produto') . ' | Painel',
+            'title' => ($product ? $product['name'] : 'Novo produto') . ' | Painel',
             'product' => $product,
             'categories' => $this->categories->options(),
-            'imageCount' => $product ? $this->images->countByProduct((int) $product['id']) : 0,
+            'cover' => $images[0]['path'] ?? null,
+            'imageCount' => count($images),
+            'variantCount' => $id !== null ? $this->variants->countByProduct($id) : 0,
+            'ruleCount' => $id !== null ? $this->personalization->countRules($id) : 0,
         ], 'admin');
     }
 
@@ -153,6 +177,11 @@ final class ProductController extends Controller
             'quantity_on_hand' => 'gte:0|lte:1000000',
             'meta_title' => 'max:70',
             'meta_description' => 'max:160',
+            'keywords' => 'max:255',
+            'care_instructions' => 'max:2000',
+            'assembly_info' => 'max:2000',
+            'dispatch_days' => 'gte:0|lte:30',
+            'cost' => 'money',
         ];
         foreach (self::DIMENSIONS as $field) {
             $rules[$field] = 'gte:0|lte:100000';
@@ -182,6 +211,11 @@ final class ProductController extends Controller
             'is_new' => $request->boolean('is_new'),
             'meta_title' => $request->string('meta_title'),
             'meta_description' => $request->string('meta_description'),
+            'keywords' => $request->string('keywords'),
+            'care_instructions' => $request->string('care_instructions'),
+            'assembly_info' => $request->string('assembly_info'),
+            'dispatch_days' => $request->string('dispatch_days') === '' ? 1 : (int) $request->string('dispatch_days'),
+            'cost_cents' => $request->string('cost') === '' ? null : parse_money($request->string('cost')),
             'sku' => $request->string('sku'),
             'price_cents' => $price,
             'compare_at_price_cents' => $compare === '' ? null : parse_money($compare),

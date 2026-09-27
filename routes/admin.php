@@ -69,6 +69,7 @@ return static function (Router $r): void {
                 $r->post('/produtos/{id:\d+}/editar', [ProductController::class, 'update']);
                 $r->post('/produtos/{id:\d+}/status', [ProductController::class, 'status']);
                 $r->post('/produtos/{id:\d+}/excluir', [ProductController::class, 'destroy']);
+                $r->post('/produtos/{id:\d+}/duplicar', [ProductController::class, 'duplicate']);
 
                 $r->get('/produtos/{id:\d+}/imagens', [ProductImageController::class, 'index']);
                 $r->post('/produtos/{id:\d+}/imagens', [ProductImageController::class, 'upload']);
@@ -144,6 +145,7 @@ return static function (Router $r): void {
             $r->group(['middleware' => ['role:manager,support']], static function (Router $r): void {
                 $r->get('/clientes', [CustomerController::class, 'index']);
                 $r->get('/clientes/{id:\d+}', [CustomerController::class, 'show']);
+                $r->post('/clientes/{id:\d+}/observacoes', [CustomerController::class, 'notes']);
             });
 
             // Equipe e auditoria: somente proprietário
@@ -171,6 +173,7 @@ return static function (Router $r): void {
                 $r->post('/sistema/backups/{nome:\d{4}-\d{2}-\d{2}_\d{6}}/restaurar', [SystemController::class, 'restore']);
                 $r->post('/sistema/manutencao', [SystemController::class, 'maintenance']);
                 $r->post('/sistema/atualizar-banco', [SystemController::class, 'migrate']);
+                $r->post('/sistema/demonstracao/remover', [SystemController::class, 'removeDemo']);
             });
         });
     });

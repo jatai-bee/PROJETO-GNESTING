@@ -4,6 +4,7 @@ use GNesting\Enums\OrderStatus;
 ?>
 <?php if ($orders === []): ?>
     <div class="empty-state">
+        <span class="empty-state__icon"><?= $this->partial('partials/icon', ['name' => 'box', 'size' => 30]) ?></span>
         <p>Você ainda não fez pedidos com esta conta.</p>
         <a class="btn btn--primary" href="<?= e(url('/produtos')) ?>">Ver produtos</a>
     </div>

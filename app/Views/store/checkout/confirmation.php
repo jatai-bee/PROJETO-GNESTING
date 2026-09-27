@@ -17,6 +17,17 @@ $status = OrderStatus::from((string) $order['status']);
 $awaiting = $status === OrderStatus::AwaitingPayment;
 $methods = ['pix' => 'Pix', 'credit_card' => 'Cartão', 'boleto' => 'Boleto', 'checkout' => 'A escolher', 'other' => 'Outro'];
 $lastPayment = $payments === [] ? null : $payments[array_key_last($payments)];
+// Barra de progresso para o cliente: 5 marcos (o detalhe de cada etapa da produção fica no admin)
+$milestone = match ($status) {
+    OrderStatus::AwaitingPayment => 1,
+    OrderStatus::Paid, OrderStatus::ProductionPending, OrderStatus::InProduction, OrderStatus::Finishing,
+    OrderStatus::QualityControl, OrderStatus::Packaging => 2,
+    OrderStatus::ReadyToShip => 3,
+    OrderStatus::Shipped => 3,
+    OrderStatus::Delivered => 5,
+    OrderStatus::Cancelled => -1,
+};
+$milestones = ['Pedido feito', 'Pagamento', 'Produção', 'Enviado', 'Entregue'];
 ?>
 <div class="container">
     <header class="page-head">
@@ -24,6 +35,14 @@ $lastPayment = $payments === [] ? null : $payments[array_key_last($payments)];
         <h1 class="page-head__title"><?= e($order['number']) ?></h1>
         <p class="page-head__intro">Feito em <?= e(format_datetime($order['placed_at'])) ?> · <?= e($order['customer_email']) ?></p>
     </header>
+
+    <?php if ($milestone > 0): ?>
+    <ol class="steps checkout-steps" aria-label="Andamento do pedido">
+        <?php foreach ($milestones as $n => $label): ?>
+            <li class="<?= $n < $milestone ? 'is-done' : ($n === $milestone ? 'is-current' : '') ?>"<?= $n === $milestone ? ' aria-current="step"' : '' ?>><?= e($label) ?></li>
+        <?php endforeach ?>
+    </ol>
+    <?php endif ?>
 
     <section class="order-status order-status--<?= e($status->value) ?>" aria-live="polite">
         <p class="order-status__label"><?= e($status->customerLabel()) ?></p>

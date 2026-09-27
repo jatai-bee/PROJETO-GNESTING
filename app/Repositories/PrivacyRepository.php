@@ -59,7 +59,7 @@ final class PrivacyRepository extends Repository
         $this->execute(
             "UPDATE customers
                 SET name = :name, email = CONCAT('anonimizado-', id, '@anonimizado.invalid'),
-                    cpf = NULL, phone = NULL, whatsapp_opt_in = 0, marketing_opt_in = 0,
+                    cpf = NULL, phone = NULL, whatsapp_opt_in = 0, marketing_opt_in = 0, notes = NULL,
                     user_id = NULL, anonymized_at = UTC_TIMESTAMP()
               WHERE id = :id",
             ['name' => self::ANONYMOUS_NAME, 'id' => $customerId]

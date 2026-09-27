@@ -91,6 +91,7 @@ final class CustomerPrivacyService
                 'aceita_whatsapp' => (bool) $customer['whatsapp_opt_in'],
                 'aceita_marketing' => (bool) $customer['marketing_opt_in'],
                 'cliente_desde' => $customer['created_at'],
+                'observacoes_da_loja' => $customer['notes'],
             ],
             'conta' => $customer['user_id'] ? $this->privacy->account((int) $customer['user_id']) : null,
             'enderecos' => array_map(static fn (array $a): array => array_intersect_key($a, array_flip([

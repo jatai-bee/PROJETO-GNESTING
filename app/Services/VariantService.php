@@ -31,7 +31,7 @@ final class VariantService
     public const MAX_VARIANTS = 50;
 
     private const COPY_FIELDS = [
-        'price_cents', 'compare_at_price_cents', 'material_label', 'finish_label',
+        'price_cents', 'compare_at_price_cents', 'cost_cents', 'material_label', 'finish_label',
         'width_mm', 'height_mm', 'depth_mm', 'weight_g',
         'package_width_mm', 'package_height_mm', 'package_length_mm', 'package_weight_g',
     ];
@@ -211,6 +211,7 @@ final class VariantService
     {
         $this->db->transaction(function () use ($productId, $variantId, $input): void {
             $current = $this->variants->find($productId, $variantId) ?? throw new BusinessRuleException('Variação não encontrada.');
+            $input += ['cost_cents' => $current['cost_cents']]; // sem o campo, o custo fica como está
 
             $errors = [];
             $sku = strtoupper((string) $input['sku']);

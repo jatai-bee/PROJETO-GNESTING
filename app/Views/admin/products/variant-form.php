@@ -33,6 +33,9 @@ $dimension = fn (string $name, string $label, string $suffix): string => $f('par
             <?= $f('partials/field', ['name' => 'compare_at_price', 'label' => 'Preço "de" (promoção)', 'required' => false,
                 'value' => money_input($v['compare_at_price_cents'] === null ? null : (int) $v['compare_at_price_cents']),
                 'inputmode' => 'decimal', 'prefix' => 'R$']) ?>
+            <?= $f('partials/field', ['name' => 'cost', 'label' => 'Custo unitário', 'required' => false,
+                'value' => money_input($v['cost_cents'] === null ? null : (int) $v['cost_cents']),
+                'inputmode' => 'decimal', 'prefix' => 'R$', 'hint' => 'Material, mão de obra e embalagem. Só aparece no painel.']) ?>
         </div>
         <?= $f('partials/checkbox', ['name' => 'is_active', 'label' => 'Ativa (à venda na loja)', 'checked' => (bool) $v['is_active']]) ?>
         <?php if (!empty($errors['is_active'])): ?><p class="field__error"><?= e($errors['is_active']) ?></p><?php endif ?>

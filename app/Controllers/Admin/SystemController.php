@@ -10,6 +10,7 @@ use GNesting\Core\Maintenance;
 use GNesting\Core\Request;
 use GNesting\Core\Response;
 use GNesting\Services\AuditService;
+use GNesting\Services\Demo\DemoDataService;
 use GNesting\Services\Operations\BackupService;
 use GNesting\Services\Operations\CronHeartbeat;
 use GNesting\Services\Operations\HealthCheck;
@@ -25,6 +26,7 @@ final class SystemController extends Controller
 {
     private const FILES = ['banco' => 'database.sql.gz', 'arquivos' => 'files.tar.gz'];
     public const RESTORE_CONFIRMATION = 'RESTAURAR';
+    public const DEMO_CONFIRMATION = 'REMOVER';
 
     public function __construct(
         private readonly HealthCheck $health,
@@ -34,6 +36,7 @@ final class SystemController extends Controller
         private readonly Maintenance $maintenance,
         private readonly AuditService $audit,
         private readonly SchemaUpdater $schema,
+        private readonly DemoDataService $demo,
     ) {
     }
 
@@ -43,6 +46,11 @@ final class SystemController extends Controller
             $pending = $this->schema->pending();
         } catch (Throwable) {
             $pending = []; // sem banco: a Saúde já mostra a falha
+        }
+        try {
+            $demoInstalled = $this->demo->isInstalled();
+        } catch (Throwable) {
+            $demoInstalled = false;
         }
 
         return $this->render('admin/system/index', [
@@ -55,7 +63,46 @@ final class SystemController extends Controller
             'release' => $this->release(),
             'pending' => $pending,
             'cronUrl' => $this->cronUrl(),
+            'demoInstalled' => $demoInstalled,
         ], 'admin');
+    }
+
+    /**
+     * Apaga os dados de demonstração (docs/19): só o que ficou registrado em demo_records.
+     * Produto de demonstração que entrou num pedido real é desativado, não apagado. Antes, um backup do banco.
+     */
+    public function removeDemo(Request $request): Response
+    {
+        if (mb_strtoupper(trim($request->string('confirmacao'))) !== self::DEMO_CONFIRMATION) {
+            $this->flash('error', 'Para remover, digite ' . self::DEMO_CONFIRMATION . ' no campo de confirmação. Nada foi alterado.');
+
+            return $this->redirect('/admin/sistema');
+        }
+        if (!$this->demo->isInstalled()) {
+            $this->flash('success', 'Não há dados de demonstração na loja.');
+
+            return $this->redirect('/admin/sistema');
+        }
+
+        @set_time_limit(300);
+        ignore_user_abort(true);
+        try {
+            $safety = $this->backups->create(false)['name'];
+            $removed = $this->demo->remove();
+            $this->audit->record(AuditService::DELETE, 'demo_data', null, null, $removed + ['backup' => $safety]);
+            $parts = [];
+            foreach ($removed as $label => $count) {
+                if ($count > 0) {
+                    $parts[] = "{$count} {$label}";
+                }
+            }
+            $this->flash('success', 'Dados de demonstração removidos' . ($parts !== [] ? ': ' . implode(', ', $parts) : '')
+                . ". Backup de antes da remoção: {$safety}.");
+        } catch (Throwable $e) {
+            $this->flash('error', 'Não foi possível remover os dados de demonstração: ' . $e->getMessage());
+        }
+
+        return $this->redirect('/admin/sistema');
     }
 
     /**

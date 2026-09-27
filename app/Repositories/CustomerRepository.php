@@ -88,11 +88,16 @@ final class CustomerRepository extends Repository
     public function adminFind(int $customerId): ?array
     {
         return $this->fetchOne(
-            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.whatsapp_opt_in, c.marketing_opt_in, c.anonymized_at, c.created_at,
+            'SELECT c.id, c.user_id, c.name, c.email, c.cpf, c.phone, c.whatsapp_opt_in, c.marketing_opt_in, c.notes, c.anonymized_at, c.created_at,
                     COALESCE(o.orders_count, 0) AS orders_count, COALESCE(o.spent_cents, 0) AS spent_cents, o.last_order_at'
             . self::ADMIN_FROM . ' WHERE c.id = :id',
             ['id' => $customerId]
         );
+    }
+
+    public function updateNotes(int $customerId, ?string $notes): void
+    {
+        $this->execute('UPDATE customers SET notes = :notes WHERE id = :id AND anonymized_at IS NULL', ['notes' => $notes, 'id' => $customerId]);
     }
 
     /** @return array{id:int,name:string,email:string,cpf:?string,phone:?string}|null */

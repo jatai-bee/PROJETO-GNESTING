@@ -13,6 +13,7 @@ use GNesting\Controllers\Store\AuthController;
 use GNesting\Controllers\Store\CartController;
 use GNesting\Controllers\Store\CatalogController;
 use GNesting\Controllers\Store\CheckoutController;
+use GNesting\Controllers\Store\FavoriteController;
 use GNesting\Controllers\Store\SeoController;
 use GNesting\Controllers\Store\SimulatedPaymentController;
 use GNesting\Controllers\Store\HomeController;
@@ -37,6 +38,9 @@ return static function (Router $r): void {
     $r->post('/carrinho/itens/{id:\d+}/remover', [CartController::class, 'remove']);
     $r->post('/carrinho/cupom', [CartController::class, 'applyCoupon']);
     $r->post('/carrinho/cupom/remover', [CartController::class, 'removeCoupon']);
+
+    // Favoritos (sem conta: leva ao login e volta; ver FavoriteController)
+    $r->post('/favoritos/{id:\d+}', [FavoriteController::class, 'toggle']);
 
     // SEO
     $r->get('/sitemap.xml', [SeoController::class, 'sitemap']);
@@ -75,5 +79,6 @@ return static function (Router $r): void {
         $r->post('/sair', [AuthController::class, 'logout']);
         $r->get('/conta', [AccountController::class, 'index']);
         $r->get('/conta/pedidos', [AccountController::class, 'orders']);
+        $r->get('/conta/favoritos', [FavoriteController::class, 'index']);
     });
 };

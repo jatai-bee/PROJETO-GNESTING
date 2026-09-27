@@ -30,7 +30,7 @@ final class VariantController extends Controller
     ];
 
     private const LABELS = [
-        'sku' => 'SKU', 'price' => 'Preço', 'compare_at_price' => 'Preço "de"', 'material_label' => 'Material',
+        'sku' => 'SKU', 'price' => 'Preço', 'compare_at_price' => 'Preço "de"', 'cost' => 'Custo', 'material_label' => 'Material',
         'finish_label' => 'Acabamento', 'stock_mode' => 'Modo de estoque', 'quantity_on_hand' => 'Quantidade em estoque',
         'width_mm' => 'Largura', 'height_mm' => 'Altura', 'depth_mm' => 'Profundidade', 'weight_g' => 'Peso',
         'package_width_mm' => 'Largura da embalagem', 'package_height_mm' => 'Altura da embalagem',
@@ -131,6 +131,7 @@ final class VariantController extends Controller
             'sku' => 'required|max:40|sku',
             'price' => 'required|money',
             'compare_at_price' => 'money',
+            'cost' => 'money',
             'material_label' => 'max:100',
             'finish_label' => 'max:60',
             'stock_mode' => 'required|in:made_to_order,stock',
@@ -150,6 +151,7 @@ final class VariantController extends Controller
             'sku' => $request->string('sku'),
             'price_cents' => $price,
             'compare_at_price_cents' => $compare === '' ? null : parse_money($compare),
+            'cost_cents' => $request->string('cost') === '' ? null : parse_money($request->string('cost')),
             'material_label' => $request->string('material_label'),
             'finish_label' => $request->string('finish_label'),
             'stock_mode' => $request->string('stock_mode'),

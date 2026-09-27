@@ -3,6 +3,9 @@
  * - [data-autosubmit]: envia o formulário ao mudar (ordenação, quantidade no carrinho)
  * - [data-gallery]: miniaturas trocam a foto principal sem recarregar
  * - [data-variant-select]: troca de variação atualiza preço, SKU, medidas e estoque exibidos
+ * - [data-stepper]: botões − e + da quantidade
+ * - [data-share]: compartilhar (menu do celular) ou copiar o link
+ * - .filters: no computador o painel de filtros fica sempre aberto
  */
 (function () {
   'use strict';
@@ -42,6 +45,65 @@
     var buy = scope.querySelector('[data-buy]');
     if (buy) {
       buy.disabled = !data.in_stock;
+    }
+    var line = scope.querySelector('[data-stock-line]');
+    if (line && data.stock_class) {
+      line.className = 'stock-line stock-line--' + data.stock_class;
+      line.lastChild.textContent = ' ' + ({ ok: 'Pronta entrega', out: 'Esgotado', order: 'Sob encomenda' })[data.stock_class];
+    }
+  }
+
+  // Quantidade: − e + respeitam min/max do campo e disparam "change" (o carrinho envia sozinho)
+  document.addEventListener('click', function (event) {
+    var button = event.target instanceof Element ? event.target.closest('[data-step]') : null;
+    var stepper = button ? button.closest('[data-stepper]') : null;
+    var input = stepper ? stepper.querySelector('input[type="number"]') : null;
+    if (!input) {
+      return;
+    }
+    var min = Number(input.min || 1);
+    var max = input.max === '' ? Infinity : Number(input.max);
+    var next = Math.min(max, Math.max(min, (Number(input.value) || min) + Number(button.getAttribute('data-step'))));
+    if (next !== Number(input.value)) {
+      input.value = next;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+
+  // Compartilhar: menu nativo quando existe; senão copia o link
+  document.querySelectorAll('[data-share]').forEach(function (button) {
+    if (!navigator.share && !(navigator.clipboard && window.isSecureContext)) {
+      return;
+    }
+    button.hidden = false;
+    button.addEventListener('click', function () {
+      var url = button.getAttribute('data-share-url') || window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: button.getAttribute('data-share-title') || document.title, url: url }).catch(function () {});
+        return;
+      }
+      navigator.clipboard.writeText(url).then(function () {
+        var label = button.querySelector('[data-share-label]');
+        if (label) {
+          label.textContent = 'Link copiado!';
+          setTimeout(function () { label.textContent = 'Compartilhar'; }, 2500);
+        }
+      });
+    });
+  });
+
+  // Filtros: sempre abertos no computador (no celular ficam na gaveta "Filtrar")
+  var filters = document.querySelector('details.filters');
+  if (filters && window.matchMedia) {
+    var wide = window.matchMedia('(min-width: 1024px)');
+    var syncFilters = function () {
+      if (wide.matches) {
+        filters.open = true;
+      }
+    };
+    syncFilters();
+    if (wide.addEventListener) {
+      wide.addEventListener('change', syncFilters);
     }
   }
 

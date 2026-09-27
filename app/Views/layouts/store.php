@@ -1,6 +1,7 @@
 <?php
 /**
- * Layout da loja.
+ * Layout da loja: faixa de avisos, cabeçalho fixo (marca, busca, favoritos, conta, carrinho),
+ * menu de categorias (suspenso no computador, gaveta no celular) e rodapé completo.
  * @var string $content
  * @var string|null $title
  * @var string|null $metaDescription
@@ -8,14 +9,20 @@
  * @var bool|null   $noindex        páginas de busca, carrinho e listagens filtradas
  * @var array|null  $currentCustomer
  * @var int|null    $cartCount
- * @var list<array> $navCategories  árvore de categorias visíveis
+ * @var list<int>|null $favoriteIds
+ * @var list<array> $navCategories  árvore de categorias visíveis (com 'children' e 'total')
  */
 $title ??= config('app.name');
 $currentCustomer ??= null;
 $cartCount ??= 0;
-$navCategories ??= [];
+$favoriteIds ??= [];
+$navCategories = array_values(array_filter($navCategories ?? [], static fn (array $c): bool => (int) $c['total'] > 0));
 $searchQuery = isset($filters['q']) && is_string($filters['q']) ? $filters['q'] : '';
 $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
+$currentPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$favCount = count($favoriteIds);
+$firstName = $currentCustomer !== null ? explode(' ', trim((string) $currentCustomer['name']))[0] : null;
+$icon = fn (string $name, int $size = 20): string => $this->partial('partials/icon', ['name' => $name, 'size' => $size]);
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -44,64 +51,139 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
     <?php foreach ($jsonLd ?? [] as $structured): ?>
     <script type="application/ld+json"><?= \GNesting\Services\SeoData::encode($structured) ?></script>
     <?php endforeach ?>
-    <meta name="theme-color" content="#F5F2EC">
+    <meta name="theme-color" content="#F6F3EE">
     <link rel="icon" href="<?= e(asset('img/logo-mark.svg')) ?>" type="image/svg+xml">
+    <link rel="preload" href="<?= e(asset('fonts/manrope-latin-wght-normal.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/store.css')) ?>">
     <script src="<?= e(asset('js/store.js')) ?>" defer></script>
 </head>
-<body>
+<body class="store">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <?php if (!empty($announcement)): ?>
 <p class="announcement"><?= e($announcement) ?></p>
 <?php endif ?>
 
 <header class="site-header">
-    <div class="container site-header__inner">
+    <div class="container header-main">
+        <details class="nav-drawer">
+            <summary class="header-action" aria-label="Abrir menu">
+                <?= $icon('menu', 24) ?>
+            </summary>
+            <nav class="nav-drawer__panel" aria-label="Menu">
+                <div class="nav-drawer__head">
+                    <img src="<?= e(asset('img/logo.svg')) ?>" alt="G-Nesting" width="130" height="24">
+                </div>
+                <ul class="nav-drawer__list">
+                    <li><a href="<?= e(url('/produtos')) ?>">Todos os produtos</a></li>
+                    <?php foreach ($navCategories as $navCategory): ?>
+                    <li>
+                        <?php if ($navCategory['children'] !== []): ?>
+                        <details>
+                            <summary><?= e($navCategory['name']) ?></summary>
+                            <ul>
+                                <li><a href="<?= e(url('/categoria/' . $navCategory['slug'])) ?>">Ver tudo em <?= e($navCategory['name']) ?></a></li>
+                                <?php foreach ($navCategory['children'] as $child): ?>
+                                    <?php if ((int) $child['product_count'] > 0): ?>
+                                    <li><a href="<?= e(url('/categoria/' . $child['slug'])) ?>"><?= e($child['name']) ?></a></li>
+                                    <?php endif ?>
+                                <?php endforeach ?>
+                            </ul>
+                        </details>
+                        <?php else: ?>
+                        <a href="<?= e(url('/categoria/' . $navCategory['slug'])) ?>"><?= e($navCategory['name']) ?></a>
+                        <?php endif ?>
+                    </li>
+                    <?php endforeach ?>
+                    <li><a href="<?= e(url('/produtos?oferta=1')) ?>">Ofertas</a></li>
+                    <li><a href="<?= e(url('/produtos?ordem=novidades')) ?>">Novidades</a></li>
+                    <li><a href="<?= e(url('/produtos?pronta=1')) ?>">Pronta entrega</a></li>
+                </ul>
+                <div class="nav-drawer__extra">
+                    <?php if ($currentCustomer !== null): ?>
+                        <a class="btn btn--secondary btn--block" href="<?= e(url('/conta')) ?>">Minha conta</a>
+                        <form method="post" action="<?= e(url('/sair')) ?>">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn--ghost btn--block">Sair</button>
+                        </form>
+                    <?php else: ?>
+                        <a class="btn btn--dark btn--block" href="<?= e(url('/entrar')) ?>">Entrar</a>
+                        <a class="btn btn--secondary btn--block" href="<?= e(url('/cadastro')) ?>">Criar conta</a>
+                    <?php endif ?>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('/como-fazemos')) ?>">Como fazemos</a>
+                </div>
+            </nav>
+        </details>
+
         <a class="brand" href="<?= e(url('/')) ?>" aria-label="G-Nesting — página inicial">
             <img src="<?= e(asset('img/logo.svg')) ?>" alt="G-Nesting" width="190" height="35">
         </a>
 
         <form class="site-search" method="get" action="<?= e(url('/busca')) ?>" role="search">
             <label class="visually-hidden" for="busca-q">Buscar produtos</label>
-            <input id="busca-q" type="search" name="q" value="<?= e($searchQuery) ?>" placeholder="Buscar produtos" maxlength="80" autocomplete="off">
+            <input id="busca-q" type="search" name="q" value="<?= e($searchQuery) ?>" placeholder="O que você procura? Ex.: relógio, organizador, nicho" maxlength="80" autocomplete="off">
             <button type="submit" class="site-search__button">
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <?= $icon('search', 18) ?>
                 <span class="visually-hidden">Buscar</span>
             </button>
         </form>
 
-        <nav class="site-nav" aria-label="Conta e carrinho">
-            <?php if ($currentCustomer !== null): ?>
-                <a href="<?= e(url('/conta')) ?>" class="site-nav__account">Olá, <?= e(explode(' ', $currentCustomer['name'])[0]) ?></a>
-                <form method="post" action="<?= e(url('/sair')) ?>" class="inline-form site-nav__logout">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="link-button">Sair</button>
-                </form>
-            <?php else: ?>
-                <a href="<?= e(url('/entrar')) ?>" class="site-nav__account">Entrar</a>
-            <?php endif ?>
-            <a class="cart-link" href="<?= e(url('/carrinho')) ?>">
-                <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
-                <span class="visually-hidden">Carrinho,</span>
-                <span class="cart-link__count" data-count="<?= e($cartCount) ?>"><?= e($cartCount) ?></span>
-                <span class="visually-hidden"><?= $cartCount === 1 ? 'item' : 'itens' ?></span>
+        <nav class="header-actions" aria-label="Favoritos, conta e carrinho">
+            <a class="header-action" href="<?= e(url('/conta/favoritos')) ?>">
+                <?= $icon('heart', 22) ?>
+                <span class="header-action__label">Favoritos</span>
+                <?php if ($favCount > 0): ?><span class="header-action__count"><?= e($favCount) ?><span class="visually-hidden"> produtos</span></span><?php endif ?>
+            </a>
+            <a class="header-action" href="<?= e(url($currentCustomer !== null ? '/conta' : '/entrar')) ?>">
+                <?= $icon('user', 22) ?>
+                <span class="header-action__label"><?= $firstName !== null ? 'Olá, ' . e($firstName) : 'Entrar' ?></span>
+                <?php if ($firstName === null): ?><span class="visually-hidden">na sua conta</span><?php endif ?>
+            </a>
+            <a class="header-action" href="<?= e(url('/carrinho')) ?>">
+                <?= $icon('bag', 22) ?>
+                <span class="header-action__label">Carrinho</span>
+                <span class="header-action__count" data-count="<?= e($cartCount) ?>"><?= e($cartCount) ?><span class="visually-hidden"> <?= $cartCount === 1 ? 'item' : 'itens' ?></span></span>
             </a>
         </nav>
     </div>
 
     <?php if ($navCategories !== []): ?>
-    <nav class="category-nav" aria-label="Categorias">
-        <div class="container">
-            <ul class="category-nav__list">
-                <li><a href="<?= e(url('/produtos')) ?>">Todos</a></li>
+    <nav class="nav-main" aria-label="Categorias">
+        <div class="container nav-main__inner">
+            <ul class="nav-main__list">
+                <li><a class="nav-main__link" href="<?= e(url('/produtos')) ?>"<?= $currentPath === '/produtos' ? ' aria-current="page"' : '' ?>>Todos</a></li>
                 <?php foreach ($navCategories as $navCategory): ?>
-                    <?php if ($navCategory['total'] > 0): ?>
-                    <li><a href="<?= e(url('/categoria/' . $navCategory['slug'])) ?>"><?= e($navCategory['name']) ?></a></li>
+                    <?php $catHref = url('/categoria/' . $navCategory['slug']); $hasChildren = $navCategory['children'] !== []; ?>
+                <li>
+                    <a class="nav-main__link<?= $hasChildren ? ' nav-main__link--caret' : '' ?>" href="<?= e($catHref) ?>"<?= $currentPath === '/categoria/' . $navCategory['slug'] ? ' aria-current="page"' : '' ?>><?= e($navCategory['name']) ?></a>
+                    <?php if ($hasChildren): ?>
+                    <div class="mega">
+                        <div>
+                            <p class="mega__title"><?= e($navCategory['name']) ?></p>
+                            <ul class="mega__list">
+                                <?php foreach ($navCategory['children'] as $child): ?>
+                                    <?php if ((int) $child['product_count'] > 0): ?>
+                                    <li><a href="<?= e(url('/categoria/' . $child['slug'])) ?>"><?= e($child['name']) ?></a></li>
+                                    <?php endif ?>
+                                <?php endforeach ?>
+                            </ul>
+                            <a class="link-arrow mega__all" href="<?= e($catHref) ?>">Ver todos (<?= e($navCategory['total']) ?>)</a>
+                        </div>
+                        <?php if (!empty($navCategory['image_path'])): ?>
+                        <a class="mega__image" href="<?= e($catHref) ?>" tabindex="-1" aria-hidden="true">
+                            <img src="<?= e(upload_url($navCategory['image_path'], 400)) ?>" alt="" width="180" height="180" loading="lazy">
+                        </a>
+                        <?php endif ?>
+                    </div>
                     <?php endif ?>
+                </li>
                 <?php endforeach ?>
             </ul>
+            <div class="nav-main__highlight">
+                <a class="nav-main__link" href="<?= e(url('/produtos?ordem=novidades')) ?>">Novidades</a>
+                <a class="nav-main__link nav-main__link--sale" href="<?= e(url('/produtos?oferta=1')) ?>">Ofertas</a>
+            </div>
         </div>
     </nav>
     <?php endif ?>
@@ -113,22 +195,43 @@ $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
 </main>
 
 <footer class="site-footer<?= !empty($floatingWhatsapp) ? ' site-footer--float-space' : '' ?>">
-    <div class="container site-footer__inner">
-        <div>
-            <img src="<?= e(asset('img/logo-mark.svg')) ?>" alt="" width="32" height="32">
-            <p class="site-footer__tagline"><?= e(config('app.tagline')) ?></p>
+    <div class="container footer-grid">
+        <div class="footer-brand">
+            <img src="<?= e(asset('img/logo-mark.svg')) ?>" alt="" width="40" height="40">
+            <p class="footer-brand__tagline"><?= e(config('app.tagline')) ?></p>
+            <p>Objetos em MDF e madeira cortados a laser e CNC, acabados à mão no nosso ateliê.</p>
         </div>
-        <nav class="site-footer__links" aria-label="Institucional">
-            <a href="<?= e(url('/sobre')) ?>">Sobre</a>
-            <a href="<?= e(url('/como-fazemos')) ?>">Como fazemos</a>
-            <a href="<?= e(url('/trocas-e-devolucoes')) ?>">Trocas e devoluções</a>
-            <a href="<?= e(url('/privacidade')) ?>">Privacidade</a>
-            <a href="<?= e(url('/termos')) ?>">Termos de uso</a>
+        <nav class="footer-col" aria-label="Loja">
+            <h2>Loja</h2>
+            <ul>
+                <?php foreach (array_slice($navCategories, 0, 6) as $navCategory): ?>
+                <li><a href="<?= e(url('/categoria/' . $navCategory['slug'])) ?>"><?= e($navCategory['name']) ?></a></li>
+                <?php endforeach ?>
+                <li><a href="<?= e(url('/produtos?oferta=1')) ?>">Ofertas</a></li>
+            </ul>
         </nav>
-        <p class="site-footer__legal">
-            <?php if (!empty($contactEmail)): ?><a href="mailto:<?= e($contactEmail) ?>"><?= e($contactEmail) ?></a><br><?php endif ?>
-            © <?= e(date('Y')) ?> G-Nesting. Objetos produzidos com fabricação digital.
-        </p>
+        <nav class="footer-col" aria-label="Ajuda">
+            <h2>Ajuda</h2>
+            <ul>
+                <li><a href="<?= e(url('/como-fazemos')) ?>">Como fazemos</a></li>
+                <li><a href="<?= e(url('/trocas-e-devolucoes')) ?>">Trocas e devoluções</a></li>
+                <li><a href="<?= e(url('/conta/pedidos')) ?>">Acompanhar pedido</a></li>
+                <li><a href="<?= e(url('/privacidade')) ?>">Privacidade</a></li>
+                <li><a href="<?= e(url('/termos')) ?>">Termos de uso</a></li>
+            </ul>
+        </nav>
+        <div class="footer-col">
+            <h2>Atendimento</h2>
+            <ul>
+                <li><a href="<?= e(url('/sobre')) ?>">Sobre a G-Nesting</a></li>
+                <?php if (!empty($contactEmail)): ?><li><a href="mailto:<?= e($contactEmail) ?>"><?= e($contactEmail) ?></a></li><?php endif ?>
+                <?php if (!empty($floatingWhatsapp)): ?><li><a href="<?= e($floatingWhatsapp) ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a></li><?php endif ?>
+            </ul>
+        </div>
+    </div>
+    <div class="container footer-bottom">
+        <span>© <?= e(date('Y')) ?> G-Nesting. Objetos produzidos com fabricação digital.</span>
+        <span class="pay-chips" aria-label="Formas de pagamento"><span>Pix</span><span>Cartão</span><span>Boleto</span></span>
     </div>
 </footer>
 <?php if (!empty($floatingWhatsapp)): ?>

@@ -37,7 +37,7 @@ final class CatalogRepository extends Repository
         ) pv ON pv.product_id = p.id';
 
     private const CARD_FIELDS = 'SELECT p.id, p.name, p.slug, p.short_description, p.is_new, p.is_featured,
-            p.production_lead_days, c.name AS category_name, c.slug AS category_slug,
+            p.production_lead_days, p.personalization_enabled, c.name AS category_name, c.slug AS category_slug,
             v.id AS variant_id, v.price_cents, v.compare_at_price_cents,
             pv.min_price, pv.max_price, pv.variant_count, pv.sellable_count,
             COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode,
@@ -49,8 +49,16 @@ final class CatalogRepository extends Repository
             SELECT pi.id FROM product_images pi WHERE pi.product_id = p.id
              ORDER BY pi.is_cover DESC, pi.sort_order, pi.id LIMIT 1)';
 
+    /** Filtros de vitrine (?oferta=1 …): nome => condição SQL sobre p, v (variante padrão) e i (estoque). */
+    public const FLAGS = [
+        'oferta' => 'v.compare_at_price_cents IS NOT NULL AND v.compare_at_price_cents > v.price_cents',
+        'destaque' => 'p.is_featured = 1',
+        'pronta' => "COALESCE(i.stock_mode, 'made_to_order') = 'stock' AND COALESCE(i.quantity_on_hand, 0) - COALESCE(i.quantity_reserved, 0) > 0",
+        'personalizavel' => 'p.personalization_enabled = 1',
+    ];
+
     /**
-     * @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int} $filters
+     * @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int, flags?: list<string>} $filters
      * @return array{0: string, 1: array<string, mixed>}
      */
     private function where(array $filters): array
@@ -71,9 +79,10 @@ final class CatalogRepository extends Repository
         foreach (array_values($filters['terms'] ?? []) as $n => $term) {
             $like = '%' . addcslashes($term, '%_\\') . '%';
             $sql .= " AND (p.name LIKE :t{$n}a OR p.short_description LIKE :t{$n}b OR c.name LIKE :t{$n}c
+                      OR p.keywords LIKE :t{$n}e OR p.description LIKE :t{$n}f
                       OR EXISTS (SELECT 1 FROM product_variants vs WHERE vs.product_id = p.id AND vs.is_active = 1
                                     AND vs.deleted_at IS NULL AND vs.sku LIKE :t{$n}d))";
-            foreach (['a', 'b', 'c', 'd'] as $suffix) {
+            foreach (['a', 'b', 'c', 'd', 'e', 'f'] as $suffix) {
                 $params["t{$n}{$suffix}"] = $like;
             }
         }
@@ -86,11 +95,16 @@ final class CatalogRepository extends Repository
             $sql .= ' AND pv.min_price <= :max_cents';
             $params['max_cents'] = $filters['max_cents'];
         }
+        foreach ($filters['flags'] ?? [] as $flag) {
+            if (isset(self::FLAGS[$flag])) {
+                $sql .= ' AND (' . self::FLAGS[$flag] . ')'; // lista branca: nada vem da URL
+            }
+        }
 
         return [$sql, $params];
     }
 
-    /** @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int} $filters */
+    /** @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int, flags?: list<string>} $filters */
     public function count(array $filters): int
     {
         [$where, $params] = $this->where($filters);
@@ -99,7 +113,7 @@ final class CatalogRepository extends Repository
     }
 
     /**
-     * @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int} $filters
+     * @param array{category_ids?: list<int>, terms?: list<string>, min_cents?: ?int, max_cents?: ?int, flags?: list<string>} $filters
      * @return list<array<string, mixed>>
      */
     public function paginate(array $filters, string $sort, int $limit, int $offset): array
@@ -125,6 +139,16 @@ final class CatalogRepository extends Repository
             self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . $where
             . " ORDER BY {$order}, p.id DESC LIMIT :limit OFFSET :offset",
             $params + ['limit' => $limit, 'offset' => $offset]
+        );
+    }
+
+    /** @return list<array<string, mixed>> produtos em promoção (preço "de" maior que o atual) */
+    public function onSale(int $limit): array
+    {
+        return $this->fetchAll(
+            self::CARD_FIELDS . self::VISIBLE_FROM . self::PRICE_JOIN . self::COVER_JOIN . self::VISIBLE_WHERE
+            . ' AND (' . self::FLAGS['oferta'] . ') ORDER BY (v.compare_at_price_cents - v.price_cents) DESC, p.id LIMIT :limit',
+            ['limit' => $limit]
         );
     }
 
@@ -260,7 +284,8 @@ final class CatalogRepository extends Repository
     {
         return $this->fetchOne(
             'SELECT p.id, p.category_id, p.name, p.slug, p.short_description, p.description, p.highlights,
-                    p.production_lead_days, p.personalization_enabled, p.is_new, p.meta_title, p.meta_description,
+                    p.production_lead_days, p.dispatch_days, p.care_instructions, p.assembly_info, p.keywords,
+                    p.personalization_enabled, p.is_new, p.meta_title, p.meta_description,
                     c.name AS category_name, c.slug AS category_slug,
                     cp.name AS parent_category_name, cp.slug AS parent_category_slug,
                     v.id AS variant_id, v.sku, v.price_cents, v.compare_at_price_cents, v.material_label, v.finish_label,
@@ -310,6 +335,12 @@ final class CatalogRepository extends Repository
     {
         return $this->fetchAll(
             'SELECT cat.id, cat.parent_id, cat.name, cat.slug, cat.description, cat.meta_title, cat.meta_description,
+                    -- Sem foto própria: a capa do produto mais vendido da categoria (ou de uma filha)
+                    COALESCE(cat.image_path, (SELECT ci.path FROM products cp
+                        JOIN categories cc ON cc.id = cp.category_id
+                        JOIN product_images ci ON ci.product_id = cp.id
+                       WHERE (cc.id = cat.id OR cc.parent_id = cat.id) AND cp.is_active = 1 AND cp.deleted_at IS NULL
+                       ORDER BY cp.sales_count DESC, ci.is_cover DESC, ci.sort_order, ci.id LIMIT 1)) AS image_path,
                     (SELECT COUNT(*)' . self::VISIBLE_FROM . self::VISIBLE_WHERE . ' AND p.category_id = cat.id) AS product_count
                FROM categories cat
                LEFT JOIN categories parent ON parent.id = cat.parent_id

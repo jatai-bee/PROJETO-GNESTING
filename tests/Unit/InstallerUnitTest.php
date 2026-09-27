@@ -92,10 +92,10 @@ final class InstallerUnitTest extends TestCase
             'shipping_origin_state' => 'XX',
             'mail_host' => 'mail.gnesting.com.br',               // SMTP sem usuário/senha
             'mp_access_token' => 'APP_USR-1',                    // token sem a assinatura do webhook
-            'sample_data' => '1',                                // exemplos em produção
+            'sample_data' => '1',                                // demonstração em produção: permitida
         ]));
 
-        self::assertSame(['app_url', 'db_database', 'admin_password', 'shipping_origin_state', 'mail_username', 'mp_webhook_secret', 'sample_data'],
+        self::assertSame(['app_url', 'db_database', 'admin_password', 'shipping_origin_state', 'mail_username', 'mp_webhook_secret'],
             array_keys($errors));
         self::assertStringContainsString('https://', $errors['app_url']);
 

@@ -54,7 +54,7 @@ $currentPath = substr($currentUrl, strlen(url('/')) - 1);
         <div class="table-wrap">
             <table class="table table--stack">
                 <thead>
-                <tr><th><span class="visually-hidden">Imagem</span></th><th>Produto</th><th>SKU</th><th>Categoria</th><th>Preço</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr>
+                <tr><th><span class="visually-hidden">Imagem</span></th><th>Produto</th><th>SKU</th><th>Categoria</th><th>Preço</th><th>Margem</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($products as $product): ?>
@@ -73,7 +73,12 @@ $currentPath = substr($currentUrl, strlen(url('/')) - 1);
                         </td>
                         <td data-label="SKU"><code><?= e($product['sku']) ?></code></td>
                         <td data-label="Categoria"><?= e($product['category_name']) ?></td>
-                        <td class="table__num" data-label="Preço"><?= $product['price_cents'] !== null ? e(money((int) $product['price_cents'])) : '—' ?></td>
+                        <td class="table__num" data-label="Preço">
+                            <?= $product['price_cents'] !== null ? e(money((int) $product['price_cents'])) : '—' ?>
+                            <?php if ($product['compare_at_price_cents'] !== null): ?><br><s class="muted"><?= e(money((int) $product['compare_at_price_cents'])) ?></s><?php endif ?>
+                        </td>
+                        <?php $m = $product['cost_cents'] !== null && (int) $product['price_cents'] > 0 ? (int) round(((int) $product['price_cents'] - (int) $product['cost_cents']) * 100 / (int) $product['price_cents']) : null; ?>
+                        <td class="table__num" data-label="Margem"><?= $m === null ? '<span class="muted">—</span>' : '<span class="' . ($m < 20 ? 'text-warn' : '') . '">' . e($m) . '%</span>' ?></td>
                         <td>
                             <?= $product['is_active'] ? '<span class="status status--on">Ativo</span>' : '<span class="status status--off">Inativo</span>' ?>
                             <?php if ((int) $product['image_count'] === 0): ?><span class="status status--warn">Sem imagem</span><?php endif ?>

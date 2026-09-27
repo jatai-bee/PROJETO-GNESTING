@@ -166,13 +166,13 @@ $field = static function (string $name, string $label, array $opts = []) use ($d
             <?= $field('mp_webhook_secret', 'Assinatura secreta do webhook', ['type' => 'password', 'required' => false, 'autocomplete' => 'off']) ?>
         </fieldset>
 
-        <?php if (!\GNesting\Install\Installer::isProductionUrl($data['app_url'])): ?>
         <fieldset>
-            <legend>Teste no computador</legend>
+            <legend>Dados de demonstração (opcional)</legend>
             <label class="i-check"><input type="checkbox" name="sample_data" value="1"<?= $data['sample_data'] === '1' ? ' checked' : '' ?>>
-                Instalar produtos e categorias de exemplo</label>
+                Instalar dados de demonstração</label>
+            <p class="i-muted">34 produtos com fotos, categorias, clientes e pedidos em todas as etapas, para conhecer a loja e o painel.
+                Nenhum e-mail é enviado. Quando cadastrar os seus produtos, apague tudo em Painel → Sistema → Remover dados de demonstração.</p>
         </fieldset>
-        <?php endif ?>
 
         <p class="i-muted">Ao instalar: o arquivo .env é gravado com chaves novas, as tabelas são criadas e seu acesso é cadastrado.
             Leva menos de um minuto. Depois disso, este assistente se desliga.</p>

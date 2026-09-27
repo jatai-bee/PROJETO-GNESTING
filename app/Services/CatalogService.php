@@ -93,12 +93,18 @@ final class CatalogService
 
         $sort = in_array($input['ordem'] ?? '', CatalogRepository::SORTS, true) ? $input['ordem'] : 'relevancia';
 
+        $flags = array_values(array_filter(
+            array_keys(CatalogRepository::FLAGS),
+            static fn (string $flag): bool => ($input[$flag] ?? '') === '1'
+        ));
+
         return [
             'q' => $q,
             'terms' => array_slice($terms, 0, self::MAX_TERMS),
             'min_cents' => $min === 0 ? null : $min,
             'max_cents' => $max,
             'sort' => $sort,
+            'flags' => $flags,
         ];
     }
 
@@ -114,6 +120,7 @@ final class CatalogService
             'terms' => $filters['terms'],
             'min_cents' => $filters['min_cents'],
             'max_cents' => $filters['max_cents'],
+            'flags' => $filters['flags'] ?? [],
         ];
         $paginator = new Paginator($this->catalog->count($criteria), $page, self::PER_PAGE);
 

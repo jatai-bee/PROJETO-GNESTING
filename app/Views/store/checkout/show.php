@@ -37,12 +37,19 @@ $itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
         <?php endif ?>
     </header>
 
+    <ol class="steps checkout-steps" aria-label="Etapas da compra">
+        <li class="is-done">Carrinho</li>
+        <li class="is-current" aria-current="step">Entrega e dados</li>
+        <li>Pagamento</li>
+        <li>Confirmação</li>
+    </ol>
+
     <form method="post" action="<?= e(url('/checkout')) ?>" class="checkout" novalidate data-checkout>
         <?= csrf_field() ?>
         <div class="checkout__main">
-            <section class="checkout-step">
-                <h2 class="checkout-step__title"><span>1</span> Seus dados</h2>
-                <div class="form-grid-2">
+            <section class="checkout-section">
+                <h2 class="checkout-section__title"><span>1</span> Seus dados</h2>
+                <div class="form-grid form-grid--2">
                     <?= $f('partials/field', ['name' => 'name', 'label' => 'Nome completo', 'value' => $customer['name'] ?? '', 'autocomplete' => 'name', 'maxlength' => 120]) ?>
                     <?php if ($customer === null): ?>
                         <?= $f('partials/field', ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'autocomplete' => 'email', 'maxlength' => 190,
@@ -57,8 +64,8 @@ $itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
                 </div>
             </section>
 
-            <section class="checkout-step">
-                <h2 class="checkout-step__title"><span>2</span> Entrega</h2>
+            <section class="checkout-section">
+                <h2 class="checkout-section__title"><span>2</span> Entrega</h2>
 
                 <?php if ($savedAddresses !== []): ?>
                     <fieldset class="choice-list">
@@ -81,7 +88,7 @@ $itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
                 <?php endif ?>
 
                 <div class="address-form" data-address-form>
-                    <div class="form-grid-3">
+                    <div class="form-grid form-grid--3">
                         <?= $f('partials/field', ['name' => 'zip_code', 'label' => 'CEP', 'inputmode' => 'numeric', 'autocomplete' => 'postal-code', 'maxlength' => 9, 'placeholder' => '00000-000']) ?>
                         <?= $f('partials/field', ['name' => 'street', 'label' => 'Rua', 'autocomplete' => 'address-line1', 'maxlength' => 160]) ?>
                         <?= $f('partials/field', ['name' => 'number', 'label' => 'Número', 'maxlength' => 20]) ?>
@@ -97,8 +104,8 @@ $itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
                 </div>
             </section>
 
-            <section class="checkout-step" aria-live="polite">
-                <h2 class="checkout-step__title"><span>3</span> Frete</h2>
+            <section class="checkout-section" aria-live="polite">
+                <h2 class="checkout-section__title"><span>3</span> Frete</h2>
                 <input type="hidden" name="quoted_zip" value="<?= e($quotedZip ?? '') ?>" data-quoted-zip>
                 <div data-shipping-options>
                     <?php if ($shippingOptions === []): ?>
@@ -129,31 +136,34 @@ $itemsTotal = (int) $cart['subtotal_cents'] - (int) $cart['discount_cents'];
             </section>
         </div>
 
-        <aside class="checkout__summary cart__summary" aria-labelledby="resumo-pedido">
-            <h2 id="resumo-pedido" class="cart__summary-title">Seu pedido</h2>
+        <aside class="card summary" aria-labelledby="resumo-pedido">
+            <h2 id="resumo-pedido" class="section__title">Seu pedido</h2>
             <ul class="summary-items">
                 <?php foreach ($cart['items'] as $item): ?>
-                    <li>
-                        <span><?= e($item['quantity']) ?> × <?= e($item['name']) ?><?php if ($item['variant_name']): ?> <small class="muted">(<?= e($item['variant_name']) ?>)</small><?php endif ?>
-                            <?php foreach ($item['personalization'] as $choice): ?><br><small class="muted"><?= e($choice['label']) ?>: <?= e($choice['display']) ?></small><?php endforeach ?>
+                    <li class="summary-item">
+                        <?php if (!empty($item['cover_path'])): ?>
+                            <img src="<?= e(upload_url($item['cover_path'], 400)) ?>" alt="" width="56" height="56" loading="lazy">
+                        <?php else: ?>
+                            <span class="media-placeholder"><img src="<?= e(asset('img/logo-mark.svg')) ?>" alt="" width="24" height="24"></span>
+                        <?php endif ?>
+                        <span><strong><?= e($item['quantity']) ?> × <?= e($item['name']) ?></strong><?php if ($item['variant_name']): ?> <small>(<?= e($item['variant_name']) ?>)</small><?php endif ?>
+                            <?php foreach ($item['personalization'] as $choice): ?><small><?= e($choice['label']) ?>: <?= e($choice['display']) ?></small><?php endforeach ?>
                         </span>
                         <span><?= e(money($item['line_total_cents'])) ?></span>
                     </li>
                 <?php endforeach ?>
             </ul>
-            <dl class="summary-lines">
-                <div><dt>Subtotal</dt><dd><?= e(money($cart['subtotal_cents'])) ?></dd></div>
-                <?php if ($coupon !== null): ?>
-                    <div class="summary-lines__discount"><dt>Cupom <?= e($coupon['code']) ?></dt>
-                        <dd><?= (int) $cart['discount_cents'] > 0 ? '− ' . e(money((int) $cart['discount_cents'])) : e($coupon['label']) ?></dd></div>
-                <?php endif ?>
-                <div><dt>Frete</dt><dd data-summary-shipping><?= $chosenOption === null ? '<span class="muted">calcule acima</span>' : e($shippingPrice($chosenOption) === 0 ? 'Grátis' : money($shippingPrice($chosenOption))) ?></dd></div>
-                <div class="summary-lines__total"><dt>Total</dt><dd data-summary-total data-subtotal="<?= e($itemsTotal) ?>"><?= e(money($itemsTotal + ($chosenOption === null ? 0 : $shippingPrice($chosenOption)))) ?></dd></div>
-            </dl>
-            <p class="field__hint">Produção em até <?= e($cart['lead_days']) ?> dia<?= $cart['lead_days'] === 1 ? '' : 's' ?> úte<?= $cart['lead_days'] === 1 ? 'il' : 'is' ?>, depois o prazo de entrega.</p>
-            <button type="submit" class="btn btn--primary btn--block">Ir para o pagamento</button>
-            <p class="field__hint">Pix, cartão ou boleto em ambiente seguro do Mercado Pago. Não guardamos dados de cartão.</p>
-            <a class="cart__continue" href="<?= e(url('/carrinho')) ?>">Voltar ao carrinho</a>
+            <div class="summary__row"><span>Subtotal</span><span><?= e(money($cart['subtotal_cents'])) ?></span></div>
+            <?php if ($coupon !== null): ?>
+                <div class="summary__row"><span>Cupom <?= e($coupon['code']) ?></span>
+                    <span class="summary__discount"><?= (int) $cart['discount_cents'] > 0 ? '− ' . e(money((int) $cart['discount_cents'])) : e($coupon['label']) ?></span></div>
+            <?php endif ?>
+            <div class="summary__row"><span>Frete</span><span data-summary-shipping><?= $chosenOption === null ? '<span class="muted">calcule ao lado</span>' : e($shippingPrice($chosenOption) === 0 ? 'Grátis' : money($shippingPrice($chosenOption))) ?></span></div>
+            <div class="summary__row summary__row--total"><span>Total</span><span data-summary-total data-subtotal="<?= e($itemsTotal) ?>"><?= e(money($itemsTotal + ($chosenOption === null ? 0 : $shippingPrice($chosenOption)))) ?></span></div>
+            <p class="summary__note">Produção em até <?= e($cart['lead_days']) ?> dia<?= $cart['lead_days'] === 1 ? '' : 's' ?> úte<?= $cart['lead_days'] === 1 ? 'il' : 'is' ?>, depois o prazo de entrega.</p>
+            <button type="submit" class="btn btn--primary btn--lg btn--block">Ir para o pagamento</button>
+            <p class="secure-note"><?= $this->partial('partials/icon', ['name' => 'lock', 'size' => 16]) ?> Pix, cartão ou boleto em ambiente seguro do Mercado Pago. Não guardamos dados de cartão.</p>
+            <a class="link-arrow" href="<?= e(url('/carrinho')) ?>">Voltar ao carrinho</a>
         </aside>
     </form>
 </div>

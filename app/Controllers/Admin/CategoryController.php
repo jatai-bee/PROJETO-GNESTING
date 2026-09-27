@@ -47,7 +47,10 @@ final class CategoryController extends Controller
 
     public function create(Request $request): Response
     {
-        return $this->form(null);
+        // "+ Subcategoria" na árvore já chega com a mãe escolhida
+        $parent = $request->queryInt('mae');
+
+        return $this->form(null, $parent > 0 ? $parent : null);
     }
 
     public function store(Request $request): Response
@@ -88,7 +91,7 @@ final class CategoryController extends Controller
     }
 
     /** @param array<string, mixed>|null $category */
-    private function form(?array $category): Response
+    private function form(?array $category, ?int $parentId = null): Response
     {
         $parents = array_filter(
             $this->categories->options(),
@@ -99,6 +102,7 @@ final class CategoryController extends Controller
             'title' => ($category ? 'Editar categoria' : 'Nova categoria') . ' | Painel',
             'category' => $category,
             'parents' => $parents,
+            'parentId' => $parentId,
         ], 'admin');
     }
 

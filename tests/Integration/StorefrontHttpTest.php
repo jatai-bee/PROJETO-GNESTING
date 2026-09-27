@@ -400,7 +400,7 @@ final class StorefrontHttpTest extends IntegrationTestCase
         ), 'Mesma personalização soma na mesma linha');
 
         $cart = $this->get('/carrinho')->body();
-        self::assertStringContainsString('Nome:</dt> <dd>Bia', $cart);
+        self::assertStringContainsString('Nome: <strong>Bia', $cart);
         self::assertStringContainsString('R$ 100,00 cada', $cart, '80,00 + 20,00 de personalização');
         self::assertStringContainsString('R$ 500,00', $cart, 'Subtotal: 5 unidades × 100,00');
 
@@ -468,7 +468,7 @@ final class StorefrontHttpTest extends IntegrationTestCase
 
         $this->post('/carrinho/itens', ['variant_id' => (string) $p['variant_id'], 'quantity' => '1', "pers_{$rule}" => 'b']);
         self::assertSame(3, (int) $this->fetchValue('SELECT SUM(quantity) FROM cart_items'));
-        self::assertStringContainsString('Inicial:</dt> <dd>A', $this->get('/carrinho')->body(), 'Inicial em maiúscula');
+        self::assertStringContainsString('Inicial: <strong>A<', $this->get('/carrinho')->body(), 'Inicial em maiúscula');
     }
 
     public function testCartChangesRequireCsrfToken(): void

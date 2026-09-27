@@ -14,6 +14,8 @@ use GNesting\Enums\AdminRole;
 use GNesting\Repositories\AddressRepository;
 use GNesting\Repositories\CustomerRepository;
 use GNesting\Repositories\OrderRepository;
+use GNesting\Repositories\WishlistRepository;
+use GNesting\Services\AuditService;
 use GNesting\Services\BusinessRuleException;
 use GNesting\Services\CustomerPrivacyService;
 
@@ -31,6 +33,8 @@ final class CustomerController extends Controller
         private readonly AddressRepository $addresses,
         private readonly Auth $auth,
         private readonly CustomerPrivacyService $privacy,
+        private readonly AuditService $audit,
+        private readonly WishlistRepository $wishlist,
     ) {
     }
 
@@ -57,9 +61,23 @@ final class CustomerController extends Controller
             'customer' => $customer,
             'orders' => $this->orders->adminList(['customer_id' => (int) $customer['id']], 100, 0),
             'addresses' => $this->addresses->forCustomer((int) $customer['id']),
+            'favorites' => $this->wishlist->productsForAdmin((int) $customer['id']),
             'fullCpf' => $this->canSeeFullCpf(),
             'isOwner' => ($this->auth->admin()['role'] ?? '') === AdminRole::Owner->value,
         ], 'admin');
+    }
+
+    /** Observações internas (ex.: "prefere contato por WhatsApp", "cliente de atacado"). Ficam na auditoria. */
+    public function notes(Request $request): Response
+    {
+        $customer = $this->customers->adminFind((int) $request->param('id')) ?? throw HttpException::notFound();
+        $this->validate($request, ['notes' => 'max:5000'], ['notes' => 'Observações']);
+        $notes = trim($request->string('notes'));
+        $this->customers->updateNotes((int) $customer['id'], $notes === '' ? null : $notes);
+        $this->audit->recordChanges(AuditService::UPDATE, 'customer', (int) $customer['id'], ['notes' => $customer['notes']], ['notes' => $notes === '' ? null : $notes]);
+        $this->flash('success', 'Observações salvas.');
+
+        return $this->redirect('/admin/clientes/' . $customer['id']);
     }
 
     /** LGPD: todos os dados do cliente em JSON (somente proprietário; fica na auditoria). */

@@ -1,0 +1,99 @@
+# 19 — Reformulação de UX (etapa 14)
+
+Referência de experiência: DeliveryPremiumBR (menu superior com categorias, produto visual, ficha clara, compra em poucos passos, painel organizado). A identidade continua a da G-Nesting (docs/06). Prioridade de decisão: **UX → arquitetura → navegação → clareza → estética → funcionalidades**.
+
+A reformulação acontece em fases, cada uma revisada com capturas de tela antes da próxima:
+
+| Fase | Escopo | Situação |
+|---|---|---|
+| 1 | Auditoria, design system v2, loja inteira, dados de demonstração | concluída |
+| 2 | Painel: menu agrupado, trilha de navegação, dashboard com indicadores e gráficos | concluída |
+| 3 | Produtos (abas, custo e margem, SEO), categorias em árvore, clientes | concluída |
+| 4 | Pedidos (tabela, cartões, detalhe), fila e ordens de produção, estoque, expedição, relatórios | próxima |
+| 5 | Revisão final de design e acessibilidade | — |
+
+## 1. Auditoria (antes)
+
+| Onde | Problema | Correção |
+|---|---|---|
+| Loja, celular | parecia estourar a largura | era efeito da captura (o Edge headless desenha no mínimo ~500 px); as capturas agora usam um iframe de 390 px. `overflow-x: clip` no `body` fica como proteção |
+| Home | título sem imagem e espaço vazio | apresentação com colagem de produtos, faixa de garantias, categorias com foto, destaques, ofertas, personalização, mais vendidos, novidades e "como fazemos" |
+| Catálogo | só filtro de preço | filtros rápidos (oferta, pronta entrega, personalizável, destaques), árvore de categorias com contagem, etiquetas removíveis, ordenação na barra |
+| Ficha | foto quebrada sem imagem, sem quantidade − +, sem favorito nem compartilhar | galeria, caixa de preço, disponibilidade, − +, favoritar, compartilhar, prazos, especificações, montagem e cuidados |
+| Carrinho e checkout | sem indicação de etapa | barra de etapas (Carrinho → Entrega e dados → Pagamento → Confirmação); o checkout continua numa página só, sem cliques extras |
+| Pedido | status só em texto | barra de progresso para o cliente (Pedido feito → Pagamento → Produção → Enviado → Entregue) |
+| Visual | cantos retos, fontes que não existiam no projeto | cantos suaves, sombras quentes, Manrope e Newsreader auto-hospedadas |
+| Dados | um produto de exemplo | 34 produtos com fotos, clientes e pedidos em todas as etapas |
+
+## 2. Design system v2
+
+Arquivos: `public/assets/css/tokens.css` (variáveis), `app.css` (componentes comuns à loja e ao painel), `store.css` (loja).
+
+- **Cores:** papel `#F6F3EE` (fundo), grafite (texto), kerf `#C4532D` (ação principal), kerf-escuro (links), carvalho-claro (fundos de destaque), oliva (positivo: pronta entrega, pago). Feedback com fundo claro: sucesso, alerta, erro, informação.
+- **Tipografia:** Manrope (interface) e Newsreader (títulos), em `public/assets/fonts/` (OFL, peso variável, sem requisição a terceiros).
+- **Forma:** raios 6 / 10 / 16 / 24 px e pílula; sombras quentes xs–lg.
+- **Componentes:** botões (primário, escuro, secundário, fantasma, perigo; tamanhos sm/lg; bloco; ícone), selos, cartões, campos com select estilizado, − + de quantidade, lista de escolhas, alertas com ícone, trilha, paginação, estado vazio, esqueleto, etapas, linha do tempo, abas, tabela de especificações.
+- **Ícones:** `partials/icon` (traço 1,8, 24×24, sempre `aria-hidden`; o texto acessível fica no elemento).
+- **Estados:** vazio (carrinho, favoritos, busca, filtros, pedidos), erro por campo, esgotado, sob encomenda, pronta entrega, carregando (`.skeleton`, `.is-loading`).
+
+## 3. Loja
+
+- **Cabeçalho fixo:** marca, busca, favoritos (com contador), conta, carrinho (com contador). No computador, menu de categorias com painel suspenso (subcategorias e foto; abre também pelo teclado) e atalhos Novidades e Ofertas. No celular, gaveta (`<details>`, funciona sem JavaScript).
+- **Cartão de produto:** foto, selos (−%, Novo, Esgotado), coração, categoria, nome, prazo ou "Pronta entrega", "Personalizável", preço e ação: *Adicionar* quando não há escolha a fazer; *Escolher opções* ou *Personalizar* quando há.
+- **Filtros rápidos:** `?oferta=1`, `?pronta=1`, `?personalizavel=1`, `?destaque=1` (lista branca em `CatalogRepository::FLAGS`). Listagem filtrada leva `noindex`.
+- **Favoritos:** `POST /favoritos/{id}` alterna; sem conta, leva ao login e volta à página. Lista em `/conta/favoritos`.
+- **Conta:** menu lateral (Resumo, Meus pedidos, Favoritos, Sair).
+- **Personalização continua controlada:** só as opções que o ateliê cadastrou; o preço final aparece antes de comprar.
+- **Sem JavaScript tudo funciona.** O `store.js` só melhora: − +, compartilhar (menu do celular ou copiar link), filtros sempre abertos no computador, troca de variação sem recarregar, frete ao sair do CEP.
+
+## 4. Dados de demonstração
+
+Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro depois.
+
+| | Quantidade |
+|---|---|
+| Categorias | 7 principais, 24 subcategorias |
+| Produtos | 34 com duas ilustrações cada (geradas por `ProductIllustrator`), variações, estoque, ficha de produção e personalização; 1 inativo e 2 esgotados de propósito |
+| Matérias-primas | 12 (uma abaixo do mínimo e uma zerada, para os alertas) |
+| Clientes | 16 (11 com conta; senha `cliente-demo-123`) |
+| Pedidos | 29, em todas as etapas: aguardando pagamento, pago, corte, lixamento, pintura, controle de qualidade, embalagem, pronto, enviado, entregue, cancelado e estornado |
+| Cupons | `BEMVINDO10` e `FRETEGRATIS` |
+
+- **Instalar:** opção "Instalar dados de demonstração" no assistente de instalação (permitida também em produção) ou `php bin/demo.php instalar`. Nenhum e-mail é enviado.
+- **Remover:** Painel → Sistema → "Remover dados de demonstração" (proprietário, digitando REMOVER; um backup do banco é feito antes) ou `php bin/demo.php remover`. Produto de demonstração que entrou num pedido real é desativado em vez de apagado; cliente ou cupom com pedido real fica.
+
+## 5. Painel
+
+- **Menu por área:** Visão geral · Vendas (Pedidos, Clientes, Cupons) · Produção (Fila de produção, Expedição, Fichas de produção, Matérias-primas) · Catálogo (Produtos, Categorias) · Administração (Configurações, Usuários, Auditoria, Sistema). Cada papel só vê os módulos que pode abrir; área vazia some. No celular o menu vira gaveta.
+- **Trilha de navegação** na barra superior: Painel › área › módulo › página. Sai do menu e do título; uma tela pode acrescentar passos com `$breadcrumbs`.
+- **Visão geral** (`DashboardService`), com período de 7, 30 ou 90 dias ou o mês corrente, comparado com o período anterior de mesma duração:
+  - gestão e proprietário: faturamento, pedidos pagos, ticket médio, novos clientes, vendas por dia (gráfico de colunas), vendas por categoria e mais vendidos;
+  - quem cuida de pedidos: pedidos por etapa (cada etapa abre a lista filtrada) e últimos pedidos;
+  - gestão e produção: "Precisa de atenção" (matéria-prima no ponto de reposição, pronta entrega zerada, pagamento parado há mais de um dia, produto sem foto);
+  - proprietário: atividade da equipe.
+- Venda conta pela data do pagamento, no fuso da loja; pedido cancelado não conta.
+- Os gráficos são SVG desenhado no servidor (sem biblioteca e sem JavaScript); os rótulos ficam em HTML para continuarem legíveis no celular.
+- A demonstração não mexe no estoque de matéria-prima que a loja já tinha e deixa as suas no nível planejado.
+
+## 6. Catálogo e clientes no painel
+
+- **Produto em abas:** Geral · Comercial · Estoque e envio · Variações · Imagens · Personalização · Produção · SEO.
+  - Geral, Comercial, Estoque e envio e SEO são um único formulário: a troca de aba não recarrega e "Salvar" grava tudo. Sem JavaScript as seções aparecem uma embaixo da outra; com erro de validação, abre a aba do primeiro campo com erro.
+  - As demais abas são as telas que já existiam.
+- **Campos novos (migration 006):**
+  - custo unitário por variação, com a margem calculada ao vivo e também na lista de produtos (em alerta abaixo de 20%). O custo nunca aparece na loja;
+  - prazo de postagem;
+  - montagem e cuidados, exibidos na ficha da loja;
+  - palavras-chave, usadas pela busca da loja, e prévia do resultado no Google.
+- **Duplicar produto:**
+  - copia o cadastro, as variações com opções, a personalização e as fichas de produção;
+  - a cópia nasce inativa, com estoque zerado, SKUs `-C`, `-C2`… e endereço novo;
+  - fotos, arquivos de produção e imagens das opções não são copiados: um arquivo compartilhado sumiria dos dois produtos quando um deles fosse apagado.
+- **Categorias em árvore:** cada principal num bloco com foto, total de produtos (somando as filhas), situação, "+ Subcategoria" (já chega com a mãe escolhida) e as subcategorias dentro.
+- **Ficha do cliente:**
+  - ticket médio, preferências de contato e favoritos na loja;
+  - observações da equipe (migration 007, `customers.notes`), editadas por gestão e atendimento e registradas na auditoria. Entram na exportação LGPD e são apagadas na anonimização.
+
+## 7. Testes
+
+`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).

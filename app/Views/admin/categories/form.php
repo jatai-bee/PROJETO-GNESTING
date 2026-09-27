@@ -30,7 +30,7 @@ foreach ($parents as $parent) {
                 ? 'Parte final da URL da categoria. Evite alterar: links já divulgados deixam de funcionar.'
                 : 'Parte final da URL: /categoria/relogios. Deixe vazio para gerar a partir do nome.']) ?>
         <?= $f('partials/select', ['name' => 'parent_id', 'label' => 'Categoria principal', 'options' => $parentOptions,
-            'value' => $category['parent_id'] ?? '', 'placeholder' => '— Nenhuma (categoria principal) —', 'required' => false]) ?>
+            'value' => $category['parent_id'] ?? ($parentId ?? ''), 'placeholder' => '— Nenhuma (categoria principal) —', 'required' => false]) ?>
         <?= $f('partials/textarea', ['name' => 'description', 'label' => 'Descrição', 'value' => $category['description'] ?? '', 'rows' => 3, 'maxlength' => 2000]) ?>
         <div class="form-row">
             <?= $f('partials/field', ['name' => 'sort_order', 'label' => 'Ordem de exibição', 'type' => 'number', 'value' => $category['sort_order'] ?? 0,

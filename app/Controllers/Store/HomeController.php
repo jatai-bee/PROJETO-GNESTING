@@ -33,13 +33,20 @@ final class HomeController extends Controller
             static fn (array $p): bool => !in_array($p['id'], $featuredIds, true)
         ));
 
+        $onSale = $this->products->onSale(4);
+        $shown = array_merge($featuredIds, array_column($onSale, 'id'));
+
         return $this->render('store/home', [
             'title' => 'G-Nesting — Objetos que transformam espaços.',
             'metaDescription' => 'Objetos de design produzidos com fabricação digital: relógios, painéis, organizadores e presentes com personalização.',
             'canonical' => absolute_url('/'),
             'jsonLd' => [SeoData::store($this->settings->get('store.contact_email'))],
-            'featured' => $featured,
+            // Linhas completas na grade de 4 colunas
+            'featured' => count($featured) >= 4 ? array_slice($featured, 0, intdiv(count($featured), 4) * 4) : $featured,
+            'onSale' => $onSale,
+            'bestsellers' => $this->products->bestsellers(array_map('intval', $shown), 4),
             'newest' => array_slice($newest, 0, self::SHOWCASE),
+            'personalizable' => $this->products->paginate(['flags' => ['personalizavel']], 'mais-vendidos', 3, 0),
             'categories' => array_values(array_filter(
                 $this->catalog->categoryTree(),
                 static fn (array $c): bool => $c['total'] > 0

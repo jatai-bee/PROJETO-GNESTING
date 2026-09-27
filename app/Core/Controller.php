@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GNesting\Core;
 
+use GNesting\Repositories\WishlistRepository;
 use GNesting\Services\CartService;
 use GNesting\Services\CatalogService;
 use GNesting\Services\SettingsService;
@@ -28,14 +29,18 @@ abstract class Controller
         ];
 
         if ($layout === 'store') {
+            $customer = app(Auth::class)->customer();
             $data += [
-                'currentCustomer' => app(Auth::class)->customer(),
+                'currentCustomer' => $customer,
+                'favoriteIds' => $customer === null ? [] : app(WishlistRepository::class)->productIds((int) $customer['customer_id']),
                 'cartCount' => app(CartService::class)->itemCount(),
                 'navCategories' => app(CatalogService::class)->categoryTree(),
                 'announcement' => app(SettingsService::class)->get('store.announcement'),
                 'contactEmail' => app(SettingsService::class)->get('store.contact_email'),
                 'floatingWhatsapp' => app(WhatsApp::class)->floatingButton(),
             ];
+            // O coração dos cartões aparece em vários partials: compartilhado, não repassado um a um
+            app(View::class)->share('favoriteIds', $data['favoriteIds']);
         }
 
         return Response::html(app(View::class)->render($template, $data, $layout), $status);

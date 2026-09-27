@@ -6,10 +6,12 @@ namespace GNesting\Install;
 
 use Dotenv\Dotenv;
 use GNesting\Core\Bootstrap;
+use GNesting\Core\Container;
 use GNesting\Core\Database;
 use GNesting\Core\Migrations\Migrator;
 use GNesting\Enums\AdminRole;
 use GNesting\Services\Auth\AuthService;
+use GNesting\Services\Demo\DemoDataService;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -118,9 +120,15 @@ final class Installer
 
         $this->writeEnv($data);
         $db = new Database($dbConfig);
-        $this->migrate($db, ($data['sample_data'] ?? '') === '1');
+        $this->migrate($db);
         $this->verifySchema($db->pdo());
-        $this->createOwner($db, $data);
+        // Usa a conexão recém-configurada; o resto do container sobe com o .env gravado
+        $container = Bootstrap::createContainer($this->basePath);
+        $container->instance(Database::class, $db);
+        $this->createOwner($container, $data);
+        if (($data['sample_data'] ?? '') === '1') {
+            $this->installDemo($container);
+        }
         $this->lock();
 
         return $this->log;
@@ -175,7 +183,7 @@ final class Installer
         $this->add('Arquivo .env gravado com chaves novas (' . ($production ? 'produção' : 'desenvolvimento') . ').');
     }
 
-    private function migrate(Database $db, bool $sampleData): void
+    private function migrate(Database $db): void
     {
         $base = $this->basePath . '/database';
         $migrator = new Migrator($db->pdo(), $base . '/migrations', $base . '/seeds', function (string $line): void {
@@ -185,11 +193,18 @@ final class Installer
         });
         $applied = $migrator->migrate();
         $this->add($applied === [] ? 'Nenhuma migration pendente.' : count($applied) . ' migration(s) aplicada(s).');
+    }
 
-        if ($sampleData) {
-            $migrator->seed();
-            $this->add('Produtos e categorias de exemplo instalados.');
-        }
+    /**
+     * Catálogo, clientes e pedidos de demonstração (docs/19). Pode ir para produção: tudo fica registrado
+     * em demo_records e sai pelo botão "Remover dados de demonstração" em Painel → Sistema.
+     */
+    private function installDemo(Container $container): void
+    {
+        $container->get(DemoDataService::class)->install(function (string $line): void {
+            $this->add($line);
+        });
+        $this->add('Dados de demonstração instalados (remova em Painel → Sistema quando cadastrar os seus).');
     }
 
     private function verifySchema(PDO $pdo): void
@@ -204,11 +219,8 @@ final class Installer
     }
 
     /** @param array<string, string> $data */
-    private function createOwner(Database $db, array $data): void
+    private function createOwner(Container $container, array $data): void
     {
-        // Usa a conexão recém-configurada; o resto do container sobe com o .env gravado
-        $container = Bootstrap::createContainer($this->basePath);
-        $container->instance(Database::class, $db);
         $id = $container->get(AuthService::class)->createAdmin($data['admin_name'], $data['admin_email'], $data['admin_password'], AdminRole::Owner);
         $this->add("Proprietário #{$id} criado: " . AuthService::normalizeEmail($data['admin_email']) . '.');
     }

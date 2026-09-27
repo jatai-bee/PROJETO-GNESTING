@@ -131,6 +131,21 @@ $problems = array_filter($checks, fn (array $c) => !$c['ok']);
     </div>
 
     <aside class="order-admin__side">
+        <?php if (!empty($demoInstalled)): ?>
+        <section class="panel panel--attention">
+            <h2 class="panel__title">Dados de demonstração</h2>
+            <p class="muted panel__intro">A loja tem produtos, clientes e pedidos de demonstração. Quando cadastrar os seus, remova tudo aqui:
+                só sai o que a demonstração criou (um backup do banco é feito antes). Produto de demonstração que entrou num pedido real fica desativado.</p>
+            <form method="post" action="<?= e(url('/admin/sistema/demonstracao/remover')) ?>">
+                <?= csrf_field() ?>
+                <div class="field">
+                    <label for="conf-demo">Digite <strong><?= SystemController::DEMO_CONFIRMATION ?></strong> para confirmar</label>
+                    <input id="conf-demo" name="confirmacao" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn--danger btn--sm">Remover dados de demonstração</button>
+            </form>
+        </section>
+        <?php endif ?>
         <section class="panel">
             <h2 class="panel__title">Manutenção</h2>
             <?php if ($maintenance === null): ?>

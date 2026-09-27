@@ -1,46 +1,80 @@
 /* ==========================================================================
-   G-Nesting — Design tokens
+   G-Nesting — Design tokens (design system v2, etapa 14)
    Objetos que transformam espaços.
-   Fonte única de cores, tipografia, espaçamento e breakpoints.
-   Ver docs/06-identidade-visual.md
+   Fonte única de cores, tipografia, espaçamento, forma e movimento.
+   Ver docs/06-identidade-visual.md e docs/19-reformulacao-ux.md
    ========================================================================== */
+
+/* Fontes auto-hospedadas (OFL, subconjunto latin, peso variável): sem requisição a terceiros */
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fonts/manrope-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fonts/newsreader-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fonts/newsreader-latin-wght-italic.woff2") format("woff2");
+}
 
 :root {
   /* ---- Cores de marca ---------------------------------------------------- */
   --gn-grafite:        #1F1E1C;  /* texto principal, logotipo */
-  --gn-papel:          #F5F2EC;  /* fundo principal */
+  --gn-papel:          #F6F3EE;  /* fundo principal */
   --gn-carvalho:       #B98A5E;  /* madeira/MDF: superfícies, ilustração (nunca texto) */
-  --gn-carvalho-claro: #E8DCCB;  /* fundos de destaque, cards de categoria */
+  --gn-carvalho-claro: #EFE5D6;  /* fundos de destaque, cards de categoria */
   --gn-kerf:           #C4532D;  /* acento e CTA (texto branco sobre ele: 4.5:1) */
   --gn-kerf-escuro:    #A8431F;  /* links e acento em texto sobre papel (5.4:1) */
+  --gn-kerf-claro:     #FBEDE6;  /* fundo de destaque do acento */
+  --gn-oliva:          #4F6B58;  /* selos positivos (pronta entrega, pago) */
 
   /* ---- Neutros ----------------------------------------------------------- */
   --gn-branco:         #FFFFFF;
   --gn-cinza-900:      #1F1E1C;
   --gn-cinza-700:      #3D3A36;
   --gn-cinza-600:      #6B665E;  /* texto secundário (5.1:1 sobre papel) */
-  --gn-cinza-300:      #D6D0C6;  /* bordas */
-  --gn-cinza-200:      #E7E2D9;  /* divisórias, linhas de nesting */
-  --gn-cinza-100:      #EFEBE4;
+  --gn-cinza-400:      #A59E93;
+  --gn-cinza-300:      #DDD6CB;  /* bordas */
+  --gn-cinza-200:      #EAE5DC;  /* divisórias */
+  --gn-cinza-100:      #F1EDE6;
 
   /* ---- Feedback ---------------------------------------------------------- */
   --gn-sucesso:        #2F6B4F;
+  --gn-sucesso-claro:  #E7F2EC;
   --gn-alerta:         #8A5A00;
+  --gn-alerta-claro:   #FBF1DE;
   --gn-erro:           #B3261E;
+  --gn-erro-claro:     #FBEAE8;
   --gn-info:           #2C5A7A;
+  --gn-info-claro:     #E6EFF5;
 
   /* ---- Papéis semânticos (use estes nos componentes) --------------------- */
   --color-bg:            var(--gn-papel);
   --color-surface:       var(--gn-branco);
+  --color-surface-alt:   var(--gn-cinza-100);
   --color-surface-warm:  var(--gn-carvalho-claro);
   --color-text:          var(--gn-grafite);
   --color-text-muted:    var(--gn-cinza-600);
+  --color-text-subtle:   var(--gn-cinza-400);
   --color-border:        var(--gn-cinza-300);
   --color-line:          var(--gn-cinza-200);
   --color-accent:        var(--gn-kerf);
   --color-accent-text:   var(--gn-kerf-escuro);
+  --color-accent-soft:   var(--gn-kerf-claro);
   --color-on-accent:     var(--gn-branco);
   --color-focus:         var(--gn-kerf-escuro);
+  --color-dark:          var(--gn-grafite);
 
   /* ---- Tipografia -------------------------------------------------------- */
   --font-display: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
@@ -55,9 +89,9 @@
   --text-xl:   clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);    /* 20–24 */
   --text-2xl:  clamp(1.5rem, 1.25rem + 1vw, 2rem);        /* 24–32 */
   --text-3xl:  clamp(2rem, 1.5rem + 2vw, 3rem);           /* 32–48 */
-  --text-hero: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);       /* 40–72 */
+  --text-hero: clamp(2.4rem, 1.6rem + 3.6vw, 4.25rem);    /* 38–68 */
 
-  --leading-tight: 1.15;
+  --leading-tight: 1.12;
   --leading-snug:  1.35;
   --leading-body:  1.6;
 
@@ -65,6 +99,7 @@
   --weight-medium:   500;
   --weight-semibold: 600;
   --weight-bold:     700;
+  --weight-extra:    800;
 
   --tracking-label: 0.08em;   /* rótulos em caixa alta */
 
@@ -82,26 +117,31 @@
   --gutter:        var(--space-4);   /* margem lateral mobile */
   --container-max: 1280px;
 
-  /* ---- Forma ------------------------------------------------------------- */
-  --radius-sm:   2px;    /* precisão: cantos quase retos */
-  --radius-md:   4px;
-  --radius-lg:   8px;
+  /* ---- Forma: cantos suaves (objeto bem-acabado, lixado) ------------------ */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
   --radius-pill: 999px;
 
   --border-hairline: 1px solid var(--color-line);
   --border-default:  1px solid var(--color-border);
 
-  --shadow-sm: 0 1px 2px rgb(31 30 28 / 0.06);
-  --shadow-md: 0 4px 16px rgb(31 30 28 / 0.08);
-  --shadow-lg: 0 12px 40px rgb(31 30 28 / 0.12);
+  /* Sombras quentes e baixas (luz de estúdio) */
+  --shadow-xs: 0 1px 2px rgb(60 44 28 / 0.06);
+  --shadow-sm: 0 2px 6px rgb(60 44 28 / 0.06), 0 1px 2px rgb(60 44 28 / 0.05);
+  --shadow-md: 0 8px 24px rgb(60 44 28 / 0.09), 0 2px 6px rgb(60 44 28 / 0.05);
+  --shadow-lg: 0 18px 48px rgb(60 44 28 / 0.14);
 
   /* ---- Movimento --------------------------------------------------------- */
   --ease-out:      cubic-bezier(0.2, 0.7, 0.2, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
+  --duration-slow: 320ms;
 
   /* ---- Camadas ----------------------------------------------------------- */
   --z-header:  100;
+  --z-dropdown: 150;
   --z-drawer:  200;
   --z-modal:   300;
   --z-toast:   400;
@@ -118,6 +158,7 @@
   :root {
     --duration-fast: 0ms;
     --duration-base: 0ms;
+    --duration-slow: 0ms;
   }
 }
 

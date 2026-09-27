@@ -25,11 +25,12 @@ final class ProductService
 {
     private const PRODUCT_FIELDS = [
         'category_id', 'name', 'slug', 'short_description', 'description', 'highlights',
-        'production_lead_days', 'is_featured', 'is_new', 'meta_title', 'meta_description',
+        'keywords', 'care_instructions', 'assembly_info',
+        'production_lead_days', 'dispatch_days', 'is_featured', 'is_new', 'meta_title', 'meta_description',
     ];
 
     private const VARIANT_FIELDS = [
-        'sku', 'price_cents', 'compare_at_price_cents', 'material_label', 'finish_label',
+        'sku', 'price_cents', 'compare_at_price_cents', 'cost_cents', 'material_label', 'finish_label',
         'width_mm', 'height_mm', 'depth_mm', 'weight_g',
         'package_width_mm', 'package_height_mm', 'package_length_mm', 'package_weight_g',
     ];
@@ -81,7 +82,7 @@ final class ProductService
             $this->variants->update($variantId, $variant);
 
             // Preço: auditoria específica (price_change)
-            $priceFields = ['price_cents', 'compare_at_price_cents'];
+            $priceFields = ['price_cents', 'compare_at_price_cents', 'cost_cents'];
             $this->audit->recordChanges(
                 AuditService::PRICE_CHANGE, 'product', $id,
                 array_intersect_key($current, array_flip($priceFields)),
@@ -182,6 +183,8 @@ final class ProductService
      */
     private function prepare(array $input, ?int $productId, ?int $variantId, ?string $currentSlug = null): array
     {
+        // Campos da etapa 14: quem ainda não os envia (importação, testes antigos) recebe o padrão
+        $input += ['keywords' => '', 'care_instructions' => '', 'assembly_info' => '', 'dispatch_days' => 1, 'cost_cents' => null];
         $errors = [];
 
         if (!$this->products->categoryIsUsable((int) $input['category_id'])) {
@@ -214,7 +217,7 @@ final class ProductService
         $product['slug'] = $slug;
         $product['is_featured'] = (int) $input['is_featured'];
         $product['is_new'] = (int) $input['is_new'];
-        foreach (['short_description', 'description', 'highlights', 'meta_title', 'meta_description'] as $field) {
+        foreach (['short_description', 'description', 'highlights', 'keywords', 'care_instructions', 'assembly_info', 'meta_title', 'meta_description'] as $field) {
             $product[$field] = ($product[$field] ?? '') === '' ? null : $product[$field];
         }
 

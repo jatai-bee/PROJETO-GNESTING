@@ -12,7 +12,7 @@ use GNesting\Core\Repository;
  */
 final class ProductVariantRepository extends Repository
 {
-    private const FIELDS = 'v.id, v.product_id, v.sku, v.name, v.price_cents, v.compare_at_price_cents, v.material_label, v.finish_label,
+    private const FIELDS = 'v.id, v.product_id, v.sku, v.name, v.price_cents, v.compare_at_price_cents, v.cost_cents, v.material_label, v.finish_label,
         v.width_mm, v.height_mm, v.depth_mm, v.weight_g, v.package_width_mm, v.package_height_mm, v.package_length_mm, v.package_weight_g,
         v.is_default, v.is_active, v.sort_order,
         COALESCE(i.stock_mode, \'made_to_order\') AS stock_mode, COALESCE(i.quantity_on_hand, 0) AS quantity_on_hand,
@@ -51,11 +51,11 @@ final class ProductVariantRepository extends Repository
     public function create(int $productId, array $data): int
     {
         return $this->insert(
-            'INSERT INTO product_variants (product_id, sku, name, price_cents, compare_at_price_cents, material_label, finish_label,
+            'INSERT INTO product_variants (product_id, sku, name, price_cents, compare_at_price_cents, cost_cents, material_label, finish_label,
                                            width_mm, height_mm, depth_mm, weight_g,
                                            package_width_mm, package_height_mm, package_length_mm, package_weight_g,
                                            is_default, sort_order)
-             SELECT :product_id, :sku, :name, :price_cents, :compare_at_price_cents, :material_label, :finish_label,
+             SELECT :product_id, :sku, :name, :price_cents, :compare_at_price_cents, :cost_cents, :material_label, :finish_label,
                     :width_mm, :height_mm, :depth_mm, :weight_g,
                     :package_width_mm, :package_height_mm, :package_length_mm, :package_weight_g,
                     0, COALESCE(MAX(sort_order), 0) + 10
@@ -104,10 +104,10 @@ final class ProductVariantRepository extends Repository
     public function createDefault(int $productId, array $data): int
     {
         return $this->insert(
-            'INSERT INTO product_variants (product_id, sku, price_cents, compare_at_price_cents, material_label, finish_label,
+            'INSERT INTO product_variants (product_id, sku, price_cents, compare_at_price_cents, cost_cents, material_label, finish_label,
                                            width_mm, height_mm, depth_mm, weight_g,
                                            package_width_mm, package_height_mm, package_length_mm, package_weight_g, is_default)
-             VALUES (:product_id, :sku, :price_cents, :compare_at_price_cents, :material_label, :finish_label,
+             VALUES (:product_id, :sku, :price_cents, :compare_at_price_cents, :cost_cents, :material_label, :finish_label,
                      :width_mm, :height_mm, :depth_mm, :weight_g,
                      :package_width_mm, :package_height_mm, :package_length_mm, :package_weight_g, 1)',
             $data + ['product_id' => $productId]
@@ -119,7 +119,7 @@ final class ProductVariantRepository extends Repository
     {
         $this->execute(
             'UPDATE product_variants
-                SET sku = :sku, price_cents = :price_cents, compare_at_price_cents = :compare_at_price_cents,
+                SET sku = :sku, price_cents = :price_cents, compare_at_price_cents = :compare_at_price_cents, cost_cents = :cost_cents,
                     material_label = :material_label, finish_label = :finish_label,
                     width_mm = :width_mm, height_mm = :height_mm, depth_mm = :depth_mm, weight_g = :weight_g,
                     package_width_mm = :package_width_mm, package_height_mm = :package_height_mm,

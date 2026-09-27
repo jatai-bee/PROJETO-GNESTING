@@ -17,7 +17,7 @@ return [
 
     // Rotas sem sessão, CSRF nem carrinho (robôs e serviços externos não criam sessões à toa).
     // Caminho exato, ou prefixo quando termina em "/".
-    'stateless' => ['/saude', '/sitemap.xml', '/robots.txt', '/webhooks/'],
+    'stateless' => ['/saude', '/sitemap.xml', '/robots.txt', '/webhooks/', '/sw.js', '/manifest.webmanifest', '/admin/manifest.webmanifest', '/offline'],
 
     // Apelidos usados nos arquivos de rotas. Parâmetros: 'role:manager,production'
     'aliases' => [

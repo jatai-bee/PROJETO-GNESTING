@@ -19,7 +19,19 @@ $favoriteIds ??= [];
 $navCategories = array_values(array_filter($navCategories ?? [], static fn (array $c): bool => (int) $c['total'] > 0));
 $searchQuery = isset($filters['q']) && is_string($filters['q']) ? $filters['q'] : '';
 $robots = !empty($noindex) || !empty($hasFilters) ? 'noindex, follow' : null;
-$currentPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$currentPath ??= '/';          // compartilhado pelo Kernel (caminho sem a subpasta da instalação)
+$currentQuery ??= ['oferta' => '', 'ordem' => ''];
+// Faixa de categorias do celular: a principal fica marcada também nas páginas das subcategorias
+$stripActive = null;
+foreach ($navCategories as $navCategory) {
+    foreach ([$navCategory, ...$navCategory['children']] as $candidate) {
+        if ($currentPath === '/categoria/' . $candidate['slug']) {
+            $stripActive = $navCategory['slug'];
+        }
+    }
+}
+$stripOffers = $currentPath === '/produtos' && $currentQuery['oferta'] === '1';
+$stripNew = $currentPath === '/produtos' && $currentQuery['ordem'] === 'novidades';
 $favCount = count($favoriteIds);
 $firstName = $currentCustomer !== null ? explode(' ', trim((string) $currentCustomer['name']))[0] : null;
 $icon = fn (string $name, int $size = 20): string => $this->partial('partials/icon', ['name' => $name, 'size' => $size]);
@@ -53,13 +65,20 @@ $icon = fn (string $name, int $size = 20): string => $this->partial('partials/ic
     <?php endforeach ?>
     <meta name="theme-color" content="#F6F3EE">
     <link rel="icon" href="<?= e(asset('img/logo-mark.svg')) ?>" type="image/svg+xml">
+    <?php /* Aplicativo no celular: "Adicionar à tela inicial" */ ?>
+    <link rel="manifest" href="<?= e(url('/manifest.webmanifest')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('icons/loja-apple-180.png')) ?>">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="G-Nesting">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="preload" href="<?= e(asset('fonts/manrope-latin-wght-normal.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/store.css')) ?>">
     <script src="<?= e(asset('js/store.js')) ?>" defer></script>
 </head>
-<body class="store">
+<body class="store" data-sw="<?= e(url('/sw.js')) ?>">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <?php if (!empty($announcement)): ?>
 <p class="announcement"><?= e($announcement) ?></p>
@@ -112,6 +131,10 @@ $icon = fn (string $name, int $size = 20): string => $this->partial('partials/ic
                         <a class="btn btn--secondary btn--block" href="<?= e(url('/cadastro')) ?>">Criar conta</a>
                     <?php endif ?>
                     <a class="btn btn--ghost btn--block" href="<?= e(url('/como-fazemos')) ?>">Como fazemos</a>
+                    <div class="app-install">
+                        <button type="button" class="btn btn--secondary btn--block" data-pwa-install hidden>Instalar o aplicativo</button>
+                        <p class="app-install__ios" data-pwa-ios hidden>Para instalar no iPhone: toque em Compartilhar e depois em <strong>Adicionar à Tela de Início</strong>.</p>
+                    </div>
                 </div>
             </nav>
         </details>
@@ -149,6 +172,16 @@ $icon = fn (string $name, int $size = 20): string => $this->partial('partials/ic
     </div>
 
     <?php if ($navCategories !== []): ?>
+    <nav class="cat-strip" aria-label="Categorias">
+        <ul class="cat-strip__list">
+            <li><a class="cat-strip__chip" href="<?= e(url('/produtos')) ?>"<?= $currentPath === '/produtos' && !$stripOffers && !$stripNew ? ' aria-current="page"' : '' ?>>Todos</a></li>
+            <?php foreach ($navCategories as $navCategory): ?>
+                <li><a class="cat-strip__chip" href="<?= e(url('/categoria/' . $navCategory['slug'])) ?>"<?= $stripActive === $navCategory['slug'] ? ' aria-current="page"' : '' ?>><?= e($navCategory['name']) ?></a></li>
+            <?php endforeach ?>
+            <li><a class="cat-strip__chip cat-strip__chip--sale" href="<?= e(url('/produtos?oferta=1')) ?>"<?= $stripOffers ? ' aria-current="page"' : '' ?>>Ofertas</a></li>
+            <li><a class="cat-strip__chip" href="<?= e(url('/produtos?ordem=novidades')) ?>"<?= $stripNew ? ' aria-current="page"' : '' ?>>Novidades</a></li>
+        </ul>
+    </nav>
     <nav class="nav-main" aria-label="Categorias">
         <div class="container nav-main__inner">
             <ul class="nav-main__list">
@@ -227,6 +260,12 @@ $icon = fn (string $name, int $size = 20): string => $this->partial('partials/ic
                 <?php if (!empty($contactEmail)): ?><li><a href="mailto:<?= e($contactEmail) ?>"><?= e($contactEmail) ?></a></li><?php endif ?>
                 <?php if (!empty($floatingWhatsapp)): ?><li><a href="<?= e($floatingWhatsapp) ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a></li><?php endif ?>
             </ul>
+            <div class="app-install" data-pwa-box hidden>
+                <h2>Aplicativo</h2>
+                <p>Instale a G-Nesting no celular: compre mais rápido e acompanhe seus pedidos.</p>
+                <button type="button" class="btn btn--light btn--sm" data-pwa-install hidden>Instalar o aplicativo</button>
+                <p class="app-install__ios" data-pwa-ios hidden>No iPhone: toque em Compartilhar e depois em <strong>Adicionar à Tela de Início</strong>.</p>
+            </div>
         </div>
     </div>
     <div class="container footer-bottom">

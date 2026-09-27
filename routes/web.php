@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 use GNesting\Controllers\HealthController;
+use GNesting\Controllers\PwaController;
 use GNesting\Controllers\Store\AccountController;
 use GNesting\Controllers\Store\AuthController;
 use GNesting\Controllers\Store\CartController;
@@ -48,6 +49,11 @@ return static function (Router $r): void {
 
     // Monitoramento (sem sessão: ver middleware.stateless)
     $r->get('/saude', [HealthController::class, 'show']);
+
+    // Aplicativo no celular (manifesto, service worker e página sem conexão)
+    $r->get('/manifest.webmanifest', [PwaController::class, 'storeManifest']);
+    $r->get('/sw.js', [PwaController::class, 'serviceWorker']);
+    $r->get('/offline', [PwaController::class, 'offline']);
 
     // Checkout e pedido (com ou sem conta)
     $r->get('/checkout', [CheckoutController::class, 'show']);

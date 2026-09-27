@@ -5,8 +5,8 @@ estão nos documentos citados entre parênteses; para instalar e usar, este guia
 
 - **Parte 1 — Instalação:** do zero até a primeira venda, **só pelo navegador**: cPanel, Gerenciador de Arquivos e o
   assistente da loja. Não precisa de Terminal, programação nem GitHub.
-- **Parte 2 — Uso:** cadastro, pedidos, produção, estoque, expedição, relatórios e rotinas, com o que cada pessoa da
-  equipe faz.
+- **Parte 2 — Uso:** cadastro, pedidos, produção, estoque, expedição, relatórios, o aplicativo no celular e as rotinas,
+  com o que cada pessoa da equipe faz.
 
 ---
 
@@ -721,6 +721,7 @@ passo 3 (passo 2.20).
 | Importação do YAML recusada | Nada foi gravado. A mensagem diz o caminho do erro (ex.: `categorias[2].slug`): corrija o arquivo e importe de novo |
 | Esqueci a senha e o e-mail da loja não funciona | Com outro proprietário: Usuários → trocar a senha. Sendo o único: corrija o e-mail no `.env` (1.10) e use "Esqueci minha senha" |
 | Perdi dados / algo foi apagado | Restaure o backup mais recente de antes do problema (passo 2.20) |
+| Layout desconfigurado depois de atualizar a loja (num navegador sim, noutro não) | O navegador guardou o visual da versão anterior. Aperte **Ctrl+F5** uma vez (no celular: limpar o cache do navegador ou abrir numa aba anônima). Da versão de 27/09/2026 em diante, cada atualização troca o endereço dos arquivos de estilo e isso não acontece mais |
 
 ## 2.19 Configuração em arquivo (YAML)
 
@@ -803,6 +804,37 @@ datas **De** e **até** (até 3 anos).
 formato brasileiro). Cada download fica registrado na auditoria.
 
 Custo e margem usam o custo cadastrado **hoje** em cada variação (aba Comercial do produto).
+
+## 2.24 Instalar no celular (clientes e equipe)
+
+A loja e o painel podem ser **salvos no celular como aplicativo**: um ícone na tela inicial que abre em tela cheia,
+sem a barra do navegador. São dois aplicativos separados, com ícones diferentes:
+
+| App | Ícone | Abre em | Para quem |
+|---|---|---|---|
+| **G-Nesting** | G escuro sobre fundo claro | a vitrine | clientes |
+| **Painel** | G claro sobre fundo escuro | o login do painel | a equipe (ótimo para a fila de produção no celular da oficina) |
+
+Só funciona com a loja em **https** (passo 1.5).
+
+**Android (Chrome, Samsung Internet, Edge):**
+1. Abra a loja (ou `/admin`, para o painel).
+2. Toque em **Instalar o aplicativo**: fica no rodapé da loja e no menu ☰. No painel, é **Instalar o painel no
+   celular**, no fim do menu. O botão só aparece quando o navegador permite a instalação.
+3. Se o botão não aparecer, use o menu do navegador (⋮) → **Instalar app** ou **Adicionar à tela inicial**.
+
+**iPhone (Safari):** toque em **Compartilhar** (quadrado com a seta) → **Adicionar à Tela de Início**. A loja mostra
+essa instrução no rodapé quando é aberta no iPhone.
+
+**Computador (Chrome ou Edge):** o ícone de instalar aparece na barra de endereço.
+
+Bom saber:
+- O aplicativo é a própria loja: tudo o que você muda no painel aparece nele na hora, sem publicar nada em loja de
+  aplicativos.
+- **Sem internet**, aparece a página "Sem conexão". Nenhuma página com dados do cliente (conta, carrinho, pedido) fica
+  guardada no celular.
+- Pressione o ícone por um instante para ver os **atalhos**: *Meus pedidos*, *Carrinho* e *Favoritos* na loja;
+  *Pedidos*, *Fila de produção* e *Expedição* no painel.
 
 ---
 

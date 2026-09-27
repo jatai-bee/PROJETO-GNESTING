@@ -42,6 +42,10 @@ final class Kernel
 
             $match = $this->router->match($request->method(), $request->path());
             $request->setRouteParams($match->params);
+            // Endereço atual para os layouts (item de menu marcado), sem ler $_SERVER nos templates
+            $view = $this->container->get(View::class);
+            $view->share('currentPath', $request->path());
+            $view->share('currentQuery', ['oferta' => (string) $request->query('oferta', ''), 'ordem' => (string) $request->query('ordem', '')]);
 
             $global = $this->isStateless($request->path()) ? [] : $this->config->get('middleware.global', []);
             $stack = [...$global, ...$match->middleware];

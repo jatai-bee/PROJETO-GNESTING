@@ -6,6 +6,7 @@ namespace GNesting\Tests\Unit;
 
 use GNesting\Core\Bootstrap;
 use GNesting\Core\Config;
+use GNesting\Tests\Support\TestFiles;
 use PHPUnit\Framework\TestCase;
 
 final class HelpersTest extends TestCase
@@ -45,7 +46,20 @@ final class HelpersTest extends TestCase
         app(Config::class)->set('app.base_path', '/gnesting');
         self::assertSame('/gnesting/entrar', url('entrar'));
         self::assertSame('/gnesting/', url('/'));
-        self::assertSame('/gnesting/assets/css/app.css', asset('css/app.css'));
+        self::assertMatchesRegularExpression('#^/gnesting/assets/css/app\.css(\?v=\d+)?$#', asset('css/app.css'));
+    }
+
+    public function testAssetUrlChangesWhenTheFileChanges(): void
+    {
+        $base = TestFiles::tempDir('gn-assets');
+        mkdir($base . '/public/assets/css', 0777, true);
+        file_put_contents($base . '/public/assets/css/nova.css', 'body{}');
+        touch($base . '/public/assets/css/nova.css', 1790000000);
+        app(Config::class)->set('paths.base', $base);
+
+        self::assertSame('/assets/css/nova.css?v=1790000000', asset('css/nova.css'), 'Versão = data do arquivo');
+        self::assertSame('/assets/css/nao-existe.css', asset('css/nao-existe.css'), 'Arquivo inexistente fica sem versão');
+        TestFiles::cleanup();
     }
 
     public function testFormatDatetimeConvertsUtcToStoreTimezone(): void

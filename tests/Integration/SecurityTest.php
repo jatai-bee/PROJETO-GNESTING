@@ -55,7 +55,8 @@ final class SecurityTest extends HttpTestCase
 
     public function testEveryAdminRouteRequiresLogin(): void
     {
-        $public = ['/admin/login', '/admin/recuperar-senha', '/admin/redefinir-senha/{token:[a-f0-9]{64}}'];
+        // O manifesto do app do painel é buscado pelo navegador sem sessão; só tem nome, ícones e endereços
+        $public = ['/admin/login', '/admin/recuperar-senha', '/admin/redefinir-senha/{token:[a-f0-9]{64}}', '/admin/manifest.webmanifest'];
         foreach ($this->routes() as $route) {
             if (!str_starts_with($route['path'], '/admin') || in_array($route['path'], $public, true)) {
                 continue;

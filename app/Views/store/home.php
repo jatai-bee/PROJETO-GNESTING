@@ -66,7 +66,7 @@ $collage = array_values(array_column($collage, null, 'id'));
 </section>
 
 <?php if ($categories !== []): ?>
-<section class="section section--tight" aria-labelledby="categorias">
+<section class="section section--tight home-categories" aria-labelledby="categorias">
     <div class="container">
         <div class="section__head">
             <div>

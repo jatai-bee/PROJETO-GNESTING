@@ -444,3 +444,33 @@ a.order-list__item:hover { box-shadow: var(--shadow-md); color: var(--color-text
 .coupon-form input::placeholder { text-transform: none; }
 .container > .page-head:first-child { padding-top: var(--space-6); }
 .account-cards + .section__head { margin-top: var(--space-6); }
+
+/* ---- Faixa de categorias do celular (fica presa no topo com o cabeçalho) ---------- */
+.cat-strip { border-top: var(--border-hairline); }
+.cat-strip__list { display: flex; gap: var(--space-2); margin: 0; padding: var(--space-2) var(--gutter); list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.cat-strip__list::-webkit-scrollbar { display: none; }
+.cat-strip__list li { flex-shrink: 0; scroll-snap-align: start; }
+.cat-strip__chip {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: var(--radius-pill);
+  background: var(--color-surface-alt); color: var(--color-text); text-decoration: none; font-size: var(--text-sm); font-weight: var(--weight-bold); white-space: nowrap;
+}
+.cat-strip__chip:hover { color: var(--color-text); background: var(--gn-cinza-200); }
+.cat-strip__chip[aria-current="page"] { background: var(--color-dark); color: var(--gn-branco); }
+.cat-strip__chip--sale { color: var(--color-accent-text); }
+@media (max-width: 1023px) {
+  .header-main { padding-block: var(--space-2); row-gap: var(--space-2); }
+  .site-search input { height: 42px; }
+  .site-search__button { top: 4px; right: 4px; width: 34px; height: 34px; }
+}
+@media (min-width: 1024px) { .cat-strip { display: none; } }
+@media (max-width: 767px) { .home-categories { display: none; } }
+
+/* ---- Aplicativo no celular: página sem conexão e convite para instalar ---------------- */
+.offline-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-6) var(--gutter); text-align: center; }
+.offline-page h1 { font: var(--weight-medium) var(--text-3xl)/1.15 var(--font-display); }
+.offline-page p { max-width: 42ch; color: var(--color-text-muted); }
+.app-install p { margin-bottom: var(--space-3); }
+.app-install__ios { font-size: var(--text-xs); color: #CFC8BD; }
+.nav-drawer .app-install__ios { color: var(--color-text-muted); }
+.app-install .btn--light { background: var(--gn-branco); color: var(--color-dark); }
+.app-install .btn--light:hover { background: var(--gn-papel); color: var(--color-dark); }

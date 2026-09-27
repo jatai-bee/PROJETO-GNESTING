@@ -126,6 +126,27 @@ Tudo o que a demonstração cria fica registrado em `demo_records` e sai inteiro
 - **Teclado:** foco visível em tudo; menu de categorias abre pelo teclado; Esc fecha as gavetas da loja e do painel e devolve o foco ao botão.
 - **Celular (390 px):** estoque vira cartões, preço do frete não quebra, as quatro etapas da compra cabem na tela e o exemplo da busca ficou curto.
 
-## 9. Testes
+## 9. Aplicativo no celular, faixa de categorias e cache
 
-`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos), `AccessibilityTest` (regras de acessibilidade em 30 telas) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).
+- **Faixa de categorias no celular:** abaixo de 1024 px, logo abaixo da busca e presa no topo com o cabeçalho, uma
+  faixa rolável para o lado com *Todos*, as categorias principais, *Ofertas* e *Novidades*. Nas páginas de uma
+  subcategoria, marca a principal. A seção "Explore por categoria" da home fica oculta no celular.
+- **"Salvar no celular"** (aplicativo web), para a loja e o painel, com ícones próprios em `public/assets/icons/`
+  (loja: G escuro sobre papel; painel: G claro sobre grafite; versões *maskable* e para iPhone):
+  - `PwaController`: `/manifest.webmanifest` (loja), `/admin/manifest.webmanifest` (painel, público), `/sw.js` e
+    `/offline`, todas sem sessão (`middleware.stateless`);
+  - o service worker guarda só o que é igual para todos: os CSS e JS versionados (cache primeiro) e as fotos de
+    `/uploads` (mostra a guardada e atualiza em segundo plano). **Páginas nunca são guardadas**: trazem o nome do
+    cliente, favoritos e tokens de formulário. Sem rede, aparece a página offline;
+  - o botão **Instalar** só aparece quando o navegador oferece a instalação (`beforeinstallprompt`); no iPhone aparece
+    a instrução Compartilhar → Tela de Início; tudo some quando o app já está instalado.
+- **Cache de CSS e JS:** `asset()` acrescenta `?v=<data do arquivo>`. O servidor manda o navegador guardar esses
+  arquivos por um mês; sem a versão, quem já tinha visitado a loja via o CSS antigo com o HTML novo depois de uma
+  atualização (o layout "desconfigurado" em um navegador e normal em outro).
+- O endereço atual (item de menu marcado) vem do Kernel (`currentPath`, `currentQuery`), não de `$_SERVER` nos
+  templates.
+
+## 10. Testes
+
+`StorefrontRedesignTest` (favoritos, filtros rápidos, remoção pelo painel), `AdminDashboardTest` (indicadores por papel, períodos, comparação, trilha), `AdminCatalogTest` (abas do produto, custo e margem, duplicação, árvore de categorias, observações do cliente), `AdminOperationsTest` (acerto de estoque, quadro, ordem impressa, pedidos em cartões, relatórios, CSV seguro, períodos), `AccessibilityTest` (regras de acessibilidade em 30 telas), `PwaTest` (manifestos, ícones, service worker, página
+offline, faixa de categorias) e `InstallerTest` (instalação com demonstração, volume mínimo, alertas planejados, remoção sem sobras, fotos apagadas do disco).

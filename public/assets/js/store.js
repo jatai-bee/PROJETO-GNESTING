@@ -12,6 +12,62 @@
 
   document.documentElement.classList.add('js');
 
+  // Faixa de categorias do celular: mostra a categoria aberta, mesmo que ela esteja no fim da lista
+  var activeChip = document.querySelector('.cat-strip [aria-current="page"]');
+  if (activeChip && activeChip.parentElement && activeChip.parentElement.parentElement) {
+    var strip = activeChip.parentElement.parentElement;
+    strip.scrollLeft = Math.max(0, activeChip.parentElement.offsetLeft - 16);
+  }
+
+  // ---- Aplicativo no celular ----------------------------------------------------
+  // Registra o service worker (só em https) e mostra "Instalar" quando o navegador permite.
+  // No iPhone não existe o convite automático: aparece a instrução de Compartilhar > Tela de Início.
+  (function () {
+    var sw = document.body ? document.body.getAttribute('data-sw') : null;
+    var secure = window.location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(window.location.hostname) !== -1;
+    if (sw && secure && 'serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register(sw).catch(function () { /* sem service worker a loja funciona igual */ });
+      });
+    }
+    var installed = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    if (installed) {
+      return;
+    }
+    var boxes = document.querySelectorAll('[data-pwa-box]');
+    var buttons = document.querySelectorAll('[data-pwa-install]');
+    var reveal = function (selector) {
+      boxes.forEach(function (box) { box.hidden = false; });
+      document.querySelectorAll(selector).forEach(function (el) { el.hidden = false; });
+    };
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) {
+      reveal('[data-pwa-ios]');
+    }
+    var deferred = null;
+    window.addEventListener('beforeinstallprompt', function (event) {
+      event.preventDefault();
+      deferred = event;
+      reveal('[data-pwa-install]');
+    });
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (!deferred) {
+          return;
+        }
+        deferred.prompt();
+        deferred.userChoice.then(function () {
+          deferred = null;
+          buttons.forEach(function (b) { b.hidden = true; });
+        });
+      });
+    });
+    window.addEventListener('appinstalled', function () {
+      boxes.forEach(function (box) { box.hidden = true; });
+      buttons.forEach(function (b) { b.hidden = true; });
+    });
+  })();
+
   // Gavetas do menu (<details>): Esc fecha e devolve o foco ao botão que abriu
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') {

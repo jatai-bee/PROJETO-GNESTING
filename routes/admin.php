@@ -31,10 +31,14 @@ use GNesting\Controllers\Admin\ShippingDeskController;
 use GNesting\Controllers\Admin\StockController;
 use GNesting\Controllers\Admin\SystemController;
 use GNesting\Controllers\Admin\VariantController;
+use GNesting\Controllers\PwaController;
 use GNesting\Core\Router;
 
 return static function (Router $r): void {
     $r->group(['prefix' => '/admin'], static function (Router $r): void {
+        // Manifesto do aplicativo do painel: público (o navegador busca sem login)
+        $r->get('/manifest.webmanifest', [PwaController::class, 'adminManifest']);
+
         $r->group(['middleware' => ['admin.guest']], static function (Router $r): void {
             $r->get('/login', [AuthController::class, 'showLogin']);
             $r->post('/login', [AuthController::class, 'login']);

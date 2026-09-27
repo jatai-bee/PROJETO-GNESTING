@@ -533,3 +533,9 @@ code.break { word-break: break-all; }
 .report-period__custom input { height: 36px; padding: 0 8px; border: var(--border-default); border-radius: var(--radius-sm); font: inherit; font-weight: var(--weight-regular); }
 .report-table { max-height: 420px; overflow-y: auto; }
 .page-title .status { font-family: var(--font-sans); font-size: var(--text-xs); vertical-align: middle; }
+
+/* ---- Instalar o painel no celular ------------------------------------------------ */
+.admin-install { margin-top: var(--space-5); padding: 0 var(--space-3); }
+.admin-install__button { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: 9px var(--space-3); border: 1px solid rgb(255 255 255 / 0.2); border-radius: var(--radius-md); background: none; color: #DCD5CA; font: inherit; font-size: var(--text-sm); font-weight: var(--weight-semibold); cursor: pointer; }
+.admin-install__button:hover { background: rgb(255 255 255 / 0.07); color: var(--gn-branco); }
+.admin-install__ios { font-size: var(--text-xs); color: #CFC8BD; }

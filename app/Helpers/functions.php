@@ -279,9 +279,21 @@ if (!function_exists('absolute_url')) {
 }
 
 if (!function_exists('asset')) {
+    /**
+     * Endereço de um arquivo de public/assets com a data de modificação (?v=...). O servidor manda o navegador
+     * guardar CSS e JS por um mês: sem a versão, quem já visitou a loja veria o CSS antigo com o HTML novo
+     * depois de uma atualização. Cada pacote novo muda a data dos arquivos e, com ela, o endereço.
+     */
     function asset(string $path): string
     {
-        return url('/assets/' . ltrim($path, '/'));
+        static $versions = [];
+        $path = ltrim($path, '/');
+        if (!array_key_exists($path, $versions)) {
+            $file = rtrim((string) config('paths.base', ''), '/') . '/public/assets/' . $path;
+            $versions[$path] = config('paths.base') !== null && is_file($file) ? (string) filemtime($file) : null;
+        }
+
+        return url('/assets/' . $path) . ($versions[$path] !== null ? '?v=' . $versions[$path] : '');
     }
 }
 
